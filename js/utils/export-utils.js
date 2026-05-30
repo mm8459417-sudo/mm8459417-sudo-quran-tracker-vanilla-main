@@ -20,31 +20,44 @@
     return gifWorkerUrl;
   }
 
-  // الدالة النهائية بعد دمج التعديلات العميقة
-  async function captureElement(el, scale = 3) {
-    // 1. التأكد من تحميل الخطوط بالكامل قبل التصوير
+  // الدالة المُعدلة لضمان ثبات المقاسات وإصلاح تداخل النصوص في العنوان
+  async function captureElement(el, scale = 2) {
+    // 1. إنشاء نسخة خفية من العنصر المراد تصويره
+    const clone = el.cloneNode(true);
+
+    // 2. إعطاء النسخة أبعاد ثابتة وإخفائها عن عين المستخدم
+    Object.assign(clone.style, {
+      position: 'absolute',
+      top: '-9999px',
+      right: '-9999px',
+      width: '800px', // عرض ثابت يمنع تداخل العناصر في الشاشات الصغيرة
+      height: 'auto',
+      direction: 'rtl', // إجبار الاتجاه ليكون من اليمين لليسار
+      margin: '0',
+      boxSizing: 'border-box'
+    });
+
+    // 3. إضافة النسخة لصفحة الويب مؤقتاً ليتمكن المتصفح من قراءة تنسيقاتها
+    document.body.appendChild(clone);
+
+    // 4. الانتظار حتى يتم تحميل جميع الخطوط بالكامل
     await document.fonts.ready;
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    // 2. إعطاء العنصر ID مؤقت عشان نعرف نصطاده جوه النسخة الخفية
-    const originalId = el.id;
-    const tempId = 'capture-target-' + Math.random().toString(36).substr(2, 9);
-    el.id = tempId;
-
+    // 5. بدء التصوير باستخدام إعدادات ثابتة تتجاهل السكرول وتصلح تداخل العناوين
     try {
-      // 3. تشغيل المكتبة مع استخدام onclone للحفاظ على شجرة العناصر الأصلية
-      const canvas = await html2canvas(el, {
-        scale: scale, // دقة عالية جداً (3 بدل 2) لضمان جودة النصوص
+      const canvas = await html2canvas(clone, {
+        scale: scale,
         backgroundColor: "#ffffff",
         useCORS: true,
-        allowTaint: true,
+        windowWidth: 800, // تحديد عرض نافذة وهمي يطابق عرض النسخة
         scrollX: 0,
-        scrollY: -window.scrollY, // حل سحري لمشكلة السكرول والقص
+        scrollY: 0,
         onclone: (clonedDoc) => {
-          // اصطياد العنصر من داخل النسخة المستنسخة للموقع
-          const clonedEl = clonedDoc.getElementById(tempId);
-          if (clonedEl) {
-            // إجبار العنصر على التمدد لمقاس مناسب (800px) لمنع ضغط النصوص
+          // اصطياد العنوان الرئيسي جوه النسخة الخفية
+          const titleElement = clonedDoc.querySelector('.certificate-title h2, h2.certificate-title'); // تأكد من الـ selector ده عندك
+          if (titleElement) {
+            // إجبار العنوان على التمدد وإلغاء أي تداخل
             clonedEl.style.width = '800px';
             clonedEl.style.maxWidth = 'none'; // إلغاء أي تقييد للعرض
             clonedEl.style.transform = 'none'; // إلغاء أي تصغير أو تأثير زووم
@@ -62,13 +75,13 @@
       });
       return canvas;
     } finally {
-      // 4. إعادة العنصر لحالته الأصلية فور الانتهاء
-      el.id = originalId;
+      // 6. مسح النسخة من الصفحة فوراً بعد انتهاء التصوير لتنظيف الكود
+      document.body.removeChild(clone);
     }
   }
 
   window.exportElementAsImage = async function (el, filename) {
-    const canvas = await captureElement(el, 3);
+    const canvas = await captureElement(el, 2);
     const link = document.createElement("a");
     link.href = canvas.toDataURL("image/png");
     link.download = filename;
@@ -76,7 +89,7 @@
   };
 
   window.exportElementAsPdf = async function (el, filename) {
-    const canvas = await captureElement(el, 3);
+    const canvas = await captureElement(el, 2);
     const imgData = canvas.toDataURL("image/png");
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "mm", "a4");
