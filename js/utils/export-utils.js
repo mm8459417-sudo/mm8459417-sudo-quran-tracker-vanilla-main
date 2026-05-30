@@ -20,59 +20,57 @@
     return gifWorkerUrl;
   }
 
-  // الدالة النهائية الشاملة لحل مشاكل المقاسات وتدرج الألوان وتفرق الحروف
-  async function captureElement(el, scale = 2) {
-    const clone = el.cloneNode(true);
+  // 1. دالة جديدة لتحميل المكتبة الحديثة (dom-to-image-more) تلقائياً
+  async function loadDomToImage() {
+    if (window.domtoimage) return;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/dom-to-image-more/3.2.0/dom-to-image-more.min.js";
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("فشل تحميل مكتبة الصور الحديثة"));
+      document.head.appendChild(s);
+    });
+  }
 
+  // 2. دالة التصوير باستخدام المحرك الجديد (يدعم التدرج اللوني والزجاج)
+  async function captureElement(el, scale = 2) {
+    await loadDomToImage();
+    
+    // إنشاء نسخة خفية لضبط المقاسات
+    const clone = el.cloneNode(true);
     Object.assign(clone.style, {
       position: 'absolute',
       top: '-9999px',
       right: '-9999px',
-      width: '800px', // عرض ثابت لمنع تداخل العناصر
+      width: '800px', // مقاس ثابت يمنع ضرب التنسيقات
       height: 'auto',
-      direction: 'rtl', // إجبار الاتجاه العربي
+      direction: 'rtl',
       margin: '0',
-      boxSizing: 'border-box',
+      boxSizing: 'border-box'
     });
-
+    
     document.body.appendChild(clone);
-
-    // الانتظار حتى يتم تحميل الخطوط بالكامل
+    
     await document.fonts.ready;
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    // إعطاء المتصفح نصف ثانية لتطبيق التأثيرات الزجاجية واللمعان قبل التصوير
+    await new Promise((r) => setTimeout(r, 500)); 
 
     try {
-      const canvas = await html2canvas(clone, {
-        scale: scale,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        windowWidth: 800,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          // 1. حل مشكلة المربع البني وتداخل الألوان في العناوين (إلغاء الـ Gradient Text)
-          const titles = clonedDoc.querySelectorAll('h1, h2, h3, .certificate-title, span'); 
-          titles.forEach(title => {
-            title.style.backgroundImage = 'none';
-            title.style.webkitBackgroundClip = 'initial';
-            title.style.backgroundClip = 'initial';
-            title.style.webkitTextFillColor = 'initial';
-            title.style.color = '#C6A15B'; // لون ذهبي سادة يعطي نفس الإحساس الفخم
-            title.style.backgroundColor = 'transparent';
-          });
-
-          // 2. إيقاف الأنيميشن وحل مشكلة تفرق الحروف العربية
-          const allElements = clonedDoc.getElementsByTagName("*");
-          for (let i = 0; i < allElements.length; i++) {
-            allElements[i].style.animation = "none";
-            allElements[i].style.transition = "none";
-            allElements[i].style.letterSpacing = "normal"; // يمنع تشتت الحروف
-          }
+      // استخدام المحرك الجديد
+      const canvas = await domtoimage.toCanvas(clone, {
+        width: 800 * scale,
+        height: clone.offsetHeight * scale,
+        bgcolor: '#ffffff', // ضمان خلفية بيضاء نظيفة للشهادة
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: 'top right', // مهم لضبط المحاذاة في اللغة العربية
+          width: '800px',
+          margin: '0'
         }
       });
       return canvas;
     } finally {
-      // مسح النسخة الخفية من الصفحة لتنظيف الكود
+      // مسح النسخة من الصفحة لتنظيف الكود
       document.body.removeChild(clone);
     }
   }
