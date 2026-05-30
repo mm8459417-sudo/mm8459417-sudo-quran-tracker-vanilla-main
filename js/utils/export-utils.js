@@ -32,19 +32,22 @@
     });
   }
 
-  // 2. دالة التصوير باستخدام المحرك الجديد (يدعم التدرج اللوني والزجاج)
+  // 2. دالة التصوير باستخدام المحرك الجديد (تمنع القص وتحافظ على التدرج والشفافية)
   async function captureElement(el, scale = 2) {
     await loadDomToImage();
     
     // إنشاء نسخة خفية لضبط المقاسات
     const clone = el.cloneNode(true);
+    
+    // التعديل الجذري: وضع النسخة داخل الشاشة ولكن خلف الموقع لمنع القص
     Object.assign(clone.style, {
-      position: 'absolute',
-      top: '-9999px',
-      right: '-9999px',
-      width: '800px', // مقاس ثابت يمنع ضرب التنسيقات
+      position: 'fixed',
+      top: '0',
+      left: '0', // استخدام اليسار بدل اليمين لمنع أي خروج عن حدود المتصفح
+      width: '800px', // تثبيت العرض
       height: 'auto',
       direction: 'rtl',
+      zIndex: '-9999', // إخفاء النسخة خلف الواجهة الرئيسية
       margin: '0',
       boxSizing: 'border-box'
     });
@@ -52,19 +55,23 @@
     document.body.appendChild(clone);
     
     await document.fonts.ready;
-    // إعطاء المتصفح نصف ثانية لتطبيق التأثيرات الزجاجية واللمعان قبل التصوير
-    await new Promise((r) => setTimeout(r, 500)); 
+    // إعطاء المتصفح وقت كافي لرسم الشهادة بالكامل بكل تأثيراتها
+    await new Promise((r) => setTimeout(r, 600)); 
 
     try {
-      // استخدام المحرك الجديد
+      const width = 800;
+      const height = clone.offsetHeight;
+
+      // استخدام المحرك مع ضبط نقطة التكبير
       const canvas = await domtoimage.toCanvas(clone, {
-        width: 800 * scale,
-        height: clone.offsetHeight * scale,
+        width: width * scale,
+        height: height * scale,
         bgcolor: '#ffffff', // ضمان خلفية بيضاء نظيفة للشهادة
         style: {
           transform: `scale(${scale})`,
-          transformOrigin: 'top right', // مهم لضبط المحاذاة في اللغة العربية
-          width: '800px',
+          transformOrigin: 'top left', // بدء التكبير من الزاوية العلوية اليسرى لمنع ترحيل العناصر
+          width: `${width}px`,
+          height: `${height}px`,
           margin: '0'
         }
       });
