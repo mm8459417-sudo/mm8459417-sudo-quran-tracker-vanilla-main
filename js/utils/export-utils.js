@@ -20,7 +20,7 @@
     return gifWorkerUrl;
   }
 
-  // الدالة المُعدلة لضمان ثبات المقاسات وإصلاح تداخل النصوص في العنوان
+  // الدالة النهائية بعد دمج التعديلات العميقة وإصلاح تراكب العنوان
   async function captureElement(el, scale = 2) {
     // 1. إنشاء نسخة خفية من العنصر المراد تصويره
     const clone = el.cloneNode(true);
@@ -34,7 +34,8 @@
       height: 'auto',
       direction: 'rtl', // إجبار الاتجاه ليكون من اليمين لليسار
       margin: '0',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflow: 'visible', // السماح للعناصر بالظهور بالكامل
     });
 
     // 3. إضافة النسخة لصفحة الويب مؤقتاً ليتمكن المتصفح من قراءة تنسيقاتها
@@ -47,7 +48,7 @@
     // 5. بدء التصوير باستخدام إعدادات ثابتة تتجاهل السكرول وتصلح تداخل العناوين
     try {
       const canvas = await html2canvas(clone, {
-        scale: scale,
+        scale: scale, // دقة عالية (2) لضمان جودة النصوص
         backgroundColor: "#ffffff",
         useCORS: true,
         windowWidth: 800, // تحديد عرض نافذة وهمي يطابق عرض النسخة
