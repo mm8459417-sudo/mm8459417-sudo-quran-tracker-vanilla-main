@@ -20,13 +20,45 @@
     return gifWorkerUrl;
   }
 
+  // الدالة المُعدلة لضمان ثبات المقاسات وعدم تداخل النصوص
   async function captureElement(el, scale = 2) {
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    return html2canvas(el, {
-      scale,
-      backgroundColor: "#ffffff",
-      useCORS: true,
+    // 1. إنشاء نسخة خفية من العنصر المراد تصويره
+    const clone = el.cloneNode(true);
+
+    // 2. إعطاء النسخة أبعاد ثابتة وإخفائها عن عين المستخدم
+    Object.assign(clone.style, {
+      position: 'absolute',
+      top: '-9999px',
+      right: '-9999px',
+      width: '800px', // عرض ثابت يمنع تداخل العناصر في الشاشات الصغيرة
+      height: 'auto',
+      direction: 'rtl', // إجبار الاتجاه ليكون من اليمين لليسار
+      margin: '0',
+      boxSizing: 'border-box'
     });
+
+    // 3. إضافة النسخة لصفحة الويب مؤقتاً ليتمكن المتصفح من قراءة تنسيقاتها
+    document.body.appendChild(clone);
+
+    // 4. الانتظار حتى يتم تحميل جميع الخطوط بالكامل
+    await document.fonts.ready;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    // 5. بدء التصوير باستخدام إعدادات ثابتة تتجاهل السكرول
+    try {
+      const canvas = await html2canvas(clone, {
+        scale: scale,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        windowWidth: 800, // تحديد عرض نافذة وهمي يطابق عرض النسخة
+        scrollX: 0,
+        scrollY: 0
+      });
+      return canvas;
+    } finally {
+      // 6. مسح النسخة من الصفحة فوراً بعد انتهاء التصوير لتنظيف الكود
+      document.body.removeChild(clone);
+    }
   }
 
   window.exportElementAsImage = async function (el, filename) {
