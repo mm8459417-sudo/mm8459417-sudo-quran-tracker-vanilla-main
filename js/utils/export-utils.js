@@ -20,7 +20,7 @@
     return gifWorkerUrl;
   }
 
-  // 1. دالة جديدة لتحميل المكتبة الحديثة (dom-to-image-more) تلقائياً
+  // 1. دالة لتحميل المكتبة الحديثة (dom-to-image-more) تلقائياً
   async function loadDomToImage() {
     if (window.domtoimage) return;
     await new Promise((resolve, reject) => {
@@ -32,44 +32,72 @@
     });
   }
 
-  // 2. دالة التصوير باستخدام المحرك الجديد (تمنع القص وتحافظ على التدرج والشفافية)
+  // 2. دالة التصوير الاحترافية الشاملة (تمنع القص، وتحافظ على التدرج، وتمنع تشويش النصوص)
   async function captureElement(el, scale = 2) {
     await loadDomToImage();
     
-    // إنشاء نسخة خفية لضبط المقاسات
+    // عمل نسخة خفية من الشهادة
     const clone = el.cloneNode(true);
     
-    // التعديل الجذري: وضع النسخة داخل الشاشة ولكن خلف الموقع لمنع القص
+    // وضع النسخة في مكان آمن خلف الموقع تماماً لمنع القص
     Object.assign(clone.style, {
       position: 'fixed',
       top: '0',
-      left: '0', // استخدام اليسار بدل اليمين لمنع أي خروج عن حدود المتصفح
-      width: '800px', // تثبيت العرض
+      left: '0',
+      width: '800px',
       height: 'auto',
       direction: 'rtl',
-      zIndex: '-9999', // إخفاء النسخة خلف الواجهة الرئيسية
+      zIndex: '-9999', // مخفية وراء الكواليس
       margin: '0',
       boxSizing: 'border-box'
     });
     
     document.body.appendChild(clone);
     
+    // الانتظار حتى تحميل الخطوط
     await document.fonts.ready;
-    // إعطاء المتصفح وقت كافي لرسم الشهادة بالكامل بكل تأثيراتها
+    
+    // تنظيف النسخة من الشوائب والتأثيرات الزجاجية التي تسبب "التشويش والتمويه رمادي اللون"
+    const allElements = clone.querySelectorAll('*');
+    allElements.forEach(node => {
+      // إيقاف أي حركات قد تفسد اللقطة
+      node.style.animation = 'none';
+      node.style.transition = 'none';
+      
+      const computed = window.getComputedStyle(node);
+      
+      // حل مشكلة الغشاوة (Blur) الناتجة عن التأثير الزجاجي خلف الاسم والتي تسيح على السطر التالي
+      if (computed.backdropFilter !== 'none' || computed.webkitBackdropFilter !== 'none') {
+        node.style.backdropFilter = 'none';
+        node.style.webkitBackdropFilter = 'none';
+        
+        // استبدال الغشاوة بخلفية بيضاء شبه شفافة أنيقة ونظيفة للتصوير
+        if (computed.backgroundColor === 'rgba(0, 0, 0, 0)' || computed.backgroundColor === 'transparent') {
+            node.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+        }
+      }
+      
+      // إزالة أي ظلال نصوص قد تتداخل مع تدرج الألوان الذهبي للعنوان
+      if (computed.webkitBackgroundClip === 'text' || computed.backgroundClip === 'text') {
+        node.style.textShadow = 'none';
+      }
+    });
+
+    // إعطاء المتصفح لحظة لتطبيق التعديلات النظيفة
     await new Promise((r) => setTimeout(r, 600)); 
 
     try {
       const width = 800;
       const height = clone.offsetHeight;
 
-      // استخدام المحرك مع ضبط نقطة التكبير
+      // التقاط الصورة بجودة عالية عبر المحرك الحديث
       const canvas = await domtoimage.toCanvas(clone, {
         width: width * scale,
         height: height * scale,
-        bgcolor: '#ffffff', // ضمان خلفية بيضاء نظيفة للشهادة
+        bgcolor: '#ffffff',
         style: {
           transform: `scale(${scale})`,
-          transformOrigin: 'top left', // بدء التكبير من الزاوية العلوية اليسرى لمنع ترحيل العناصر
+          transformOrigin: 'top left', // ضبط نقطة التكبير للغة العربية
           width: `${width}px`,
           height: `${height}px`,
           margin: '0'
@@ -77,7 +105,7 @@
       });
       return canvas;
     } finally {
-      // مسح النسخة من الصفحة لتنظيف الكود
+      // تنظيف شجرة الـ DOM ومسح النسخة الخفية فوراً
       document.body.removeChild(clone);
     }
   }
