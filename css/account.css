@@ -1,0 +1,642 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ULTIMATE LUXURY ACCOUNT PAGE - SPIRITUAL EXECUTIVE SANCTUARY
+   رفيق المعلم - Islamic Educational Platform
+   
+   "أنا حاسس إن ده معمول ليا أنا بس"
+   
+   Design Philosophy:
+   - Apple-level polish × Awwwards Site of the Year × Islamic Heritage
+   - Not a dashboard. A Personal Identity Experience.
+   - Every pixel justifies its existence.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. LAYERED COLOR SYSTEM - PREMIUM CONTRAST LOGIC
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Gradient Mesh Background (NOT solid) */
+  --bg-gradient-start: #F8FAFC;
+  --bg-gradient-mid: #F1F5F9;
+  --bg-gradient-end: #E2E8F0;
+  
+  /* Emerald Authority Spectrum */
+  --emerald-900: #011510;
+  --emerald-800: #022c22;
+  --emerald-600: #047857;
+  --emerald-400: #10b981;
+  
+  /* Sacred Gold Highlights */
+  --gold-accent: #D4AF37;
+  --gold-light: #F3E5AB;
+  --gold-dark: #B8860B;
+  --gold-glow: rgba(212, 175, 55, 0.4);
+  --gold-glow-strong: rgba(212, 175, 55, 0.6);
+  
+  /* Glass System with Depth */
+  --glass-bg-level-1: rgba(255, 255, 255, 0.7);
+  --glass-bg-level-2: rgba(255, 255, 255, 0.85);
+  --glass-bg-level-3: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  
+  /* Motion Language */
+  --easing-premium: cubic-bezier(0.16, 1, 0.3, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Radial Light Sources */
+  --spotlight-gold: radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), rgba(212, 175, 55, 0.08) 0%, transparent 50%);
+  --spotlight-emerald: radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), rgba(4, 120, 87, 0.05) 0%, transparent 50%);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. ACCOUNT PAGE CONTAINER
+   ───────────────────────────────────────────────────────────────────────── */
+.account-page {
+  max-width: 100%;
+  margin: 0 auto;
+  position: relative;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. VIP HERO COVER - ISLAMIC GEOMETRIC PATTERN OVERLAY
+   ───────────────────────────────────────────────────────────────────────── */
+.account-hero-cover {
+  position: absolute;
+  top: -24px;
+  left: -12px;
+  right: -12px;
+  height: 280px;
+  background: linear-gradient(135deg, var(--emerald-600) 0%, var(--emerald-900) 100%);
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+  z-index: 0;
+  overflow: hidden;
+  box-shadow: 0 40px 80px -20px rgba(1, 21, 16, 0.3);
+}
+
+.account-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M40 0l20 20-20 20-20-20L40 0zm0 40l20 20-20 20-20-20 20-20zM0 40l20-20 20 20-20 20L0 40zm80 0l-20-20-20 20 20 20 20-20z' stroke='%23D4AF37' stroke-width='0.5' opacity='0.15'/%3E%3Ccircle cx='40' cy='40' r='3' fill='%23D4AF37' opacity='0.08'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.6;
+  animation: geometricFloat 30s ease-in-out infinite;
+}
+
+@keyframes geometricFloat {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(10px, -10px) rotate(1deg); }
+  66% { transform: translate(-10px, 10px) rotate(-1deg); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. PROFILE CONTAINER - OVERLAPPING GLASS MORPHISM
+   ───────────────────────────────────────────────────────────────────────── */
+.account-profile-container {
+  position: relative;
+  z-index: 10;
+  max-width: 680px;
+  margin: 0 auto;
+  padding-top: 100px;
+  padding-bottom: 60px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. STAGGERED ENTRANCE PHYSICS - EXECUTIVE ANIMATION
+   ───────────────────────────────────────────────────────────────────────── */
+.exec-animate {
+  opacity: 0;
+  transform: translateY(30px) translateZ(0);
+  animation: execStaggerFadeUp 0.8s var(--easing-premium) forwards;
+  animation-delay: calc(var(--stagger) * 0.12s);
+}
+
+@keyframes execStaggerFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. ACCOUNT HEADER - NEUMORPHIC GLASS 3.0
+   ───────────────────────────────────────────────────────────────────────── */
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding: 28px 32px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 28px;
+  box-shadow: 
+    0 30px 60px -15px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s var(--easing-premium);
+}
+
+.account-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 40px 80px -20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. AVATAR - LUXURY GOLD GRADIENT WITH GLOW
+   ───────────────────────────────────────────────────────────────────────── */
+.account-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #D4AF37 0%, #F3E5AB 50%, #B8860B 100%);
+  color: var(--emerald-900);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 900;
+  box-shadow: 
+    0 12px 32px var(--gold-glow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.4s var(--easing-premium);
+}
+
+.account-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-accent), transparent);
+  opacity: 0;
+  transition: opacity 0.4s var(--easing-premium);
+  z-index: -1;
+  filter: blur(12px);
+}
+
+.account-header:hover .account-avatar::before {
+  opacity: 0.6;
+}
+
+.avatar-glow {
+  animation: avatarPulse 3s ease-in-out infinite;
+}
+
+@keyframes avatarPulse {
+  0%, 100% { box-shadow: 0 12px 32px var(--gold-glow), inset 0 2px 4px rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 16px 40px rgba(212, 175, 55, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.5); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. GREETING & NAME DISPLAY - TASHKEEL TYPOGRAPHY
+   ───────────────────────────────────────────────────────────────────────── */
+.account-greeting {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-welcome {
+  font-size: 16px;
+  color: #64748B;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-family: var(--font-arabic);
+  letter-spacing: 0.02em;
+}
+
+.account-name-display {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.6;
+  font-family: var(--font-arabic);
+  text-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
+  padding-bottom: 12px;
+  word-wrap: break-word;
+}
+
+/* Tashkeel Color System */
+.tashkeel-emerald {
+  color: var(--emerald-900);
+}
+
+.tashkeel-emerald .base-letter {
+  color: var(--emerald-900);
+}
+
+.tashkeel-emerald .tashkeel {
+  color: var(--gold-accent);
+  text-shadow: 0 0 16px var(--gold-glow);
+  font-size: 0.85em;
+  position: relative;
+  display: inline-block;
+}
+
+.tashkeel-gold {
+  color: var(--gold-accent);
+  text-shadow: 0 0 16px var(--gold-glow);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   9. AMBIENT ZIKR ENGINE - SOPHISTICATED MICRO-SYSTEM
+   ───────────────────────────────────────────────────────────────────────── */
+.zikr-micro-bar {
+  margin-bottom: 28px;
+  display: flex;
+  justify-content: center;
+  padding: 0 20px;
+  min-height: 48px;
+  align-items: center;
+}
+
+.zikr-text {
+  font-family: var(--font-arabic);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--emerald-600);
+  text-shadow: 0 2px 12px rgba(212, 175, 55, 0.25);
+  transition: all 2s var(--easing-premium);
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(15px) translateZ(0);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   10. ACCOUNT CARD - NEUMORPHIC GLASS 3.0
+   ───────────────────────────────────────────────────────────────────────── */
+.account-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 
+    0 30px 60px -15px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  border-radius: 28px !important;
+  padding: 36px !important;
+  transition: all 0.4s var(--easing-premium) !important;
+}
+
+.account-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 40px 80px -20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.account-section-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--gold-accent);
+  margin-bottom: 28px;
+  border-bottom: 2px solid rgba(212, 175, 55, 0.15);
+  padding-bottom: 14px;
+  font-family: var(--font-arabic);
+  text-shadow: 0 2px 8px rgba(212, 175, 55, 0.1);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   11. EMAIL DISPLAY - MONOSPACE LUXURY
+   ───────────────────────────────────────────────────────────────────────── */
+.account-email-display {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 18px;
+  color: var(--emerald-900);
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s var(--easing-premium);
+}
+
+.account-email-display:hover {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.account-email-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   12. FLOATING LABEL INPUTS - TRUE SWISS MINIMALISM
+   ───────────────────────────────────────────────────────────────────────── */
+.form-group {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.account-custom-input {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1) !important;
+  padding: 14px 0 !important;
+  box-shadow: none !important;
+  font-size: 20px !important;
+  color: var(--emerald-900) !important;
+  font-weight: 700 !important;
+  font-family: var(--font-arabic) !important;
+  width: 100%;
+  transition: all 0.3s var(--easing-premium) !important;
+}
+
+.account-custom-input:focus {
+  outline: none !important;
+  border-bottom-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Floating Label */
+.account-custom-input ~ .form-label {
+  position: absolute;
+  right: 0;
+  top: 14px;
+  font-size: 18px;
+  color: #94A3B8;
+  font-weight: 600;
+  pointer-events: none;
+  transition: all 0.3s var(--easing-premium);
+  font-family: var(--font-arabic);
+}
+
+.account-custom-input:focus ~ .form-label,
+.account-custom-input:not(:placeholder-shown) ~ .form-label {
+  top: -24px;
+  font-size: 14px;
+  color: var(--gold-accent);
+  font-weight: 700;
+}
+
+/* Gold Accent Line - Expands from Center */
+.account-input-line {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-accent), transparent);
+  transition: width 0.5s var(--easing-premium);
+  pointer-events: none;
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.account-custom-input:focus ~ .account-input-line {
+  width: 100%;
+}
+
+.account-hint {
+  font-size: 14px;
+  color: #94A3B8;
+  margin-top: 10px;
+  font-family: var(--font-arabic);
+  line-height: 1.6;
+  padding-right: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   13. SAVE BUTTON - MAGNETIC HOVER + 3D ELEVATION
+   ───────────────────────────────────────────────────────────────────────── */
+.account-save-btn {
+  background: linear-gradient(135deg, var(--emerald-600) 0%, var(--emerald-900) 100%) !important;
+  color: var(--gold-accent) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  font-weight: 800 !important;
+  font-size: 19px !important;
+  width: 100%;
+  padding: 18px 24px !important;
+  border-radius: 18px !important;
+  transition: all 0.4s var(--easing-premium) !important;
+  box-shadow: 
+    0 12px 24px rgba(4, 120, 87, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  margin-top: 16px;
+  font-family: var(--font-arabic) !important;
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.account-save-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.4s var(--easing-premium);
+}
+
+.account-save-btn:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 
+    0 20px 40px rgba(4, 120, 87, 0.3),
+    0 0 24px var(--gold-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  background: linear-gradient(135deg, var(--emerald-900) 0%, var(--emerald-600) 100%) !important;
+  color: #FFFFFF !important;
+  border-color: var(--gold-accent) !important;
+}
+
+.account-save-btn:hover::before {
+  opacity: 1;
+}
+
+.account-save-btn:active {
+  transform: translateY(-1px) scale(0.99);
+  transition: all 0.1s var(--easing-premium) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   14. DANGER ZONE - LOGOUT CARD
+   ───────────────────────────────────────────────────────────────────────── */
+.account-logout-card {
+  border: 1px solid rgba(220, 38, 38, 0.15) !important;
+  background: rgba(254, 242, 242, 0.6) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  padding: 24px 28px !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.08) !important;
+  transition: all 0.3s var(--easing-premium) !important;
+}
+
+.account-logout-card:hover {
+  border-color: rgba(220, 38, 38, 0.25) !important;
+  box-shadow: 0 12px 32px rgba(220, 38, 38, 0.12) !important;
+}
+
+.account-logout-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.account-logout-title {
+  font-weight: 800;
+  color: #dc2626;
+  font-size: 17px;
+  font-family: var(--font-arabic);
+}
+
+.account-logout-hint {
+  font-size: 14px;
+  color: #ef4444;
+  opacity: 0.85;
+  margin-top: 6px;
+  font-family: var(--font-arabic);
+}
+
+.account-logout-btn {
+  background: transparent !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(220, 38, 38, 0.2) !important;
+  font-weight: 700 !important;
+  padding: 12px 24px !important;
+  border-radius: 14px !important;
+  transition: all 0.3s var(--easing-premium) !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-arabic) !important;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.account-logout-btn:hover {
+  background: rgba(220, 38, 38, 0.08) !important;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2) !important;
+  transform: translateY(-2px);
+  border-color: rgba(220, 38, 38, 0.4) !important;
+}
+
+.account-logout-btn:active {
+  transform: translateY(0);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   15. RESPONSIVE DESIGN - MOBILE OPTIMIZATION
+   ───────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .account-profile-container {
+    padding-top: 60px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .account-hero-cover {
+    height: 200px;
+    border-bottom-left-radius: 32px;
+    border-bottom-right-radius: 32px;
+  }
+  
+  .account-header {
+    padding: 20px 24px;
+    gap: 16px;
+  }
+  
+  .account-avatar {
+    width: 72px;
+    height: 72px;
+    font-size: 32px;
+  }
+  
+  .account-name-display {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+  
+  .account-card {
+    padding: 24px !important;
+  }
+  
+  .account-logout-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .account-logout-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .zikr-text {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-hero-cover {
+    height: 160px;
+  }
+  
+  .account-profile-container {
+    padding-top: 40px;
+  }
+  
+  .account-custom-input {
+    font-size: 17px !important;
+  }
+  
+  .form-label {
+    font-size: 16px;
+  }
+  
+  .account-save-btn {
+    font-size: 17px !important;
+    padding: 16px 20px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   16. ACCESSIBILITY & PERFORMANCE
+   ───────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .account-card,
+  .account-header {
+    border-width: 2px !important;
+  }
+  
+  .account-input-line {
+    height: 3px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .account-hero-cover,
+  .account-logout-card,
+  .zikr-micro-bar {
+    display: none;
+  }
+  
+  .account-page {
+    background: white;
+  }
+}

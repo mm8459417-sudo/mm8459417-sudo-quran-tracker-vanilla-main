@@ -1,0 +1,594 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOAST NOTIFICATION SYSTEM - PROFESSIONAL UX
+   رفيق القرآن - Quran Companion Platform
+   
+   Complete toast system with queue management, animations, and accessibility
+   
+   Last Updated: May 5, 2026
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   1. TOAST CONTAINER
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast-container {
+  position: fixed;
+  top: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  
+  width: calc(100% - var(--space-8));
+  max-width: 480px;
+  
+  pointer-events: none;
+}
+
+/* Mobile Positioning */
+@media (max-width: 767px) {
+  .toast-container {
+    top: auto;
+    bottom: calc(var(--bottom-nav-height) + var(--space-6) + var(--space-4));
+    width: calc(100% - var(--space-6));
+  }
+}
+
+/* Desktop Positioning */
+@media (min-width: 1024px) {
+  .toast-container {
+    top: calc(var(--header-height) + var(--space-6));
+    left: auto;
+    right: var(--space-6);
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2. TOAST BASE STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  
+  padding: var(--space-4) var(--space-5);
+  min-height: 64px;
+  
+  background: var(--color-neutral-900);
+  color: var(--color-text-inverse);
+  
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  
+  font-family: var(--font-arabic);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  
+  pointer-events: all;
+  cursor: default;
+  
+  /* Animation */
+  animation: toastSlideIn 0.4s var(--ease-premium) forwards;
+  
+  /* Ensure touch target for close button */
+  position: relative;
+}
+
+/* Toast Slide In Animation */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Toast Slide Out Animation */
+.toast.toast-exit {
+  animation: toastSlideOut 0.3s var(--ease-in) forwards;
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3. TOAST ICON
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast__icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  font-size: var(--text-xl);
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   4. TOAST CONTENT
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast__content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px; /* Optical alignment */
+}
+
+.toast__title {
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-1);
+  line-height: var(--leading-tight);
+}
+
+.toast__message {
+  font-weight: var(--font-medium);
+  opacity: 0.95;
+  line-height: var(--leading-normal);
+}
+
+/* Single Line Toast (No Title) */
+.toast__content:only-child .toast__message {
+  margin-bottom: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5. TOAST CLOSE BUTTON
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast__close {
+  flex-shrink: 0;
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  
+  /* Position absolutely to not affect layout */
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  
+  color: var(--color-text-inverse);
+  font-size: var(--text-xl);
+  
+  cursor: pointer;
+  transition: var(--transition-fast);
+  
+  /* Ensure it's above content */
+  z-index: 1;
+}
+
+.toast__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toast__close:active {
+  transform: scale(0.95);
+}
+
+.toast__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* Adjust toast padding to accommodate close button */
+.toast:has(.toast__close) {
+  padding-left: calc(var(--touch-target-min) + var(--space-3));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   6. TOAST VARIANTS - SEMANTIC COLORS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Success Toast */
+.toast-success {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.toast-success .toast__icon {
+  color: #D1FAE5;
+}
+
+/* Error Toast */
+.toast-error {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.toast-error .toast__icon {
+  color: #FEE2E2;
+}
+
+/* Warning Toast */
+.toast-warning {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--color-neutral-900);
+}
+
+.toast-warning .toast__icon {
+  color: #78350F;
+}
+
+.toast-warning .toast__close {
+  color: var(--color-neutral-900);
+}
+
+.toast-warning .toast__close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Info Toast */
+.toast-info {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.toast-info .toast__icon {
+  color: #DBEAFE;
+}
+
+/* Default/Neutral Toast */
+.toast-default {
+  background: var(--color-neutral-900);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   7. TOAST PROGRESS BAR (AUTO-DISMISS INDICATOR)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast__progress {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  overflow: hidden;
+}
+
+.toast__progress-bar {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transform-origin: right center;
+  animation: toastProgress 5s linear forwards;
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Pause progress on hover */
+.toast:hover .toast__progress-bar {
+  animation-play-state: paused;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   8. TOAST ACTION BUTTON (OPTIONAL)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.toast__action {
+  flex-shrink: 0;
+  margin-right: auto;
+  margin-top: var(--space-2);
+}
+
+.toast__action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  
+  padding: var(--space-2) var(--space-4);
+  min-height: 36px;
+  
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-md);
+  
+  font-family: var(--font-arabic);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-inverse);
+  
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.toast__action-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.toast__action-btn:active {
+  transform: scale(0.97);
+}
+
+.toast__action-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* Warning Toast Action Button */
+.toast-warning .toast__action-btn {
+  color: var(--color-neutral-900);
+  background: rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.toast-warning .toast__action-btn:hover {
+  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   9. TOAST SIZES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Compact Toast */
+.toast-compact {
+  padding: var(--space-3) var(--space-4);
+  min-height: 48px;
+  font-size: var(--text-sm);
+}
+
+.toast-compact .toast__icon {
+  width: 20px;
+  height: 20px;
+  font-size: var(--text-lg);
+}
+
+.toast-compact .toast__close {
+  width: 40px;
+  height: 40px;
+}
+
+/* Large Toast */
+.toast-large {
+  padding: var(--space-5) var(--space-6);
+  min-height: 80px;
+  font-size: var(--text-lg);
+}
+
+.toast-large .toast__icon {
+  width: 32px;
+  height: 32px;
+  font-size: var(--text-2xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   10. LEGACY COMPATIBILITY
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Old toast-pill class (used in app.js) */
+.toast-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  
+  padding: var(--space-3) var(--space-5);
+  
+  background: var(--color-neutral-900);
+  color: var(--color-text-inverse);
+  
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  
+  font-family: var(--font-arabic);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  
+  animation: toastSlideIn 0.3s var(--ease-premium);
+}
+
+/* Old app-toast container (used in index.html) */
+#app-toast {
+  position: fixed;
+  top: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  
+  width: calc(100% - var(--space-8));
+  max-width: 480px;
+  
+  pointer-events: none;
+}
+
+#app-toast > * {
+  pointer-events: all;
+}
+
+@media (max-width: 767px) {
+  #app-toast {
+    top: auto;
+    bottom: calc(var(--bottom-nav-height) + var(--space-6) + var(--space-4));
+    width: calc(100% - var(--space-6));
+  }
+}
+
+@media (min-width: 1024px) {
+  #app-toast {
+    top: calc(var(--header-height) + var(--space-6));
+    left: auto;
+    right: var(--space-6);
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   11. TOAST QUEUE SYSTEM (JavaScript Integration)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* 
+  Usage in JavaScript:
+  
+  // Simple toast (legacy - still works)
+  showToast("تم الحفظ بنجاح");
+  
+  // New toast system (enhanced)
+  showToast({
+    type: 'success',        // success, error, warning, info, default
+    title: 'نجح!',          // Optional title
+    message: 'تم الحفظ',    // Message
+    duration: 5000,         // Duration in ms (default: 5000)
+    closable: true,         // Show close button (default: true)
+    action: {               // Optional action button
+      label: 'تراجع',
+      onClick: () => {}
+    }
+  });
+  
+  // Toast queue is managed automatically
+  // Multiple toasts stack vertically
+  // Auto-dismiss after duration
+  // Pause on hover
+  // Close on click (close button)
+*/
+
+/* ═══════════════════════════════════════════════════════════════════════
+   12. ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ARIA Live Region */
+.toast-container[role="status"],
+.toast-container[aria-live="polite"],
+#app-toast[role="status"],
+#app-toast[aria-live="polite"] {
+  /* Already positioned, just ensure it's announced */
+}
+
+/* Screen Reader Text */
+.toast__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus Management */
+.toast:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-xl), 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   13. REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: toastFadeIn 0.2s ease forwards;
+  }
+  
+  .toast.toast-exit {
+    animation: toastFadeOut 0.2s ease forwards;
+  }
+  
+  @keyframes toastFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes toastFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  .toast__progress-bar {
+    animation: none;
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   14. HIGH CONTRAST MODE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-contrast: high) {
+  .toast {
+    border-width: 2px;
+  }
+  
+  .toast__close {
+    border-width: 2px;
+  }
+  
+  .toast-success {
+    border-color: #D1FAE5;
+  }
+  
+  .toast-error {
+    border-color: #FEE2E2;
+  }
+  
+  .toast-warning {
+    border-color: #78350F;
+  }
+  
+  .toast-info {
+    border-color: #DBEAFE;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   15. PRINT STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media print {
+  .toast-container,
+  #app-toast,
+  .toast {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END OF TOAST NOTIFICATION SYSTEM
+   ═══════════════════════════════════════════════════════════════════════ */

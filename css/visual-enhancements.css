@@ -1,0 +1,264 @@
+/* ═══════════════════════════════════════════════════════════════
+   1. BACKGROUND & ATMOSPHERE (The "Not-so-White" Look)
+   ═══════════════════════════════════════════════════════════════ */
+
+body, html {
+  background: #f8faf9 !important;
+  color: #1C2526 !important;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -2;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231a6b3c' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(circle at top center, rgba(201, 149, 42, 0.08) 0%, transparent 60%);
+}
+
+.app-sidebar, .app-main, .app-header, .card-soft, .nav-item {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   2. THE "GLASS & FLOATING" CARD SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+.card-soft, .card, .premium-stat-card, .premium-hero, .ultra-cert__frame {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+  border-radius: 24px !important;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease !important;
+}
+
+.card-soft:hover, .card:hover, .premium-stat-card:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. BUTTONS & INTERACTIVE ELEMENTS (The "Jewel" Effect)
+   ═══════════════════════════════════════════════════════════════ */
+
+.btn-primary, button[class*="btn-primary"] {
+  background: linear-gradient(135deg, #2D7D46 0%, #1a6b3c 100%) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.2), 0 4px 14px rgba(26,107,60,0.3) !important;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.3), 0 8px 22px rgba(26,107,60,0.4) !important;
+}
+
+.btn-primary:active {
+  transform: scale(0.95) !important;
+}
+
+/* Secondary Buttons (Liquid Fill) */
+.btn-outline, .btn-secondary, .btn-gold {
+  background: transparent !important;
+  border: 1.5px solid #C9952A !important;
+  color: #C9952A !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.3s ease, border-color 0.3s ease !important;
+  z-index: 1;
+}
+
+.btn-outline::before, .btn-secondary::before, .btn-gold::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #E2AA30 0%, #C9952A 100%);
+  transition: top 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: -1;
+  border-radius: 50% 50% 0 0;
+}
+
+.btn-outline:hover::before, .btn-secondary:hover::before, .btn-gold:hover::before {
+  top: 0;
+  border-radius: 0;
+}
+
+.btn-outline:hover, .btn-secondary:hover, .btn-gold:hover {
+  color: #fff !important;
+  border-color: transparent !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(201,149,42,0.3) !important;
+}
+
+/* Inputs Focus Glow */
+.form-control, .form-select, input[type="text"], input[type="number"], input[type="email"] {
+  background: rgba(255,255,255,0.9) !important;
+  border: 1px solid rgba(45,125,70,0.2) !important;
+  border-radius: 14px !important;
+  padding: 12px 18px !important;
+  transition: all 0.3s ease !important;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #2D7D46 !important;
+  box-shadow: 0 0 15px rgba(45,125,70,0.2) !important;
+  outline: none !important;
+  background: #fff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. ADVANCED ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Staggered Entrance */
+.entrance-animate {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: entranceReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes entranceReveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress Bars Shimmer */
+.progress, [class*="progress"] {
+  background: rgba(45,125,70,0.1);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.progress-bar, [class*="progress-bar"], .progress-fill {
+  background: linear-gradient(90deg, #2D7D46, #3A9455);
+  border-radius: 999px;
+  transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar::after, .progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmerProgress 2s infinite;
+}
+
+@keyframes shimmerProgress {
+  to { left: 200%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. TYPOGRAPHY & HIERARCHY
+   ═══════════════════════════════════════════════════════════════ */
+
+h1, h2, h3, h4, .card-title, .section-title, .premium-hero__title {
+  font-weight: 800 !important;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+body, p, span, div {
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. SPECIFIC SECTION UPGRADES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Star Rating Pulse & Gold Trail */
+.ph-star, .ph-fill.ph-star {
+  transition: transform 0.2s ease, color 0.2s ease, filter 0.2s ease;
+}
+.ph-star:hover, .ph-fill.ph-star:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 8px rgba(201,149,42,0.8));
+  animation: starPulse 1s infinite alternate;
+}
+
+@keyframes starPulse {
+  to { transform: scale(1.3); filter: drop-shadow(0 0 12px rgba(201,149,42,1)); }
+}
+
+/* AI Insights Box - Animated Border Gradient */
+.elite-ai-insights {
+  background: rgba(255,255,255,0.9) !important;
+  border-radius: 24px !important;
+  position: relative;
+  padding: 24px !important;
+  box-shadow: 0 8px 32px rgba(31,38,135,0.05) !important;
+}
+
+.elite-ai-insights::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 26px;
+  background: linear-gradient(45deg, #1a6b3c, #C9952A, #1a6b3c, #C9952A);
+  background-size: 400% 400%;
+  animation: aiGradientBorder 5s ease infinite;
+  z-index: -1;
+}
+
+@keyframes aiGradientBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Sidebar Semi-Transparent Deep Blur */
+.app-sidebar {
+  background: rgba(26, 107, 60, 0.4) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-left: 1px solid rgba(255,255,255,0.1) !important;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.1) !important;
+}
+
+.sidebar-header {
+  border-bottom: 1px solid rgba(255,255,255,0.15) !important;
+}
+
+.nav-item.active {
+  background: rgba(255,255,255,0.2) !important;
+  border-right: 4px solid #C9952A !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+}
+
+/* Header Glassmorphism */
+.app-header {
+  background: rgba(248, 250, 249, 0.7) !important;
+  backdrop-filter: blur(15px) !important;
+  border-bottom: 1px solid rgba(45,125,70,0.1) !important;
+}
+
+/* Fix magnetic class transition */
+.magnetic {
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}

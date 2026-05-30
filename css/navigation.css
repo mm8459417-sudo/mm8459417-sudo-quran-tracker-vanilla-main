@@ -1,0 +1,609 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVIGATION SYSTEM - ENHANCED UX
+   رفيق القرآن - Quran Companion Platform
+   
+   Professional navigation with improved accessibility and UX
+   
+   Last Updated: May 5, 2026
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   1. SIDEBAR NAVIGATION (Desktop)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  
+  width: var(--sidebar-width);
+  height: 100vh;
+  
+  display: flex;
+  flex-direction: column;
+  
+  background: linear-gradient(180deg, #0B1320 0%, #0F172A 100%);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  
+  z-index: var(--z-fixed);
+  
+  /* Mobile: Hidden by default, slides in */
+  transform: translateX(100%);
+  transition: transform var(--duration-normal) var(--ease-premium);
+  
+  box-shadow: -12px 0 30px rgba(15, 23, 42, 0.35);
+}
+
+.app-sidebar.show {
+  transform: translateX(0);
+}
+
+/* Desktop: Always visible, no transform */
+@media (min-width: 1024px) {
+  .app-sidebar {
+    transform: translateX(0) !important;
+    box-shadow: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2. SIDEBAR HEADER
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-sidebar__header {
+  padding: var(--space-6) var(--space-5) var(--space-4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.app-sidebar__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-extrabold);
+  color: var(--color-text-inverse);
+  margin-bottom: var(--space-2);
+  line-height: var(--leading-tight);
+}
+
+.app-sidebar__subtitle {
+  font-size: var(--text-sm);
+  color: rgba(226, 232, 240, 0.7);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3. SIDEBAR NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-sidebar__nav {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+  overflow-x: hidden;
+  
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.app-sidebar__nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-sidebar__nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-sidebar__nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+}
+
+.app-sidebar__nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Navigation Items Container */
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   4. NAVIGATION ITEM (Enhanced)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--touch-target-min);
+  
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-arabic);
+  text-align: right;
+  text-decoration: none;
+  
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  
+  color: rgba(248, 250, 252, 0.78);
+  cursor: pointer;
+  
+  transition: var(--transition-fast);
+  
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Hover Effect */
+.nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.05);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.nav-item:hover::before {
+  opacity: 1;
+}
+
+.nav-item:hover {
+  color: var(--color-text-inverse);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Active State */
+.nav-item.active {
+  background: rgba(13, 148, 136, 0.18);
+  border-color: rgba(13, 148, 136, 0.3);
+  color: var(--color-text-inverse);
+  box-shadow: 0 8px 20px rgba(13, 148, 136, 0.15);
+}
+
+.nav-item.active::before {
+  opacity: 0;
+}
+
+/* Focus State */
+.nav-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+}
+
+/* Icon */
+.nav-item__icon {
+  font-size: var(--text-xl);
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Label */
+.nav-item__label {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge (for notifications) */
+.nav-item__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  
+  border-radius: var(--radius-full);
+  
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5. SIDEBAR FOOTER
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-sidebar__footer {
+  margin-top: auto;
+  padding: var(--space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.35);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   6. SIDEBAR OVERLAY (Mobile)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  
+  z-index: calc(var(--z-fixed) - 10);
+  
+  opacity: 0;
+  pointer-events: none;
+  
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Desktop: Hide overlay */
+@media (min-width: 1024px) {
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   7. BOTTOM NAVIGATION (Mobile)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.app-bottom-nav {
+  position: fixed;
+  bottom: var(--space-4);
+  left: var(--space-3);
+  right: var(--space-3);
+  
+  height: var(--bottom-nav-height);
+  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  
+  z-index: var(--z-fixed);
+}
+
+/* Desktop: Hide bottom nav */
+@media (min-width: 1024px) {
+  .app-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   8. BOTTOM NAV ITEM (Enhanced)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.bottom-nav-item {
+  flex: 1;
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  
+  min-height: var(--touch-target-min);
+  padding: var(--space-2);
+  
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-arabic);
+  text-decoration: none;
+  
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  
+  color: rgba(226, 232, 240, 0.8);
+  cursor: pointer;
+  
+  transition: var(--transition-fast);
+  
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple Effect on Tap */
+.bottom-nav-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+  opacity: 0;
+  transform: scale(0);
+  transition: transform var(--duration-fast) var(--ease-out), 
+              opacity var(--duration-fast) var(--ease-out);
+}
+
+.bottom-nav-item:active::after {
+  transform: scale(1);
+  opacity: 1;
+  transition: none;
+}
+
+/* Hover State */
+.bottom-nav-item:hover {
+  color: var(--color-text-inverse);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Active State */
+.bottom-nav-item.active {
+  background: rgba(13, 148, 136, 0.2);
+  border-color: rgba(13, 148, 136, 0.3);
+  color: var(--color-text-inverse);
+}
+
+/* Focus State */
+.bottom-nav-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3);
+}
+
+/* Icon */
+.bottom-nav-item__icon {
+  font-size: var(--text-xl);
+  position: relative;
+  z-index: 1;
+}
+
+/* Label */
+.bottom-nav-item__label {
+  font-weight: var(--font-semibold);
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge (for notifications) */
+.bottom-nav-item__badge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--space-1);
+  
+  background: var(--color-error);
+  color: var(--color-text-inverse);
+  
+  border: 2px solid rgba(15, 23, 42, 0.95);
+  border-radius: var(--radius-full);
+  
+  font-size: 10px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+  
+  z-index: 2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   9. MENU TOGGLE BUTTON (Mobile)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.menu-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  
+  color: var(--color-text-inverse);
+  font-size: var(--text-xl);
+  
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.menu-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.menu-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Desktop: Hide menu toggle */
+@media (min-width: 1024px) {
+  .menu-toggle-btn {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   10. NAVIGATION SECTION DIVIDER
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.nav-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: var(--space-4) 0;
+}
+
+.nav-section-title {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  
+  color: rgba(226, 232, 240, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   11. BREADCRUMB NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  
+  padding: var(--space-2) 0;
+  
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.breadcrumb__link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.breadcrumb__link:hover {
+  color: var(--color-primary-600);
+}
+
+.breadcrumb__separator {
+  color: var(--color-text-tertiary);
+  user-select: none;
+}
+
+.breadcrumb__current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   12. RESPONSIVE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Small Mobile (320px) */
+@media (max-width: 374px) {
+  .bottom-nav-item {
+    padding: var(--space-1);
+  }
+  
+  .bottom-nav-item__icon {
+    font-size: var(--text-lg);
+  }
+  
+  .bottom-nav-item__label {
+    font-size: 10px;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-bottom-nav {
+    left: var(--space-6);
+    right: var(--space-6);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   13. ACCESSIBILITY ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .nav-item,
+  .bottom-nav-item {
+    border-width: 2px;
+  }
+  
+  .nav-item.active,
+  .bottom-nav-item.active {
+    border-color: var(--color-primary-600);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar,
+  .sidebar-overlay,
+  .nav-item,
+  .bottom-nav-item {
+    transition: none;
+  }
+  
+  .bottom-nav-item::after {
+    display: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   14. KEYBOARD NAVIGATION ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Focus Within Sidebar */
+.app-sidebar:focus-within {
+  box-shadow: -12px 0 30px rgba(13, 148, 136, 0.2);
+}
+
+/* Skip Navigation Link */
+.skip-nav {
+  position: absolute;
+  top: -48px;
+  right: var(--space-4);
+  z-index: var(--z-tooltip);
+  
+  padding: var(--space-2) var(--space-4);
+  
+  background: var(--color-primary-600);
+  color: var(--color-text-inverse);
+  
+  border-radius: var(--radius-md);
+  
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  
+  transition: top var(--duration-fast) var(--ease-out);
+}
+
+.skip-nav:focus {
+  top: var(--space-4);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END OF NAVIGATION SYSTEM
+   ═══════════════════════════════════════════════════════════════════════ */

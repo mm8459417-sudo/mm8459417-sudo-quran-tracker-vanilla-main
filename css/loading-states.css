@@ -1,0 +1,693 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOADING STATES SYSTEM - PROFESSIONAL UX
+   رفيق القرآن - Quran Companion Platform
+   
+   Complete loading state system with overlays, skeletons, and progress indicators
+   
+   Last Updated: May 5, 2026
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   1. LOADING OVERLAY - FULL PAGE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  opacity: 0;
+  pointer-events: none;
+  
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+
+.loading-overlay.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.loading-overlay__spinner {
+  width: 64px;
+  height: 64px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--color-primary-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-overlay__text {
+  font-family: var(--font-arabic);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-inverse);
+  text-align: center;
+}
+
+.loading-overlay__subtext {
+  font-family: var(--font-arabic);
+  font-size: var(--text-sm);
+  color: rgba(226, 232, 240, 0.8);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2. INLINE LOADING STATES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.loading-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+}
+
+.loading-inline__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-neutral-200);
+  border-top-color: var(--color-primary-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-inline__text {
+  font-family: var(--font-arabic);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+}
+
+/* Small Variant */
+.loading-inline-sm {
+  padding: var(--space-4);
+}
+
+.loading-inline-sm .loading-inline__spinner {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.loading-inline-sm .loading-inline__text {
+  font-size: var(--text-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3. BUTTON LOADING STATES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  width: 18px;
+  height: 18px;
+  
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  
+  animation: spin 0.6s linear infinite;
+}
+
+/* Button Loading with Text */
+.btn-loading-text {
+  position: relative;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.btn-loading-text::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: var(--space-2);
+  
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   4. SKELETON SCREENS - DASHBOARD
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-200) 0%,
+    var(--color-neutral-100) 50%,
+    var(--color-neutral-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonLoading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeletonLoading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Skeleton Text Lines */
+.skeleton-text {
+  height: 1em;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-text-sm {
+  height: 0.875em;
+}
+
+.skeleton-text-lg {
+  height: 1.25em;
+}
+
+/* Skeleton Title */
+.skeleton-title {
+  height: 1.75em;
+  width: 60%;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+/* Skeleton Paragraph */
+.skeleton-paragraph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-paragraph .skeleton-text:last-child {
+  width: 80%;
+}
+
+/* Skeleton Avatar */
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-avatar-sm {
+  width: 32px;
+  height: 32px;
+}
+
+.skeleton-avatar-lg {
+  width: 64px;
+  height: 64px;
+}
+
+.skeleton-avatar-xl {
+  width: 96px;
+  height: 96px;
+}
+
+/* Skeleton Button */
+.skeleton-button {
+  height: 48px;
+  width: 120px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-button-sm {
+  height: 40px;
+  width: 100px;
+}
+
+.skeleton-button-lg {
+  height: 56px;
+  width: 140px;
+}
+
+/* Skeleton Card */
+.skeleton-card {
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.skeleton-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   5. SKELETON SCREENS - SPECIFIC PAGES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Dashboard Hero Skeleton */
+.skeleton-dashboard-hero {
+  display: grid;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .skeleton-dashboard-hero {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr);
+  }
+}
+
+.skeleton-hero-card {
+  padding: var(--space-8);
+  background: var(--gradient-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-hero-card .skeleton-title {
+  width: 70%;
+  height: 2.5em;
+  margin-bottom: var(--space-3);
+}
+
+.skeleton-hero-card .skeleton-text {
+  width: 90%;
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-hero-card .skeleton-text:last-child {
+  width: 60%;
+}
+
+/* Stat Grid Skeleton */
+.skeleton-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.skeleton-stat-card {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.skeleton-stat-card .skeleton-text {
+  width: 60%;
+  height: 0.875em;
+  margin-bottom: var(--space-3);
+}
+
+.skeleton-stat-card .skeleton-title {
+  width: 40%;
+  height: 2em;
+  margin-bottom: 0;
+}
+
+/* Table Skeleton */
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-table-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.skeleton-table-row .skeleton-avatar {
+  flex-shrink: 0;
+}
+
+.skeleton-table-row .skeleton-text {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Form Skeleton */
+.skeleton-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.skeleton-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-form-label {
+  width: 30%;
+  height: 0.875em;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-form-input {
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   6. PROGRESS INDICATORS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Linear Progress Bar */
+.progress-bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: var(--color-neutral-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+/* Indeterminate Progress */
+.progress-bar-indeterminate .progress-bar__fill {
+  width: 40%;
+  animation: progressIndeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progressIndeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(250%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Progress Bar Sizes */
+.progress-bar-sm {
+  height: 4px;
+}
+
+.progress-bar-lg {
+  height: 12px;
+}
+
+/* Progress Bar with Label */
+.progress-labeled {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.progress-labeled__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-labeled__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+}
+
+.progress-labeled__value {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-primary-600);
+  font-family: var(--font-latin);
+}
+
+/* Circular Progress */
+.progress-circle {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.progress-circle svg {
+  transform: rotate(-90deg);
+}
+
+.progress-circle__bg {
+  fill: none;
+  stroke: var(--color-neutral-200);
+  stroke-width: 4;
+}
+
+.progress-circle__fill {
+  fill: none;
+  stroke: var(--color-primary-600);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--duration-normal) var(--ease-out);
+}
+
+.progress-circle__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  font-family: var(--font-latin);
+  color: var(--color-text-primary);
+}
+
+/* Circular Progress Sizes */
+.progress-circle-sm {
+  width: 48px;
+  height: 48px;
+}
+
+.progress-circle-sm .progress-circle__label {
+  font-size: var(--text-xs);
+}
+
+.progress-circle-lg {
+  width: 96px;
+  height: 96px;
+}
+
+.progress-circle-lg .progress-circle__label {
+  font-size: var(--text-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   7. SPINNER VARIANTS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-neutral-300);
+  border-top-color: var(--color-primary-600);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner-lg {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+.spinner-xl {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+/* Spinner Colors */
+.spinner-primary {
+  border-color: var(--color-neutral-200);
+  border-top-color: var(--color-primary-600);
+}
+
+.spinner-secondary {
+  border-color: var(--color-neutral-200);
+  border-top-color: var(--color-secondary-600);
+}
+
+.spinner-light {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: var(--color-text-inverse);
+}
+
+/* Dots Spinner */
+.spinner-dots {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.spinner-dots__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary-600);
+  border-radius: 50%;
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.spinner-dots__dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.spinner-dots__dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   8. CONTENT PLACEHOLDERS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.empty-state__icon {
+  font-size: 64px;
+  opacity: 0.3;
+}
+
+.empty-state__title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.empty-state__description {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  max-width: 400px;
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+.empty-state__action {
+  margin-top: var(--space-2);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   9. LOADING STATES - ACCESSIBILITY
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Screen Reader Only */
+.loading-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ARIA Live Region */
+[aria-live="polite"],
+[aria-live="assertive"] {
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   10. REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay,
+  .loading-inline,
+  .skeleton,
+  .spinner,
+  .spinner-dots__dot,
+  .progress-bar__fill,
+  .progress-circle__fill {
+    animation: none;
+    transition: none;
+  }
+  
+  .skeleton {
+    background: var(--color-neutral-200);
+  }
+  
+  .spinner,
+  .loading-overlay__spinner,
+  .loading-inline__spinner {
+    border-top-color: var(--color-primary-600);
+    border-right-color: var(--color-primary-600);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   END OF LOADING STATES SYSTEM
+   ═══════════════════════════════════════════════════════════════════════ */

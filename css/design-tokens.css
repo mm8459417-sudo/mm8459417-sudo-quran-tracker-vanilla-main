@@ -1,0 +1,117 @@
+:root {
+  color-scheme: light;
+
+  --font-arabic: "Noto Kufi Arabic", "Cairo", "Tajawal", sans-serif;
+  --font-latin: "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Consolas", monospace;
+
+  --line-height-body: 1.9;
+  --line-height-heading: 1.4;
+
+  --color-primary-600: #0D9488;
+  --color-primary-700: #0F766E;
+  --color-primary-800: #115E59;
+  --color-secondary-500: #F59E0B;
+  --color-secondary-600: #D97706;
+  --color-accent-500: #8B5CF6;
+
+  --color-slate-900: #0F172A;
+  --color-slate-800: #1E293B;
+  --color-slate-700: #334155;
+  --color-slate-600: #475569;
+  --color-slate-300: #CBD5E1;
+  --color-slate-200: #E2E8F0;
+  --color-slate-50: #F8FAFC;
+
+  --color-bg: var(--color-slate-50);
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F1F5F9;
+  --color-text: var(--color-slate-900);
+  --color-text-muted: var(--color-slate-600);
+  --color-border: var(--color-slate-200);
+  --color-border-strong: var(--color-slate-300);
+
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(15, 23, 42, 0.08);
+
+  --shadow-sm: 0 4px 10px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.16);
+
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 80px;
+
+  --container-max: 1280px;
+  --sidebar-width: 280px;
+  --header-height: 72px;
+
+  --motion-fast: 200ms;
+  --motion-medium: 320ms;
+  --motion-slow: 520ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --gradient-hero: linear-gradient(135deg, #0F172A 0%, #0D9488 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.64));
+  --pattern-geometry: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M40 0l20 20-20 20-20-20L40 0zm0 40l20 20-20 20-20-20 20-20zM0 40l20-20 20 20-20 20L0 40zm80 0l-20-20-20 20 20 20 20-20z' stroke='%230D9488' stroke-width='0.5' opacity='0.08'/%3E%3C/g%3E%3C/svg%3E");
+
+  --focus-ring: 0 0 0 3px rgba(13, 148, 136, 0.3);
+
+  --primary-emerald: var(--color-primary-700);
+  --accent-gold: var(--color-secondary-600);
+  --c-primary: var(--color-primary-700);
+  --c-primary-light: var(--color-surface);
+  --c-amber: var(--color-secondary-600);
+  --c-amber-light: rgba(217, 119, 6, 0.12);
+  --c-blue: #2563EB;
+  --c-blue-light: #DBEAFE;
+  --c-red: #DC2626;
+  --c-red-light: #FEE2E2;
+  --c-gray: var(--color-slate-600);
+  --c-text: var(--color-text);
+  --c-border: var(--color-border);
+  --c-bg: var(--color-bg);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #0B1320;
+  --color-surface: #0F1A2B;
+  --color-surface-alt: #111C2F;
+  --color-text: #E2E8F0;
+  --color-text-muted: #94A3B8;
+  --color-border: #1F2A3D;
+  --color-border-strong: #2B3A52;
+
+  --glass-bg: rgba(15, 26, 43, 0.75);
+  --glass-border: rgba(148, 163, 184, 0.18);
+
+  --shadow-sm: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 20px 40px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 28px 70px rgba(0, 0, 0, 0.45);
+
+  --gradient-hero: linear-gradient(135deg, #0B1320 0%, #115E59 100%);
+  --gradient-surface: linear-gradient(180deg, rgba(15, 26, 43, 0.92), rgba(15, 26, 43, 0.65));
+  --pattern-geometry: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M40 0l20 20-20 20-20-20L40 0zm0 40l20 20-20 20-20-20 20-20zM0 40l20-20 20 20-20 20L0 40zm80 0l-20-20-20 20 20 20 20-20z' stroke='%23F59E0B' stroke-width='0.5' opacity='0.08'/%3E%3C/g%3E%3C/svg%3E");
+
+  --focus-ring: 0 0 0 3px rgba(14, 165, 233, 0.4);
+}
