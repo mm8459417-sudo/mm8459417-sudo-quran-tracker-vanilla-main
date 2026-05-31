@@ -9,7 +9,6 @@
     "السبت",
   ];
 
-  // دالة أمان لضمان وجود الباقات قبل تحميل الصفحة (لحل مشكلة عدم فتح الصفحة)
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
     if (!appState.settings.packages || appState.settings.packages.length === 0) {
@@ -32,7 +31,7 @@
         packageId: packages[0].id,
         quranLimit: 8,
         islamicLimit: 4,
-        maxAbsenceAllowed: 1, // الغياب المسموح بدون عذر
+        maxAbsenceAllowed: 1, 
         groupLink: "",
         schedule: [],
       };
@@ -60,6 +59,7 @@
         editId: null,
         name: "",
         price: 70,
+        studentIds: [], // مصفوفة جديدة لحفظ الطلاب المرتبطين بالباقة
       };
     }
     return appState.ui.packageForm;
@@ -141,7 +141,6 @@
       return;
     }
 
-    // ربط سعر الحلقة بالطالب بناءً على الباقة المختارة
     const packages = ensurePackagesExist();
     const selectedPackage = packages.find(p => p.id === form.packageId);
     const sessionPrice = selectedPackage ? selectedPackage.price : 70;
@@ -151,11 +150,11 @@
       phone: form.phone.trim(),
       gender: form.gender,
       packageId: form.packageId,
-      sessionPrice: sessionPrice, // سيتم استخدامه في الشيت المالي
+      sessionPrice: sessionPrice,
       quranLimit: parseInt(form.quranLimit, 10) || 0,
       islamicLimit: parseInt(form.islamicLimit, 10) || 0,
       maxAbsenceAllowed: parseInt(form.maxAbsenceAllowed, 10) || 0,
-      sessionLimit: (parseInt(form.quranLimit, 10) || 0) + (parseInt(form.islamicLimit, 10) || 0), // المجموع الكلي للتوافق القديم
+      sessionLimit: (parseInt(form.quranLimit, 10) || 0) + (parseInt(form.islamicLimit, 10) || 0),
       groupLink: form.groupLink.trim(),
       schedule: form.schedule,
     };
@@ -163,9 +162,13 @@
     try {
       if (form.editId) {
         await dbModule.updateStudent(form.editId, payload);
+        const idx = appState.students.findIndex(s => s.id === form.editId);
+        if(idx !== -1) Object.assign(appState.students[idx], payload);
         showToast("تم تحديث الطالب");
       } else {
-        await dbModule.addStudent(payload);
+        const addedStudent = await dbModule.addStudent(payload);
+        if(addedStudent) appState.students.push(addedStudent);
+        else appState.students.push({...payload, id: Date.now().toString()});
         showToast("تم إضافة الطالب");
       }
       form.open = false;
@@ -180,7 +183,9 @@
     if (!window.confirm("هل تريد حذف الطالب وكل بياناته؟")) return;
     try {
       await dbModule.deleteStudent(id);
+      appState.students = appState.students.filter(s => s.id !== id);
       showToast("تم حذف الطالب");
+      router.render();
     } catch (err) {
       showToast("خطأ أثناء الحذف");
     }
@@ -249,9 +254,13 @@
     try {
       if (form.editId) {
         await dbModule.updateGroup(form.editId, payload);
+        const idx = appState.groups.findIndex(g => g.id === form.editId);
+        if(idx !== -1) Object.assign(appState.groups[idx], payload);
         showToast("تم تحديث المجموعة");
       } else {
-        await dbModule.addGroup(payload);
+        const addedGroup = await dbModule.addGroup(payload);
+        if(addedGroup) appState.groups.push(addedGroup);
+        else appState.groups.push({...payload, id: Date.now().toString()});
         showToast("تم إنشاء المجموعة");
       }
       form.open = false;
@@ -266,7 +275,9 @@
     if (!window.confirm("هل تريد حذف المجموعة؟")) return;
     try {
       await dbModule.deleteGroup(id);
+      appState.groups = appState.groups.filter(g => g.id !== id);
       showToast("تم حذف المجموعة");
+      router.render();
     } catch (err) {
       showToast("خطأ أثناء حذف المجموعة");
     }
@@ -284,11 +295,14 @@
         form.editId = pkg.id;
         form.name = pkg.name || "";
         form.price = pkg.price || 70;
+        // جلب الطلاب التابعين لهذه الباقة
+        form.studentIds = appState.students.filter(s => s.packageId === pkg.id).map(s => s.id);
       }
     } else {
       form.editId = null;
       form.name = "";
       form.price = 70;
+      form.studentIds = [];
     }
     form.open = true;
     router.render();
@@ -302,6 +316,17 @@
   window.updatePackageFormField = function (field, value) {
     const form = ensurePackageForm();
     form[field] = value;
+  };
+
+  // ربط أو فك ربط طالب بباقة محددة من داخل شاشة الباقة
+  window.togglePackageStudent = function (studentId, checked) {
+    const form = ensurePackageForm();
+    if (checked) {
+      if (!form.studentIds.includes(studentId)) form.studentIds.push(studentId);
+    } else {
+      form.studentIds = form.studentIds.filter((id) => id !== studentId);
+    }
+    router.render();
   };
 
   window.savePackageForm = async function () {
@@ -318,6 +343,7 @@
     };
 
     let packages = [...ensurePackagesExist()];
+    const defaultPkg = packages[0];
     
     if (form.editId) {
       const idx = packages.findIndex(p => p.id === form.editId);
@@ -327,16 +353,36 @@
     }
 
     try {
-      await dbModule.saveSettings({ packages });
+      // 1. تحديث الباقات محلياً
+      appState.settings.packages = packages;
       
-      // تحديث أسعار الطلاب المرتبطين بهذه الباقة
+      // 2. حفظ الإعدادات في الداتابيز
+      await dbModule.saveSettings(appState.settings);
+      
+      // 3. مسح الطلاب وتحديث باقاتهم المادية بناءً على اللي اختاره المعلم
       appState.students.forEach(async (stu) => {
-          if (stu.packageId === pkgData.id) {
-             await dbModule.updateStudent(stu.id, { sessionPrice: pkgData.price });
+          let hasChanged = false;
+          
+          if (form.studentIds.includes(stu.id)) {
+              // لو الطالب متحدد في باقة دي.. اربطه بيها
+              if (stu.packageId !== pkgData.id || stu.sessionPrice !== pkgData.price) {
+                  stu.packageId = pkgData.id;
+                  stu.sessionPrice = pkgData.price;
+                  hasChanged = true;
+              }
+          } else if (stu.packageId === pkgData.id) {
+              // لو الطالب متشال الصح من عليه وكان في الباقة دي.. رجعه للأساسية
+              stu.packageId = defaultPkg.id;
+              stu.sessionPrice = defaultPkg.price;
+              hasChanged = true;
+          }
+
+          if (hasChanged) {
+              await dbModule.updateStudent(stu.id, { packageId: stu.packageId, sessionPrice: stu.sessionPrice });
           }
       });
 
-      showToast("تم حفظ الباقة");
+      showToast("تم حفظ الباقة وربط الطلاب بها بنجاح");
       form.open = false;
       router.render();
     } catch (err) {
@@ -348,7 +394,8 @@
     if (!window.confirm("هل تريد حذف هذه الباقة؟")) return;
     let packages = ensurePackagesExist().filter(p => p.id !== id);
     try {
-      await dbModule.saveSettings({ packages });
+      appState.settings.packages = packages; 
+      await dbModule.saveSettings(appState.settings); 
       showToast("تم حذف الباقة");
       router.render();
     } catch (err) {
@@ -364,8 +411,11 @@
     const accountingPhone = document.getElementById("settings-phone").value.trim();
 
     try {
-      await dbModule.saveSettings({ defaultLimit, accountingPhone });
+      appState.settings.defaultLimit = defaultLimit;
+      appState.settings.accountingPhone = accountingPhone;
+      await dbModule.saveSettings(appState.settings);
       showToast("تم حفظ الإعدادات الأساسية");
+      router.render(); 
     } catch (err) {
       showToast("خطأ أثناء حفظ الإعدادات");
     }
@@ -377,8 +427,8 @@
   function renderPackageForm(form) {
     return `
       <div class="card-soft account-card exec-animate" style="--stagger: 1; padding: 32px !important;">
-        <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
-          <h3 style="font-size:20px;font-weight:800;color:var(--gold);font-family: var(--font-display);">
+        <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
+          <h3 style="font-size:20px;font-weight:800;color:#065f46;font-family: var(--font-display);">
             ${form.editId ? "<i class='ph-duotone ph-pencil-simple' style='margin-left:8px;'></i>تعديل الباقة" : "<i class='ph-duotone ph-plus-circle' style='margin-left:8px;'></i>إضافة باقة جديدة"}
           </h3>
           <button class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closePackageForm()">✕</button>
@@ -396,8 +446,29 @@
           <div class="account-input-line"></div>
         </div>
 
-        <button class="btn account-save-btn exec-animate" style="--stagger: 4;" onclick="savePackageForm()">
-          <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إنشاء الباقة"}
+        <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
+          <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:#065f46;"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>ربط الطلاب بهذه الباقة (اختياري)</div>
+          
+          ${appState.students.length === 0 ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
+          
+          <div class="d-grid gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+            ${appState.students
+              .map(
+                (s) => `
+              <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:10px;background:white;border-radius:10px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;">
+                <input class="form-check-input" style="width:20px;height:20px;margin-top:0;" type="checkbox" ${
+                  form.studentIds.includes(s.id) ? "checked" : ""
+                } onchange="togglePackageStudent('${s.id}', this.checked)" />
+                <span style="font-weight:600;font-size:14px;color:var(--text-primary);"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</span>
+              </label>
+            `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <button class="btn account-save-btn exec-animate" style="--stagger: 5; background: #059669; border: none; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);" onclick="savePackageForm()">
+          <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إنشاء الباقة وربط الطلاب"}
         </button>
       </div>
     `;
@@ -440,7 +511,6 @@
           <div class="account-input-line"></div>
         </div>
 
-        <!-- نظام الباقات والمسارات الجديد -->
         <div class="card-soft mb-4 exec-animate" style="--stagger: 6; background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2);">
           <div style="font-weight:var(--fw-bold);color:#065f46;margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px;"></i>النظام المالي والمسارات</div>
           
@@ -550,12 +620,11 @@
     const packages = ensurePackagesExist();
     
     return `
-      <!-- SYSTEM SETTINGS -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 1; padding: 32px !important;">
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
         <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
-          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit}" placeholder=" " />
+          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit || 12}" placeholder=" " />
           <label class="form-label" for="settings-limit">الحد الافتراضي للباقة (عدد الحصص الكلي)</label>
           <div class="account-input-line"></div>
         </div>
@@ -571,7 +640,6 @@
         </button>
       </div>
 
-      <!-- PACKAGES (TIERS) MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 5; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:#065f46;margin:0;">
@@ -585,22 +653,23 @@
         ${packages.length === 0 ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد باقات. قم بإنشاء باقة لربط الطلاب بها.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${packages.map((p, index) => `
+          ${packages.map((p, index) => {
+            const stuCount = appState.students.filter(s => s.packageId === p.id).length;
+            return `
             <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
                 <div style="font-weight:bold; color:#065f46; font-size:15px;">${p.name}</div>
-                <div style="font-size:13px; color:#047857; margin-top:4px;">سعر الحلقة: <strong>${p.price} ج.م</strong></div>
+                <div style="font-size:13px; color:#047857; margin-top:4px;">سعر الحلقة: <strong>${p.price} ج.م</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
                 <button class="btn btn-danger icon-btn" onclick="deletePackage('${p.id}')"><i class="ph-duotone ph-trash"></i></button>
               </div>
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
       </div>
 
-      <!-- STUDENTS MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -642,7 +711,6 @@
         </div>
       </div>
 
-      <!-- GROUPS MANAGEMENT -->
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -682,7 +750,6 @@
   }
 
   window.renderSettingsPage = function () {
-    // التأكد من استدعاء الدالة هنا قبل فتح أي فورم لتفادي أي خطأ
     ensurePackagesExist();
 
     const pkgForm = ensurePackageForm();
