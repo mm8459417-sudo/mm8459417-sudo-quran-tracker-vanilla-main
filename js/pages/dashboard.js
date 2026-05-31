@@ -92,15 +92,13 @@ window.showSmartSecretaryPopup = function() {
 
   document.body.appendChild(popup);
 };
-}
+
 (function () {
   window.setActiveTab = function (tab) {
     appState.activeTab = tab;
     window.closeSidebar?.();
     router.render();
   };
-
-
 
   function renderActiveTab() {
     switch (appState.activeTab) {
@@ -129,7 +127,6 @@ window.showSmartSecretaryPopup = function() {
 
     return `
       <section class="dash-shell">
-        <!-- Premium Hero Section -->
         <div class="premium-hero">
           <div class="premium-hero__particles">
             <div class="particle p1"></div>
@@ -193,8 +190,6 @@ window.showSmartSecretaryPopup = function() {
           </div>
         </div>
 
-
-        <!-- Content -->
         <div class="dash-content">
           ${renderActiveTab()}
         </div>
@@ -221,8 +216,14 @@ window.showSmartSecretaryPopup = function() {
         break;
       default:
         initSessionForm();
-        default:
-        initSessionForm();
+        
+        // 🔴 استدعاء السكرتير الذكي تم إصلاحه ووضعه هنا بشكل صحيح 🔴
+        setTimeout(() => {
+          if (typeof showSmartSecretaryPopup === "function") {
+            showSmartSecretaryPopup();
+          }
+        }, 500);
+        break; // تأكدنا من وجود الـ break عشان الكود يشتغل مظبوط
     }
   };
 })();
