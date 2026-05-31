@@ -11,7 +11,6 @@
 
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
-    // التعديل هنا: مبقاش يجبر الكود يعمل باقة لو العدد صفر. بيعملها بس لو المتغير مش موجود خالص.
     if (!appState.settings.packages) {
       appState.settings.packages = [];
     }
@@ -144,16 +143,20 @@
     const selectedPackage = packages.find(p => p.id === form.packageId);
     const sessionPrice = selectedPackage ? selectedPackage.price : 70;
 
+    const quranNum = parseInt(form.quranLimit, 10);
+    const islamicNum = parseInt(form.islamicLimit, 10);
+    const absNum = parseInt(form.maxAbsenceAllowed, 10);
+
     const payload = {
       name: form.name.trim(),
       phone: form.phone.trim(),
       gender: form.gender,
       packageId: form.packageId,
       sessionPrice: sessionPrice,
-      quranLimit: parseInt(form.quranLimit, 10) || 0,
-      islamicLimit: parseInt(form.islamicLimit, 10) || 0,
-      maxAbsenceAllowed: parseInt(form.maxAbsenceAllowed, 10) || 0,
-      sessionLimit: (parseInt(form.quranLimit, 10) || 0) + (parseInt(form.islamicLimit, 10) || 0),
+      quranLimit: isNaN(quranNum) ? 0 : quranNum,
+      islamicLimit: isNaN(islamicNum) ? 0 : islamicNum,
+      maxAbsenceAllowed: isNaN(absNum) ? 0 : absNum,
+      sessionLimit: (isNaN(quranNum) ? 0 : quranNum) + (isNaN(islamicNum) ? 0 : islamicNum),
       groupLink: form.groupLink.trim(),
       schedule: form.schedule,
     };
@@ -350,7 +353,8 @@
 
     try {
       appState.settings.packages = packages;
-      await dbModule.saveSettings(appState.settings);
+      // دمج الإعدادات القديمة عشان مفيش حاجة تتمسح من الداتابيز
+      await dbModule.saveSettings({ ...appState.settings, packages: packages });
       
       appState.students.forEach(async (stu) => {
           let hasChanged = false;
@@ -362,8 +366,8 @@
                   hasChanged = true;
               }
           } else if (stu.packageId === pkgData.id) {
-              stu.packageId = ""; // إزالة الباقة
-              stu.sessionPrice = 70; // السعر الافتراضي
+              stu.packageId = ""; 
+              stu.sessionPrice = 70; 
               hasChanged = true;
           }
 
@@ -385,7 +389,7 @@
     let packages = ensurePackagesExist().filter(p => p.id !== id);
     try {
       appState.settings.packages = packages; 
-      await dbModule.saveSettings(appState.settings); 
+      await dbModule.saveSettings({ ...appState.settings, packages: packages }); 
       showToast("تم حذف الباقة");
       router.render();
     } catch (err) {
@@ -403,7 +407,7 @@
     try {
       appState.settings.defaultLimit = defaultLimit;
       appState.settings.accountingPhone = accountingPhone;
-      await dbModule.saveSettings(appState.settings);
+      await dbModule.saveSettings({ ...appState.settings, defaultLimit, accountingPhone });
       showToast("تم حفظ الإعدادات الأساسية");
       router.render(); 
     } catch (err) {
@@ -686,8 +690,8 @@
                   <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</div>
                   <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
                     <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">الباقة: <strong>${pkgName}</strong></span>
-                    <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${s.quranLimit || 8}</strong></span>
-                    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${s.islamicLimit || 4}</strong></span>
+                    <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${s.quranLimit !== undefined ? s.quranLimit : 8}</strong></span>
+                    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${s.islamicLimit !== undefined ? s.islamicLimit : 4}</strong></span>
                   </div>
                 </div>
                 <div class="d-flex gap-2">
