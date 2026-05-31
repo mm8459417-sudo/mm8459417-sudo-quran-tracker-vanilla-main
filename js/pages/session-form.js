@@ -528,6 +528,8 @@
       sessionType: form.sessionType,
       mode: form.scope,
       overall,
+      // السطر الجديد اللي بيحفظ رقم الحلقة المختار
+      sessionNumber: document.getElementById('session-number') ? parseInt(document.getElementById('session-number').value, 10) : 1,
     };
 
     if (form.scope === "individual") {
@@ -851,7 +853,6 @@
         <div class="report-modal" style="padding: 0; border-radius: 16px; width: min(450px, 100%); background: #f9fafb; overflow: hidden; font-family: 'Cairo', sans-serif; display: flex; flex-direction: column; max-height: 95vh;">
           
           <div id="session-report-box" style="background: #fff; flex: 1; overflow-y: auto;">
-            <!-- Header -->
             <div style="background: #0f5846; padding: 24px 20px 32px; text-align: center; color: white;">
               <div style="font-family: var(--font-arabic); font-size: 32px; font-weight: 700; margin-bottom: 8px;">
                 ${data.sessionType === "quran" ? "تقرير حلقة القرآن الكريم" : "تقرير التربية الإسلامية"}
@@ -860,7 +861,6 @@
             </div>
 
             <div style="padding: 0 20px 20px;">
-              <!-- Student Info Bar -->
               <div style="background: #f3f4f6; border-radius: 12px; padding: 12px 16px; margin-top: -16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                 <div style="font-size: 13px; color: #6b7280; font-weight: 600;">${data.dateAr || formatArDate(data.date)}</div>
                 <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; color: #1c1c2e;">
@@ -869,10 +869,8 @@
                 </div>
               </div>
 
-              <!-- Main Content -->
               <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 20px;">
                 ${data.sessionType === "quran" ? `
-                  <!-- Quran Sections -->
                   ${["hifz", "recent", "distant"].map(secKey => {
                     const sec = data.quran[secKey];
                     if (!sec || !sec.surah) return "";
@@ -899,14 +897,11 @@
                     `;
                   }).join("")}
 
-                  <!-- Performance Stars Row -->
                   <div style="display: flex; justify-content: space-around; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 8px; margin-top: 12px;">
-                    ${renderMiniStars("إنجاز", data.quran.closing?.achievement)}
                     ${renderMiniStars("تفاعل", data.quran.tadabbur?.interaction)}
                     ${renderMiniStars("حضور", data.quran.tadabbur?.attention)}
                   </div>
 
-                  <!-- Homework -->
                   ${(data.quran.closing?.homework?.new?.surah || data.quran.closing?.homework?.recent?.surah || data.quran.closing?.homework?.distant?.surah) ? `
                     <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-top: 8px; text-align: right;">
                         <i class="ph-duotone ph-books" style="margin-left:4px;"></i>واجب الحلقة القادمة
@@ -919,7 +914,6 @@
                     </div>
                   ` : ""}
                 ` : `
-                  <!-- Islamic Details -->
                   ${data.islamic?.categories?.length ? data.islamic.categories.map(c => {
                     const catTitle = ISLAMIC_CATEGORIES.find(x => x.id === c.type)?.label || "درس";
                     const fields = ISLAMIC_CATEGORIES.find(x => x.id === c.type)?.fields || [];
@@ -948,7 +942,6 @@
             </div>
           </div>
           
-          <!-- Actions Footer -->
           <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; background: #f9fafb;">
             <div style="display: flex; gap: 10px;">
               <button class="btn" style="flex: 1; background: #22c55e; color: white; font-weight: 700; border-radius: 8px; padding: 10px; font-size: 15px;" onclick="sendReportWhatsApp()">
@@ -999,7 +992,6 @@
 
     if (!hasSelection) {
       return `
-        <!-- Search -->
         <div class="dash-search">
           <span class="dash-search__icon"><i class="ph-duotone ph-magnifying-glass"></i></span>
           <input class="dash-search__input" placeholder="ابحث عن طالب أو مجموعة..." value="${appState.ui.searchQuery}" oninput="updateSearchQuery(this.value)" />
@@ -1010,9 +1002,7 @@
           </select>
         </div>
 
-        <!-- Picker Grid -->
         <div class="dash-picker-grid">
-          <!-- Students -->
           <div class="dash-picker-col">
             <div class="dash-picker-header">
               <div class="dash-picker-header__icon individual"><i class="ph-duotone ph-user"></i></div>
@@ -1038,7 +1028,6 @@
             </div>
           </div>
 
-          <!-- Groups -->
           <div class="dash-picker-col">
             <div class="dash-picker-header">
               <div class="dash-picker-header__icon group"><i class="ph-duotone ph-users"></i></div>
@@ -1095,25 +1084,25 @@
           <input type="date" class="dash-date-input" value="${form.date}" onchange="updateFormPath('date', this.value)" />
         </div>
 
-<div class="form-group" style="margin-bottom: 1rem;">
-  <label class="form-label" style="font-weight: bold; color: var(--color-slate-700); font-size: 14px; margin-bottom: 8px; display: block;">
-    <i class="ph-duotone ph-hash"></i> رقم الحلقة
-  </label>
-  <div style="display: flex; align-items: center; gap: 10px; max-width: 160px;">
-    <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
-            style="background: #e0f2fe; color: #0284c7; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
-      +
-    </button>
-    
-    <input type="number" id="session-number" class="form-control" value="1" min="1" 
-           style="text-align: center; font-weight: 900; font-size: 18px; border: 2px solid var(--color-slate-200); border-radius: 10px; width: 60px; height: 40px; padding: 0;">
-    
-    <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
-            style="background: #f1f5f9; color: #64748b; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
-      -
-    </button>
-  </div>
-</div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" style="font-weight: bold; color: var(--color-slate-700); font-size: 14px; margin-bottom: 8px; display: block;">
+            <i class="ph-duotone ph-hash"></i> رقم الحلقة
+          </label>
+          <div style="display: flex; align-items: center; gap: 10px; max-width: 160px;">
+            <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
+                    style="background: #e0f2fe; color: #0284c7; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
+              +
+            </button>
+            
+            <input type="number" id="session-number" class="form-control" value="1" min="1" 
+                   style="text-align: center; font-weight: 900; font-size: 18px; border: 2px solid var(--color-slate-200); border-radius: 10px; width: 60px; height: 40px; padding: 0;">
+            
+            <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
+                    style="background: #f1f5f9; color: #64748b; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
+              -
+            </button>
+          </div>
+        </div>
 
         <div class="dash-type-switch">
           <button class="dash-type-btn ${form.sessionType === "quran" ? "active" : ""}" onclick="updateFormPath('sessionType','quran'); router.render();"><i class="ph-duotone ph-book-open-text" style="margin-left: 4px;"></i>قرآن</button>
