@@ -1,9 +1,4 @@
 (function () {
-  // حالة فلتر الشيت (افتراضياً: شهر)
-  if (!appState.ui.sheetFilter) {
-    appState.ui.sheetFilter = "month"; // "month" or "week"
-  }
-
   window.prevMonth = function () {
     if (appState.ui.month === 1) {
       appState.ui.month = 12;
@@ -76,12 +71,18 @@
   };
 
   window.setSheetFilter = function (filter) {
+    if (!appState.ui) appState.ui = {};
     appState.ui.sheetFilter = filter;
     router.render();
   };
 
   window.renderMonthlySheetPage = function () {
     document.body.classList.add('monthly-active');
+
+    // ✅ تم نقل هذا السطر للداخل لحل مشكلة عدم التحميل
+    if (!appState.ui.sheetFilter) {
+      appState.ui.sheetFilter = "month"; 
+    }
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -113,7 +114,6 @@
     // 2. تجهيز بيانات الطلاب والعمليات الحسابية
     let tableData = appState.students.map(student => {
       const stdSessions = filteredSessions.filter(s => {
-        // التحقق من أن الطالب مشارك في الجلسة (سواء فردي أو ضمن مجموعة)
         if (s.mode === "individual") {
             return s.studentId === student.id;
         } else if (s.mode === "group" && Array.isArray(s.participants)) {
@@ -125,10 +125,9 @@
       let quranCount = 0;
       let islamicCount = 0;
       let unexcusedAbsenceCount = 0;
-      let excusedAbsenceCount = 0; // غياب بعذر
+      let excusedAbsenceCount = 0;
 
       stdSessions.forEach(s => {
-        // استخراج حالة الحضور للطالب في هذه الجلسة
         let isPresent = true;
         let attendanceStatus = "present";
         
@@ -136,7 +135,6 @@
             const p = s.participants.find(x => x.studentId === student.id);
             if (p && p.present === false) {
                 isPresent = false;
-                // افتراضياً نعتبره غياب بدون عذر في المجموعات ما لم يتم تحديد العذر مستقبلاً
                 attendanceStatus = "absent_unexcused"; 
             }
         } else if (s.attendance && s.attendance !== "present") {
@@ -157,18 +155,14 @@
       });
 
       const totalAttended = quranCount + islamicCount;
-      
       const sessionPrice = student.sessionPrice || 70;
       const maxAbsenceAllowed = student.maxAbsenceAllowed || 1;
       const groupName = student.group || "فردي (بدون مجموعة)";
 
-      // حساب الحلقات المستحقة الدفع (الغياب اللي فوق الحد الأقصى بدون عذر)
-      // الغياب بعذر لا يدخل في هذه الحسبة
       const payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
       const totalCalculatedSessions = totalAttended + payableAbsences;
       const totalAmount = totalCalculatedSessions * sessionPrice;
 
-      // جمع الإجماليات
       grandTotalAmount += totalAmount;
       grandTotalCalculatedSessions += totalCalculatedSessions;
       grandTotalQuran += quranCount;
@@ -186,9 +180,9 @@
       ratedSessions.forEach(s => {
           if(s.mode === "group") {
              const p = s.participants.find(x => x.studentId === student.id);
-             sumRating += p.overall;
+             sumRating += (p.overall || 0);
           } else {
-             sumRating += s.overall;
+             sumRating += (s.overall || 0);
           }
       });
 
