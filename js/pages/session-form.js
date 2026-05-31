@@ -528,7 +528,6 @@
       sessionType: form.sessionType,
       mode: form.scope,
       overall,
-      // السطر الجديد اللي بيحفظ رقم الحلقة المختار
       sessionNumber: document.getElementById('session-number') ? parseInt(document.getElementById('session-number').value, 10) : 1,
     };
 
@@ -645,6 +644,39 @@
     return obj ?? "";
   }
 
+  // Helper: دالة أزرار التقييم السريعة (بديل القائمة المنسدلة)
+  function renderRatingPills(selectedValue, onChangeCode) {
+    const RATINGS_CONFIG = [
+      { val: "ممتاز", emoji: "✨" },
+      { val: "جيد جداً", emoji: "👍" },
+      { val: "جيد", emoji: "🙂" },
+      { val: "يحتاج مراجعة", emoji: "📚" }
+    ];
+    
+    return `
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;">
+        ${RATINGS_CONFIG.map(r => {
+          const isSelected = selectedValue === r.val;
+          const bg = isSelected ? '#f0fdf4' : '#ffffff';
+          const border = isSelected ? '#10b981' : '#e2e8f0';
+          const color = isSelected ? '#065f46' : '#475569';
+          const shadow = isSelected ? '0 0 0 1px #10b981' : 'none';
+          
+          const finalVal = isSelected ? "" : r.val; 
+          const action = onChangeCode.replace('__VAL__', finalVal);
+          
+          return `
+            <button type="button" 
+                    onclick="${action}; router.render();" 
+                    style="background: ${bg}; border: 1px solid ${border}; color: ${color}; box-shadow: ${shadow}; border-radius: 30px; padding: 8px 12px; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 120px;">
+              <span style="font-size: 16px;">${r.emoji}</span> ${r.val}
+            </button>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
   function renderQuranSection(title, key) {
     const form = ensureSessionForm();
     const section = form.quran[key];
@@ -652,31 +684,29 @@
       <div class="card-soft mb-2" style="background:${key === "hifz" ? "#f0fdf4" : "#f9fafb"};">
         <div style="font-weight:700;margin-bottom:10px;color:#065f46;">${title}</div>
         ${renderSurahInput("السورة", `quran.${key}`, section.surah)}
-        <div class="mt-2">
-          <label class="form-label">التقييم</label>
-          <select class="form-select" onchange="updateFormPath('quran.${key}.rating', this.value)">
-            <option value="">اختر التقييم...</option>
-            ${RATINGS.map(
-              (r) => `<option value="${r}" ${section.rating === r ? "selected" : ""}>${r}</option>`
-            ).join("")}
-          </select>
+        
+        <div class="mt-3">
+          <label class="form-label" style="font-weight: bold;">التقييم</label>
+          ${renderRatingPills(section.rating, `updateFormPath('quran.${key}.rating', '__VAL__')`)}
         </div>
-        <div class="mt-2">
-          <label class="form-label">أخطاء التجويد</label>
-          <div class="d-flex flex-wrap gap-2">
+        
+        <div class="mt-3">
+          <label class="form-label" style="font-weight: bold;">أخطاء التجويد</label>
+          <div class="d-flex flex-wrap gap-2 mt-1">
             ${TAJWEED.map(
               (t) => `
-                <label class="form-check">
-                  <input class="form-check-input" type="checkbox" ${section.tajweed.includes(t) ? "checked" : ""} onchange="toggleTajweed('${key}', '${t}', this.checked)" />
+                <label class="form-check" style="background: white; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 8px; margin: 0; cursor: pointer;">
+                  <input class="form-check-input" style="margin-left: 6px;" type="checkbox" ${section.tajweed.includes(t) ? "checked" : ""} onchange="toggleTajweed('${key}', '${t}', this.checked)" />
                   <span class="form-check-label">${t}</span>
                 </label>
               `
             ).join("")}
           </div>
         </div>
-        <div class="mt-2">
-          <label class="form-label">ملاحظات</label>
-          <textarea class="form-control" oninput="updateFormPath('quran.${key}.notes', this.value)">${section.notes}</textarea>
+        
+        <div class="mt-3">
+          <label class="form-label" style="font-weight: bold;">ملاحظات</label>
+          <textarea class="form-control mt-1" oninput="updateFormPath('quran.${key}.notes', this.value)">${section.notes}</textarea>
         </div>
       </div>
     `;
@@ -704,37 +734,28 @@
             ${form.group.sync || !showDetails ? "" : `
               <div class="row g-2">
                 <div class="col-12 col-md-4">
-                  <label class="form-label">التسميع</label>
-                  <div class="d-flex gap-2">
+                  <label class="form-label" style="font-weight: bold;">التسميع</label>
+                  <div class="d-flex gap-2 mb-2">
                     <input type="number" class="form-control" placeholder="من" value="${row.hifz.from}" oninput="updateGroupRow('${m.id}', 'hifz', 'from', this.value)" />
                     <input type="number" class="form-control" placeholder="إلى" value="${row.hifz.to}" oninput="updateGroupRow('${m.id}', 'hifz', 'to', this.value)" />
                   </div>
-                  <select class="form-select mt-1" onchange="updateGroupRow('${m.id}', 'hifz', 'rating', this.value)">
-                    <option value="">التقييم</option>
-                    ${RATINGS.map((r) => `<option value="${r}" ${row.hifz.rating === r ? "selected" : ""}>${r}</option>`).join("")}
-                  </select>
+                  ${renderRatingPills(row.hifz.rating, `updateGroupRow('${m.id}', 'hifz', 'rating', '__VAL__')`)}
                 </div>
                 <div class="col-12 col-md-4">
-                  <label class="form-label">قريب</label>
-                  <div class="d-flex gap-2">
+                  <label class="form-label" style="font-weight: bold;">قريب</label>
+                  <div class="d-flex gap-2 mb-2">
                     <input type="number" class="form-control" placeholder="من" value="${row.recent.from}" oninput="updateGroupRow('${m.id}', 'recent', 'from', this.value)" />
                     <input type="number" class="form-control" placeholder="إلى" value="${row.recent.to}" oninput="updateGroupRow('${m.id}', 'recent', 'to', this.value)" />
                   </div>
-                  <select class="form-select mt-1" onchange="updateGroupRow('${m.id}', 'recent', 'rating', this.value)">
-                    <option value="">التقييم</option>
-                    ${RATINGS.map((r) => `<option value="${r}" ${row.recent.rating === r ? "selected" : ""}>${r}</option>`).join("")}
-                  </select>
+                  ${renderRatingPills(row.recent.rating, `updateGroupRow('${m.id}', 'recent', 'rating', '__VAL__')`)}
                 </div>
                 <div class="col-12 col-md-4">
-                  <label class="form-label">بعيد</label>
-                  <div class="d-flex gap-2">
+                  <label class="form-label" style="font-weight: bold;">بعيد</label>
+                  <div class="d-flex gap-2 mb-2">
                     <input type="number" class="form-control" placeholder="من" value="${row.distant.from}" oninput="updateGroupRow('${m.id}', 'distant', 'from', this.value)" />
                     <input type="number" class="form-control" placeholder="إلى" value="${row.distant.to}" oninput="updateGroupRow('${m.id}', 'distant', 'to', this.value)" />
                   </div>
-                  <select class="form-select mt-1" onchange="updateGroupRow('${m.id}', 'distant', 'rating', this.value)">
-                    <option value="">التقييم</option>
-                    ${RATINGS.map((r) => `<option value="${r}" ${row.distant.rating === r ? "selected" : ""}>${r}</option>`).join("")}
-                  </select>
+                  ${renderRatingPills(row.distant.rating, `updateGroupRow('${m.id}', 'distant', 'rating', '__VAL__')`)}
                 </div>
               </div>
             `}
@@ -1084,23 +1105,29 @@
           <input type="date" class="dash-date-input" value="${form.date}" onchange="updateFormPath('date', this.value)" />
         </div>
 
-        <div class="form-group" style="margin-bottom: 1rem;">
-          <label class="form-label" style="font-weight: bold; color: var(--color-slate-700); font-size: 14px; margin-bottom: 8px; display: block;">
-            <i class="ph-duotone ph-hash"></i> رقم الحلقة
-          </label>
-          <div style="display: flex; align-items: center; gap: 10px; max-width: 160px;">
-            <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
-                    style="background: #e0f2fe; color: #0284c7; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
-              +
-            </button>
-            
-            <input type="number" id="session-number" class="form-control" value="1" min="1" 
-                   style="text-align: center; font-weight: 900; font-size: 18px; border: 2px solid var(--color-slate-200); border-radius: 10px; width: 60px; height: 40px; padding: 0;">
-            
-            <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
-                    style="background: #f1f5f9; color: #64748b; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
-              -
-            </button>
+        <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; color: #475569; font-size: 15px;">
+              <div style="background: #94a3b8; color: white; padding: 2px 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px;">
+                <i class="ph-fill ph-numpad"></i>
+              </div>
+              الحلقة الحالية في الباقة
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
+                      style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+                -
+              </button>
+              <input type="number" id="session-number" value="1" min="1" 
+                     style="text-align: center; font-weight: 900; font-size: 18px; color: #065f46; border: 2px solid #065f46; border-radius: 8px; width: 65px; height: 36px; padding: 0; background: white; outline: none;">
+              <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
+                      style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+                +
+              </button>
+            </div>
+          </div>
+          <div style="height: 6px; background: #e2e8f0; border-radius: 10px; width: 100%; overflow: hidden; display: flex;">
+            <div style="width: 25%; background: #065f46; border-radius: 10px;"></div>
           </div>
         </div>
 
