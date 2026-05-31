@@ -9,9 +9,10 @@
     "السبت",
   ];
 
+  // تأمين صارم لضمان وجود الباقات
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
-    if (!appState.settings.packages) {
+    if (!appState.settings.packages || !Array.isArray(appState.settings.packages)) {
       appState.settings.packages = [];
     }
     return appState.settings.packages;
@@ -161,35 +162,49 @@
       schedule: form.schedule,
     };
 
+    // 1. التحديث المحلي فوراً
+    let isEdit = !!form.editId;
+    let tempId = form.editId || `temp-${Date.now()}`;
+    
+    if (isEdit) {
+      const idx = appState.students.findIndex(s => s.id === form.editId);
+      if(idx !== -1) Object.assign(appState.students[idx], payload);
+    } else {
+      appState.students.push({ ...payload, id: tempId });
+    }
+
+    form.open = false;
+    router.render();
+    showToast(isEdit ? "تم تحديث الطالب بنجاح" : "تم إضافة الطالب بنجاح");
+
+    // 2. الحفظ في الداتابيز في الخلفية
     try {
-      if (form.editId) {
+      if (isEdit) {
         await dbModule.updateStudent(form.editId, payload);
-        const idx = appState.students.findIndex(s => s.id === form.editId);
-        if(idx !== -1) Object.assign(appState.students[idx], payload);
-        showToast("تم تحديث الطالب");
       } else {
         const addedStudent = await dbModule.addStudent(payload);
-        if(addedStudent) appState.students.push(addedStudent);
-        else appState.students.push({...payload, id: Date.now().toString()});
-        showToast("تم إضافة الطالب");
+        // تبديل الـ ID المؤقت بالحقيقي في صمت
+        if (addedStudent && addedStudent.id) {
+            const tempIdx = appState.students.findIndex(s => s.id === tempId);
+            if (tempIdx !== -1) appState.students[tempIdx].id = addedStudent.id;
+        }
       }
-      form.open = false;
-      router.render();
     } catch (err) {
-      showToast("خطأ أثناء حفظ الطالب");
       console.error(err);
     }
   };
 
   window.deleteStudent = async function (id) {
     if (!window.confirm("هل تريد حذف الطالب وكل بياناته؟")) return;
+    
+    appState.students = appState.students.filter(s => s.id !== id);
+    router.render();
+    showToast("تم حذف الطالب");
+
     try {
       await dbModule.deleteStudent(id);
-      appState.students = appState.students.filter(s => s.id !== id);
-      showToast("تم حذف الطالب");
-      router.render();
     } catch (err) {
-      showToast("خطأ أثناء الحذف");
+      console.error(err);
     }
   };
 
@@ -228,6 +243,7 @@
 
   window.toggleGroupMember = function (studentId, checked) {
     const form = ensureGroupForm();
+    if (!form.studentIds) form.studentIds = [];
     if (checked) {
       if (!form.studentIds.includes(studentId)) form.studentIds.push(studentId);
     } else {
@@ -242,7 +258,7 @@
       showToast("اكتب اسم المجموعة أولاً");
       return;
     }
-    if (!form.studentIds.length) {
+    if (!form.studentIds || !form.studentIds.length) {
       showToast("اختر طلاب المجموعة");
       return;
     }
@@ -253,35 +269,48 @@
       studentIds: form.studentIds,
     };
 
+    let isEdit = !!form.editId;
+    let tempId = form.editId || `temp-grp-${Date.now()}`;
+
+    // التحديث المحلي
+    if (isEdit) {
+      const idx = appState.groups.findIndex(g => g.id === form.editId);
+      if(idx !== -1) Object.assign(appState.groups[idx], payload);
+    } else {
+      appState.groups.push({ ...payload, id: tempId });
+    }
+
+    form.open = false;
+    router.render();
+    showToast(isEdit ? "تم تحديث المجموعة" : "تم إنشاء المجموعة");
+
+    // الحفظ في الداتابيز
     try {
-      if (form.editId) {
+      if (isEdit) {
         await dbModule.updateGroup(form.editId, payload);
-        const idx = appState.groups.findIndex(g => g.id === form.editId);
-        if(idx !== -1) Object.assign(appState.groups[idx], payload);
-        showToast("تم تحديث المجموعة");
       } else {
         const addedGroup = await dbModule.addGroup(payload);
-        if(addedGroup) appState.groups.push(addedGroup);
-        else appState.groups.push({...payload, id: Date.now().toString()});
-        showToast("تم إنشاء المجموعة");
+        if (addedGroup && addedGroup.id) {
+            const tempIdx = appState.groups.findIndex(g => g.id === tempId);
+            if (tempIdx !== -1) appState.groups[tempIdx].id = addedGroup.id;
+        }
       }
-      form.open = false;
-      router.render();
     } catch (err) {
-      showToast("خطأ أثناء حفظ المجموعة");
       console.error(err);
     }
   };
 
   window.deleteGroup = async function (id) {
     if (!window.confirm("هل تريد حذف المجموعة؟")) return;
+    
+    appState.groups = appState.groups.filter(g => g.id !== id);
+    router.render();
+    showToast("تم حذف المجموعة");
+
     try {
       await dbModule.deleteGroup(id);
-      appState.groups = appState.groups.filter(g => g.id !== id);
-      showToast("تم حذف المجموعة");
-      router.render();
     } catch (err) {
-      showToast("خطأ أثناء حذف المجموعة");
+      console.error(err);
     }
   };
 
@@ -297,7 +326,7 @@
         form.editId = pkg.id;
         form.name = pkg.name || "";
         form.price = pkg.price || 70;
-        form.studentIds = appState.students.filter(s => s.packageId === pkg.id).map(s => s.id);
+        form.studentIds = (appState.students || []).filter(s => s.packageId === pkg.id).map(s => s.id);
       }
     } else {
       form.editId = null;
@@ -321,6 +350,7 @@
 
   window.togglePackageStudent = function (studentId, checked) {
     const form = ensurePackageForm();
+    if (!form.studentIds) form.studentIds = [];
     if (checked) {
       if (!form.studentIds.includes(studentId)) form.studentIds.push(studentId);
     } else {
@@ -351,67 +381,71 @@
       packages.push(pkgData);
     }
 
-    try {
-      appState.settings.packages = packages;
-      // دمج الإعدادات القديمة عشان مفيش حاجة تتمسح من الداتابيز
-      await dbModule.saveSettings({ ...appState.settings, packages: packages });
-      
-      appState.students.forEach(async (stu) => {
-          let hasChanged = false;
-          
-          if (form.studentIds.includes(stu.id)) {
-              if (stu.packageId !== pkgData.id || stu.sessionPrice !== pkgData.price) {
-                  stu.packageId = pkgData.id;
-                  stu.sessionPrice = pkgData.price;
-                  hasChanged = true;
-              }
-          } else if (stu.packageId === pkgData.id) {
-              stu.packageId = ""; 
-              stu.sessionPrice = 70; 
-              hasChanged = true;
-          }
+    // 1. التحديث المحلي الفوري عشان تظهر قدامك فوراً بدون تعليق
+    appState.settings.packages = packages;
+    
+    const studentsToUpdate = form.studentIds || [];
+    (appState.students || []).forEach((stu) => {
+        if (studentsToUpdate.includes(stu.id)) {
+            stu.packageId = pkgData.id;
+            stu.sessionPrice = pkgData.price;
+        } else if (stu.packageId === pkgData.id) {
+            stu.packageId = ""; 
+            stu.sessionPrice = 70; 
+        }
+    });
 
-          if (hasChanged) {
-              await dbModule.updateStudent(stu.id, { packageId: stu.packageId, sessionPrice: stu.sessionPrice });
+    form.open = false;
+    router.render();
+    showToast("تم حفظ الباقة بنجاح");
+
+    // 2. الحفظ في الداتابيز في الخلفية
+    try {
+      await dbModule.saveSettings(appState.settings);
+      
+      (appState.students || []).forEach((stu) => {
+          if (studentsToUpdate.includes(stu.id) || stu.packageId === pkgData.id || stu.packageId === "") {
+              dbModule.updateStudent(stu.id, { packageId: stu.packageId, sessionPrice: stu.sessionPrice }).catch(e => console.error(e));
           }
       });
-
-      showToast("تم حفظ الباقة وربط الطلاب بها بنجاح");
-      form.open = false;
-      router.render();
     } catch (err) {
-      showToast("خطأ أثناء حفظ الباقة");
+      console.error(err);
     }
   };
 
   window.deletePackage = async function (id) {
     if (!window.confirm("هل تريد حذف هذه الباقة؟")) return;
-    let packages = ensurePackagesExist().filter(p => p.id !== id);
+    
+    appState.settings.packages = ensurePackagesExist().filter(p => p.id !== id);
+    router.render();
+    showToast("تم حذف الباقة");
+
     try {
-      appState.settings.packages = packages; 
-      await dbModule.saveSettings({ ...appState.settings, packages: packages }); 
-      showToast("تم حذف الباقة");
-      router.render();
+      await dbModule.saveSettings(appState.settings); 
     } catch (err) {
-      showToast("خطأ أثناء الحذف");
+      console.error(err);
     }
   };
 
   // ==========================================
-  // Settings
+  // Settings Main
   // ==========================================
   window.saveSettings = async function () {
     const defaultLimit = parseInt(document.getElementById("settings-limit").value, 10) || 12;
     const accountingPhone = document.getElementById("settings-phone").value.trim();
 
+    // تحديث محلي فوري
+    appState.settings.defaultLimit = defaultLimit;
+    appState.settings.accountingPhone = accountingPhone;
+    
+    router.render(); 
+    showToast("تم حفظ الإعدادات الأساسية");
+
+    // الحفظ في الخلفية
     try {
-      appState.settings.defaultLimit = defaultLimit;
-      appState.settings.accountingPhone = accountingPhone;
-      await dbModule.saveSettings({ ...appState.settings, defaultLimit, accountingPhone });
-      showToast("تم حفظ الإعدادات الأساسية");
-      router.render(); 
+      await dbModule.saveSettings(appState.settings);
     } catch (err) {
-      showToast("خطأ أثناء حفظ الإعدادات");
+      console.error(err);
     }
   };
 
@@ -443,15 +477,15 @@
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:#065f46;"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>ربط الطلاب بهذه الباقة (اختياري)</div>
           
-          ${appState.students.length === 0 ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
+          ${(!appState.students || appState.students.length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
           
           <div class="d-grid gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
-            ${appState.students
+            ${(appState.students || [])
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:10px;background:white;border-radius:10px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;">
                 <input class="form-check-input" style="width:20px;height:20px;margin-top:0;" type="checkbox" ${
-                  form.studentIds.includes(s.id) ? "checked" : ""
+                  (form.studentIds || []).includes(s.id) ? "checked" : ""
                 } onchange="togglePackageStudent('${s.id}', this.checked)" />
                 <span style="font-weight:600;font-size:14px;color:var(--text-primary);"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</span>
               </label>
@@ -589,12 +623,12 @@
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212,175,55,0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:var(--text-primary);"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>اختر طلاب المجموعة</div>
           <div class="d-grid gap-3">
-            ${appState.students
+            ${(appState.students || [])
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.6);border-radius:12px;border:1px solid rgba(0,0,0,0.03);cursor:pointer;transition:all 0.2s;">
                 <input class="form-check-input" style="width:24px;height:24px;margin-top:0;" type="checkbox" ${
-                  form.studentIds.includes(s.id) ? "checked" : ""
+                  (form.studentIds || []).includes(s.id) ? "checked" : ""
                 } onchange="toggleGroupMember('${s.id}', this.checked)" />
                 <span style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</span>
               </label>
@@ -619,7 +653,7 @@
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
         <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
-          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit || 12}" placeholder=" " />
+          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit !== undefined ? appState.settings.defaultLimit : 12}" placeholder=" " />
           <label class="form-label" for="settings-limit">الحد الافتراضي للباقة (عدد الحصص الكلي)</label>
           <div class="account-input-line"></div>
         </div>
@@ -648,118 +682,4 @@
         ${packages.length === 0 ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد باقات. قم بإنشاء باقة لربط الطلاب بها.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${packages.map((p, index) => {
-            const stuCount = appState.students.filter(s => s.packageId === p.id).length;
-            return `
-            <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <div style="font-weight:bold; color:#065f46; font-size:15px;">${p.name}</div>
-                <div style="font-size:13px; color:#047857; margin-top:4px;">سعر الحلقة: <strong>${p.price} ج.م</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
-              </div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                <button class="btn btn-danger icon-btn" onclick="deletePackage('${p.id}')"><i class="ph-duotone ph-trash"></i></button>
-              </div>
-            </div>
-          `}).join('')}
-        </div>
-      </div>
-
-      <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
-        <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
-          <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${appState.students.length})
-          </h3>
-          <button class="btn btn-primary" onclick="openStudentForm()">
-            <i class="ph-bold ph-plus" style="margin-left:4px;"></i>طالب جديد
-          </button>
-        </div>
-        
-        ${appState.students.length === 0 ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا يوجد طلاب مسجلين بعد.</div>` : ""}
-        
-        <div class="d-grid gap-3">
-          ${appState.students
-            .map(
-              (s, index) => {
-                const pkg = packages.find(p => p.id === s.packageId);
-                const pkgName = pkg ? pkg.name : "غير محدد";
-                return `
-            <div class="card-soft exec-animate" style="--stagger: ${7 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease;">
-              <div class="d-flex justify-content-between align-items-center">
-                <div style="flex:1;">
-                  <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</div>
-                  <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
-                    <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">الباقة: <strong>${pkgName}</strong></span>
-                    <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${s.quranLimit !== undefined ? s.quranLimit : 8}</strong></span>
-                    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${s.islamicLimit !== undefined ? s.islamicLimit : 4}</strong></span>
-                  </div>
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-outline icon-btn" onclick="openStudentForm('${s.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                  <button class="btn btn-danger icon-btn" onclick="deleteStudent('${s.id}')"><i class="ph-duotone ph-trash"></i></button>
-                </div>
-              </div>
-            </div>
-          `;}
-            )
-            .join("")}
-        </div>
-      </div>
-
-      <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
-        <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
-          <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${appState.groups.length})
-          </h3>
-          <button class="btn btn-primary" onclick="openGroupForm()">
-            <i class="ph-bold ph-plus" style="margin-left:4px;"></i>مجموعة جديدة
-          </button>
-        </div>
-        
-        ${appState.groups.length === 0 ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد مجموعات حالياً.</div>` : ""}
-        
-        <div class="d-grid gap-3">
-          ${appState.groups
-            .map((g, index) => {
-              const members = appState.students.filter((s) => g.studentIds?.includes(s.id));
-              const names = members.map((m) => m.name).join("، ");
-              return `
-                <div class="card-soft exec-animate" style="--stagger: ${9 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease;">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div style="flex:1; padding-left:12px;">
-                      <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-users" style="margin-left:4px;"></i>${g.name}</div>
-                      <div style="font-size:var(--fs-xs);color:var(--text-muted);line-height:1.5;">${names || "بدون طلاب"}</div>
-                    </div>
-                    <div class="d-flex gap-2">
-                      <button class="btn btn-outline icon-btn" onclick="openGroupForm('${g.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                      <button class="btn btn-danger icon-btn" onclick="deleteGroup('${g.id}')"><i class="ph-duotone ph-trash"></i></button>
-                    </div>
-                  </div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  window.renderSettingsPage = function () {
-    ensurePackagesExist();
-
-    const pkgForm = ensurePackageForm();
-    if (pkgForm.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderPackageForm(pkgForm)}</div>`;
-    
-    const form = ensureStudentForm();
-    if (form.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderStudentForm(form)}</div>`;
-    
-    const groupForm = ensureGroupForm();
-    if (groupForm.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderGroupForm(groupForm)}</div>`;
-    
-    return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderSettingsMain()}</div>`;
-  };
-
-  window.initSettingsPage = function () {
-    return;
-  };
-})();
+          ${packages.map((p,
