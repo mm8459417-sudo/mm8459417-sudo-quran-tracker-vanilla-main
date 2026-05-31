@@ -21,6 +21,17 @@ function getSmartAlerts() {
   if (weekSessions.length === 0 && appState.students.length > 0) {
     alerts.push({ type: 'danger', icon: 'ph-clock', title: 'تذكير', message: 'لم تسجل أي جلسات هذا الأسبوع.' });
   }
+
+  // رسالة ترحيب لو مفيش تنبيهات عشان نتأكد إنه شغال
+  if (alerts.length === 0) {
+    alerts.push({ 
+      type: 'success', 
+      icon: 'ph-sparkle', 
+      title: 'جاهز للعمل', 
+      message: 'كل شيء على ما يرام يا معلمي، المنصة جاهزة لتسجيل إنجازات اليوم!' 
+    });
+  }
+
   return alerts;
 }
 
@@ -93,6 +104,10 @@ window.showSmartSecretaryPopup = function() {
   document.body.appendChild(popup);
 };
 
+
+// ==========================================
+// 2. كود لوحة التحكم (الرئيسية)
+// ==========================================
 (function () {
   window.setActiveTab = function (tab) {
     appState.activeTab = tab;
@@ -215,15 +230,16 @@ window.showSmartSecretaryPopup = function() {
         initAccountPage();
         break;
       default:
-        initSessionForm();
-        
-        // 🔴 استدعاء السكرتير الذكي تم إصلاحه ووضعه هنا بشكل صحيح 🔴
+        // تشغيل السكرتير الذكي أولاً عشان نضمن ظهوره
         setTimeout(() => {
           if (typeof showSmartSecretaryPopup === "function") {
             showSmartSecretaryPopup();
           }
         }, 500);
-        break; // تأكدنا من وجود الـ break عشان الكود يشتغل مظبوط
+        
+        // ثم تشغيل الفورم الأساسي
+        initSessionForm();
+        break;
     }
   };
 })();
