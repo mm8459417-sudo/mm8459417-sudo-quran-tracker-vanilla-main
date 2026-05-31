@@ -310,6 +310,7 @@
 
     return `
       <div>
+        <!-- رأس الصفحة -->
         <div class="d-flex align-items-center gap-3 mb-5">
           <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--emerald-bg);display:flex;align-items:center;justify-content:center;">
             <i class="ph-duotone ph-chart-line-up" style="font-size: 20px; color: var(--emerald)"></i>
@@ -320,6 +321,7 @@
           </div>
         </div>
 
+        <!-- فلاتر البحث -->
         <div class="card-soft mb-4">
           <div class="d-flex gap-3 mb-3" style="flex-wrap:wrap;">
             <select class="form-select" style="flex:1;min-width:180px;" onchange="setAnalysisStudent(this.value)">
@@ -335,19 +337,7 @@
         </div>
 
         ${chartData.length > 0 ? `
-        <div class="elite-ai-insights">
-          <div class="ai-icon"><i class="ph-duotone ph-sparkle"></i></div>
-          <div class="ai-content">
-            <div class="ai-title">رؤية الذكاء الاصطناعي <span>(AI Insight)</span></div>
-            <div class="ai-desc">
-              ${avgRating >= 4.5 ? "أداء مبهر! معدل الحفظ والمراجعة في تصاعد مستمر، والطلاب يظهرون التزاماً ممتازاً في الجلسات الأخيرة. استمر في تعزيز هذا التفوق." :
-          avgRating >= 3.5 ? "أداء جيد ومستقر إجمالاً. يوصى بزيادة التركيز على المراجعة (الماضي البعيد) لبعض الطلاب لتعزيز الحفظ وتقليل احتمالية التشتت." :
-            "تحتاج بعض الجوانب لمزيد من المتابعة الدقيقة. يفضل تقليل مقدار الحفظ الجديد مؤقتاً والتركيز على تثبيت ومراجعة الماضي بشكل مكثف."}
-            </div>
-          </div>
-        </div>
-        ` : ""}
-
+        <!-- الإحصائيات -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-bottom:var(--sp-5);">
           <div class="card-soft hover-elevation" style="text-align:center;padding:var(--sp-4);">
             <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--emerald-dark);">${totalSessions}</div>
@@ -367,51 +357,77 @@
           </div>
         </div>
 
-        ${chartData.length === 0 ? `
-          <div class="elite-empty-state">
-            <div class="elite-empty-icon"><i class="ph-duotone ph-chart-line-down"></i></div>
-            <div class="elite-empty-title">لا توجد بيانات كافية للتحليل</div>
-            <div class="elite-empty-desc">سجّل المزيد من الجلسات والتقييمات لفتح الرسوم البيانية العميقة والتحليلات المتقدمة.</div>
+        <!-- الرسم البياني -->
+        <div class="card-soft mb-4">
+          <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:var(--sp-3);">معدل الإنجاز</div>
+          <div style="height:260px;">
+            <canvas id="analysis-chart"></canvas>
           </div>
-        ` : `
-          <div class="card-soft mb-4">
-            <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:var(--sp-3);">معدل الإنجاز</div>
-            <div style="height:260px;">
-              <canvas id="analysis-chart"></canvas>
-            </div>
-          </div>
-        `}
+        </div>
+        ` : ""}
 
         ${showReward ? `
           <div class="card-soft mb-4" style="background:var(--emerald-bg);border-color:rgba(15,157,122,0.15);">
             <div style="font-weight:var(--fw-bold);margin-bottom:var(--sp-3);color:var(--emerald-dark);"><i class="ph-duotone ph-confetti" style="margin-left:4px;"></i>أداء متميز</div>
-            <input class="form-control mb-3" placeholder="مبلغ المكافأة (ج.م)" value="${appState.ui.rewardAmount || ""}" oninput="appState.ui.rewardAmount=this.value" />
             <button class="btn btn-primary w-100" onclick="showCertificate()">إصدار شهادة تفوق</button>
           </div>
         ` : ""}
 
+        <!-- استوديو الشهادات (نظام كانفا المصغر) -->
         ${appState.ui.showCertificate && student ? `
-          <div class="card-soft mb-4">
+          <div class="certificate-studio-wrapper card-soft mb-4" style="padding: 0; overflow: hidden; display: flex; flex-direction: row; min-height: 600px; border: 1px solid var(--color-border-strong);">
             
-            <div class="mb-4 p-3" style="background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
-              <label style="font-weight: bold; margin-bottom: 12px; display: block; color: var(--text-primary);">🎨 اختر قالب وتصميم الشهادة:</label>
-              <div class="d-flex gap-2">
-                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-default' ? 'linear-gradient(135deg, #D4AF37, #B8962E)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-default' ? '#fff' : '#D4AF37'}; border: 1px solid #D4AF37; box-shadow: ${appState.ui.certTheme === 'theme-default' ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-default')">الذهبي الملكي</button>
+            <!-- اللوحة الجانبية (Sidebar) للأدوات والقوالب -->
+            <div class="studio-sidebar" style="width: 300px; background: #F8FAFC; border-left: 1px solid var(--color-border); display: flex; flex-direction: column;">
+              
+              <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fff;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: var(--color-primary-800);">🎨 استوديو التصميم</h3>
+                <p style="margin: 5px 0 0; font-size: 12px; color: var(--text-muted);">اختر القالب المناسب للطالب</p>
+              </div>
+
+              <!-- قائمة القوالب (هنا هنحط صور الديزاينر لما تخلص) -->
+              <div class="studio-tools" style="padding: 20px; overflow-y: auto; flex: 1;">
                 
-                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-emerald' ? 'linear-gradient(135deg, #0F9D7A, #145A46)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-emerald' ? '#fff' : '#0F9D7A'}; border: 1px solid #0F9D7A; box-shadow: ${appState.ui.certTheme === 'theme-emerald' ? '0 4px 12px rgba(15, 157, 122, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-emerald')">الأخضر الإسلامي</button>
+                <div class="template-category" style="margin-bottom: 20px;">
+                  <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب الأولاد</h4>
+                  <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-boy-1' ? 'active' : ''}" onclick="setCertificateTheme('theme-boy-1')" style="height: 80px; background: #e0f2fe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-boy-1' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 1 (مؤقت)</div>
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-boy-2' ? 'active' : ''}" onclick="setCertificateTheme('theme-boy-2')" style="height: 80px; background: #dbeafe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-boy-2' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 2 (مؤقت)</div>
+                  </div>
+                </div>
+
+                <div class="template-category" style="margin-bottom: 20px;">
+                  <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب البنات</h4>
+                  <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-girl-1' ? 'active' : ''}" onclick="setCertificateTheme('theme-girl-1')" style="height: 80px; background: #fce7f3; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-girl-1' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 1 (مؤقت)</div>
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-girl-2' ? 'active' : ''}" onclick="setCertificateTheme('theme-girl-2')" style="height: 80px; background: #fae8ff; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-girl-2' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 2 (مؤقت)</div>
+                  </div>
+                </div>
                 
-                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-sapphire' ? 'linear-gradient(135deg, #0D47A1, #1976D2)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-sapphire' ? '#fff' : '#0D47A1'}; border: 1px solid #0D47A1; box-shadow: ${appState.ui.certTheme === 'theme-sapphire' ? '0 4px 12px rgba(13, 71, 161, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-sapphire')">الأزرق الماسي</button>
+                <div class="template-category">
+                  <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب الكبار</h4>
+                  <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-men' ? 'active' : ''}" onclick="setCertificateTheme('theme-men')" style="height: 80px; background: #fef3c7; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-men' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">رجال (مؤقت)</div>
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-women' ? 'active' : ''}" onclick="setCertificateTheme('theme-women')" style="height: 80px; background: #fdf2f8; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-women' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">نساء (مؤقت)</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- أزرار التصدير تحت اللوحة الجانبية -->
+              <div style="padding: 20px; border-top: 1px solid var(--color-border); background: #fff; display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-primary w-100" onclick="exportCertificateImage()"><i class="ph-duotone ph-image" style="margin-left:4px;"></i>تحميل كصورة</button>
+                <button class="btn btn-gold w-100" onclick="exportCertificatePdf()"><i class="ph-duotone ph-file-pdf" style="margin-left:4px;"></i>تحميل PDF</button>
+                <button class="btn btn-outline-danger w-100" onclick="hideCertificate()">إغلاق الاستوديو</button>
               </div>
             </div>
 
-            ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
-            
-            <div class="d-flex flex-wrap gap-2 mt-4">
-              <button class="btn btn-primary btn-sm" onclick="exportCertificateImage()"><i class="ph-duotone ph-image" style="margin-left:4px;"></i>صورة</button>
-              <button class="btn btn-gold btn-sm" onclick="exportCertificatePdf()"><i class="ph-duotone ph-file-pdf" style="margin-left:4px;"></i>PDF</button>
-              <button class="btn btn-outline btn-sm" onclick="exportCertificateGif()"><i class="ph-duotone ph-gif" style="margin-left:4px;"></i>GIF</button>
-              <button class="btn btn-outline-danger btn-sm" onclick="hideCertificate()">إغلاق</button>
+            <!-- منطقة العرض (Preview) -->
+            <div class="studio-preview" style="flex: 1; padding: 40px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; overflow: auto;">
+               <!-- هنا بننادي على دالة عرض الشهادة -->
+               ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
             </div>
+
           </div>
         ` : ""}
       </div>
