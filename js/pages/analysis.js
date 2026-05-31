@@ -13,7 +13,6 @@
 
   window.showCertificate = function () {
     appState.ui.showCertificate = true;
-    // تعيين القالب الافتراضي عند فتح الشهادة لأول مرة
     if (!appState.ui.certTheme) {
       appState.ui.certTheme = 'theme-default';
     }
@@ -25,7 +24,6 @@
     router.render();
   };
 
-  // دالة جديدة لتغيير قالب الشهادة
   window.setCertificateTheme = function (theme) {
     appState.ui.certTheme = theme;
     router.render();
@@ -66,6 +64,19 @@
     const certId = `RQ-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000) + 100000)}`;
     const todayDate = formatArDate(new Date().toISOString());
     const hijriDate = new Date().toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const currentTheme = appState.ui.certTheme || 'theme-default';
+
+    // ديناميكية ألوان الزوايا والزخارف حسب القالب المختار
+    let themeColor1 = '#D4AF37'; // الافتراضي الذهبي
+    let themeColor2 = '#B8962E';
+    if (currentTheme === 'theme-emerald') {
+      themeColor1 = '#0F9D7A';
+      themeColor2 = '#145A46';
+    } else if (currentTheme === 'theme-sapphire') {
+      themeColor1 = '#0D47A1';
+      themeColor2 = '#1976D2';
+    }
 
     const boyAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
       <defs>
@@ -115,10 +126,7 @@
     const avatarSVG = isFemale ? girlAvatarSVG : boyAvatarSVG;
     const avatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(avatarSVG)))}`;
 
-    const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#D4AF37"/><stop offset="100%" style="stop-color:#B8962E"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="#D4AF37" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="#D4AF37" opacity="0.6"/></svg>`)))}`;
-
-    // جلب القالب المختار من الـ state (وإلا نستخدم الافتراضي)
-    const currentTheme = appState.ui.certTheme || 'theme-default';
+    const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
     return `
       <div class="cert-preview-container">
@@ -138,12 +146,11 @@
           
           <div class="rc-top-bar">
             <div class="rc-top-bar-line"></div>
-            <div class="rc-top-bar-diamond">◆</div>
+            <div class="rc-top-bar-diamond" style="color:${themeColor1}">◆</div>
             <div class="rc-top-bar-line"></div>
           </div>
 
           <div class="rc-content">
-            
             <div class="rc-header">
               <div class="rc-meta-block">
                 <div class="rc-meta-label">التاريخ الميلادي</div>
@@ -151,10 +158,10 @@
               </div>
               
               <div class="rc-logo-center">
-                <div class="rc-logo-ring">
+                <div class="rc-logo-ring" style="border-color:${themeColor1}">
                   <img src="logo.jpeg" class="rc-logo-img" onerror="this.style.display='none'" />
                 </div>
-                <div class="rc-brand-text">رَفِيقُ القُرْآنِ</div>
+                <div class="rc-brand-text" style="color:${themeColor1}">رَفِيقُ القُرْآنِ</div>
               </div>
 
               <div class="rc-meta-block">
@@ -164,12 +171,12 @@
             </div>
 
             <div class="rc-title-section">
-              <div class="rc-title-ornament">❋ ❋ ❋</div>
+              <div class="rc-title-ornament" style="color:${themeColor1}">❋ ❋ ❋</div>
               <h1 class="rc-main-title">شَهَادَةُ إِنْجَازٍ وَتَفَوُّق</h1>
               <div class="rc-title-divider">
-                <span class="rc-div-wing">━━━━━━━━</span>
+                <span class="rc-div-wing" style="color:${themeColor1}">━━━━━━━━</span>
                 <span class="rc-div-star">✦</span>
-                <span class="rc-div-wing">━━━━━━━━</span>
+                <span class="rc-div-wing" style="color:${themeColor1}">━━━━━━━━</span>
               </div>
             </div>
 
@@ -178,8 +185,8 @@
               
               <div class="rc-student-block">
                 <div class="rc-avatar-wrapper">
-                  <div class="rc-avatar-glow"></div>
-                  <div class="rc-avatar-border">
+                  <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
+                  <div class="rc-avatar-border" style="border-color:${themeColor1}">
                     <img src="${avatarDataUrl}" class="rc-avatar-img" alt="${isFemale ? 'طالبة' : 'طالب'}" />
                   </div>
                 </div>
@@ -217,13 +224,13 @@
 
               <div class="rc-sig-col">
                 <div class="rc-sig-label">التقدير العام</div>
-                <div class="rc-sig-grade">مُمْتَــاز</div>
+                <div class="rc-sig-grade" style="color:${themeColor1}">مُمْتَــاز</div>
                 <div class="rc-sig-underline"></div>
               </div>
             </div>
             
             <div class="rc-bottom-verse">
-              <span>﴿ وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ ﴾</span>
+              <span style="color:${themeColor1}">﴿ وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ ﴾</span>
             </div>
 
           </div>
@@ -365,22 +372,24 @@
         ${appState.ui.showCertificate && student ? `
           <div class="card-soft mb-4">
             
-            <div class="mb-4 p-3" style="background: rgba(0,0,0,0.03); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
-              <label style="font-weight: bold; margin-bottom: 10px; display: block; color: var(--text-primary);">اختر قالب وتصميم الشهادة:</label>
+            <div class="mb-4 p-3" style="background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid rgba(0,0,0,0.05);">
+              <label style="font-weight: bold; margin-bottom: 12px; display: block; color: var(--text-primary);">🎨 اختر قالب وتصميم الشهادة:</label>
               <div class="d-flex gap-2">
-                <button class="btn ${appState.ui.certTheme === 'theme-default' ? 'btn-gold' : 'btn-outline'}" onclick="setCertificateTheme('theme-default')" style="flex:1;">الذهبي الملكي</button>
-                <button class="btn ${appState.ui.certTheme === 'theme-emerald' ? 'btn-primary' : 'btn-outline'}" onclick="setCertificateTheme('theme-emerald')" style="flex:1;">الأخضر الإسلامي</button>
-                <button class="btn ${appState.ui.certTheme === 'theme-sapphire' ? 'btn-primary' : 'btn-outline'}" onclick="setCertificateTheme('theme-sapphire')" style="flex:1;">الأزرق الماسي</button>
+                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-default' ? 'linear-gradient(135deg, #D4AF37, #B8962E)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-default' ? '#fff' : '#D4AF37'}; border: 1px solid #D4AF37; box-shadow: ${appState.ui.certTheme === 'theme-default' ? '0 4px 12px rgba(212, 175, 55, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-default')">الذهبي الملكي</button>
+                
+                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-emerald' ? 'linear-gradient(135deg, #0F9D7A, #145A46)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-emerald' ? '#fff' : '#0F9D7A'}; border: 1px solid #0F9D7A; box-shadow: ${appState.ui.certTheme === 'theme-emerald' ? '0 4px 12px rgba(15, 157, 122, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-emerald')">الأخضر الإسلامي</button>
+                
+                <button class="btn" style="flex:1; background: ${appState.ui.certTheme === 'theme-sapphire' ? 'linear-gradient(135deg, #0D47A1, #1976D2)' : 'transparent'}; color: ${appState.ui.certTheme === 'theme-sapphire' ? '#fff' : '#0D47A1'}; border: 1px solid #0D47A1; box-shadow: ${appState.ui.certTheme === 'theme-sapphire' ? '0 4px 12px rgba(13, 71, 161, 0.3)' : 'none'};" onclick="setCertificateTheme('theme-sapphire')">الأزرق الماسي</button>
               </div>
             </div>
 
             ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
             
-            <div class="d-flex flex-wrap gap-2 mt-3">
+            <div class="d-flex flex-wrap gap-2 mt-4">
               <button class="btn btn-primary btn-sm" onclick="exportCertificateImage()"><i class="ph-duotone ph-image" style="margin-left:4px;"></i>صورة</button>
               <button class="btn btn-gold btn-sm" onclick="exportCertificatePdf()"><i class="ph-duotone ph-file-pdf" style="margin-left:4px;"></i>PDF</button>
               <button class="btn btn-outline btn-sm" onclick="exportCertificateGif()"><i class="ph-duotone ph-gif" style="margin-left:4px;"></i>GIF</button>
-              <button class="btn btn-outline btn-sm" onclick="hideCertificate()">إغلاق</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="hideCertificate()">إغلاق</button>
             </div>
           </div>
         ` : ""}
