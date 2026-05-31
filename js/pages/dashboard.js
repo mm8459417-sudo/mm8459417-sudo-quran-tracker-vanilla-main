@@ -1,3 +1,98 @@
+// ==========================================
+// 1. نظام السكرتير الذكي (الإشعار العائم)
+// ==========================================
+function getSmartAlerts() {
+  const alerts = [];
+  const now = Date.now();
+  const weekSessions = appState.sessions.filter(s => new Date(s.date).getTime() >= now - 7 * 86400000);
+  
+  appState.students.forEach(student => {
+    const studentSessions = weekSessions.filter(s => s.participant && s.participant.id === student.id);
+    if (studentSessions.length > 0) {
+      const avg = studentSessions.reduce((sum, s) => sum + (s.participant.overall || 0), 0) / studentSessions.length;
+      if (avg >= 4.5) {
+        alerts.push({ type: 'success', icon: 'ph-star', title: 'مرشح للتكريم', message: `الطالب ${student.name} أداؤه ممتاز (${avg.toFixed(1)}/5).` });
+      } else if (avg <= 3) {
+        alerts.push({ type: 'warning', icon: 'ph-warning-circle', title: 'يحتاج متابعة', message: `مستوى ${student.name} تراجع مؤخراً.` });
+      }
+    }
+  });
+
+  if (weekSessions.length === 0 && appState.students.length > 0) {
+    alerts.push({ type: 'danger', icon: 'ph-clock', title: 'تذكير', message: 'لم تسجل أي جلسات هذا الأسبوع.' });
+  }
+  return alerts;
+}
+
+window.showSmartSecretaryPopup = function() {
+  const alerts = getSmartAlerts();
+  if (alerts.length === 0) return;
+
+  // لو الإشعار موجود بالفعل، امسحه عشان ميتكررش
+  const existingPopup = document.getElementById('smart-secretary-popup');
+  if (existingPopup) existingPopup.remove();
+
+  const alertsHtml = alerts.map(alert => {
+    let colors = '';
+    if (alert.type === 'success') colors = 'background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2);';
+    if (alert.type === 'warning') colors = 'background: rgba(245, 158, 11, 0.1); color: #D97706; border: 1px solid rgba(245, 158, 11, 0.2);';
+    if (alert.type === 'danger') colors = 'background: rgba(239, 68, 68, 0.1); color: #DC2626; border: 1px solid rgba(239, 68, 68, 0.2);';
+
+    return `
+      <div style="display: flex; gap: 12px; padding: 10px; border-radius: 8px; margin-bottom: 8px; ${colors} align-items: flex-start;">
+        <i class="ph-duotone ${alert.icon}" style="font-size: 20px;"></i>
+        <div>
+          <h4 style="margin: 0 0 4px 0; font-size: 13px; font-weight: bold;">${alert.title}</h4>
+          <p style="margin: 0; font-size: 12px; opacity: 0.9;">${alert.message}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // بناء الإشعار العائم
+  const popup = document.createElement('div');
+  popup.id = 'smart-secretary-popup';
+  popup.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    width: 90%;
+    max-width: 350px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    border: 1px solid var(--color-border-strong);
+    overflow: hidden;
+    font-family: var(--font-arabic);
+    animation: slideDownFade 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  `;
+
+  // أنيميشن النزول من فوق
+  if (!document.getElementById('smart-secretary-styles')) {
+    const style = document.createElement('style');
+    style.id = 'smart-secretary-styles';
+    style.innerHTML = `@keyframes slideDownFade { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }`;
+    document.head.appendChild(style);
+  }
+
+  popup.innerHTML = `
+    <div style="background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-800)); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <i class="ph-duotone ph-robot" style="font-size: 20px;"></i>
+        <span style="font-weight: bold; font-size: 14px;">السكرتير الذكي</span>
+      </div>
+      <button onclick="this.closest('#smart-secretary-popup').style.display='none'" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0;">&times;</button>
+    </div>
+    <div style="padding: 16px; max-height: 60vh; overflow-y: auto;">
+      ${alertsHtml}
+    </div>
+  `;
+
+  document.body.appendChild(popup);
+};
+}
 (function () {
   window.setActiveTab = function (tab) {
     appState.activeTab = tab;
@@ -126,6 +221,17 @@
         break;
       default:
         initSessionForm();
+        default:
+        initSessionForm();
+        
+        // 🔴 استدعاء السكرتير الذكي هنا 🔴
+        setTimeout(() => {
+          if (typeof showSmartSecretaryPopup === "function") {
+            showSmartSecretaryPopup();
+          }
+        }, 500);
+        
+        break; // يفضل دايماً تحط break في نهاية الـ default
     }
   };
 })();
