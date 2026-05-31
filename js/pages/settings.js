@@ -9,12 +9,28 @@
     "السبت",
   ];
 
-  // تأمين صارم لضمان وجود الباقات
+  // 🚀 حماية ثلاثية الأبعاد لضمان عدم اختفاء الباقات أبداً
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
-    if (!appState.settings.packages || !Array.isArray(appState.settings.packages)) {
-      appState.settings.packages = [];
+    
+    // 1. الاسترجاع من الذاكرة المحلية (عشان لو الداتابيز مسحتها متختفيش من قدامك)
+    if (window.__LOCAL_PACKAGES__) {
+        appState.settings.packages = window.__LOCAL_PACKAGES__;
+    } 
+    // 2. الاسترجاع من النص (عشان لو السيرفر بيرفض الـ Arrays)
+    else if (appState.settings.packagesJSON && typeof appState.settings.packagesJSON === 'string') {
+        try {
+            appState.settings.packages = JSON.parse(appState.settings.packagesJSON);
+            window.__LOCAL_PACKAGES__ = appState.settings.packages;
+        } catch(e) {
+            appState.settings.packages = [];
+        }
+    } 
+    // 3. الوضع الافتراضي
+    else if (!appState.settings.packages || !Array.isArray(appState.settings.packages)) {
+        appState.settings.packages = [];
     }
+
     return appState.settings.packages;
   }
 
@@ -162,7 +178,6 @@
       schedule: form.schedule,
     };
 
-    // التحديث المحلي
     let isEdit = !!form.editId;
     let tempId = form.editId || `temp-${Date.now()}`;
     
@@ -177,7 +192,6 @@
     router.render();
     showToast(isEdit ? "تم تحديث الطالب بنجاح" : "تم إضافة الطالب بنجاح");
 
-    // الحفظ في الخلفية
     try {
       if (isEdit) {
         await dbModule.updateStudent(form.editId, payload);
@@ -378,8 +392,10 @@
       packages.push(pkgData);
     }
 
-    // التحديث المحلي
+    // 🚀 تحديث محلي مضاعف لضمان الاستقرار
     appState.settings.packages = packages;
+    appState.settings.packagesJSON = JSON.stringify(packages);
+    window.__LOCAL_PACKAGES__ = packages;
     
     const studentsToUpdate = form.studentIds || [];
     (appState.students || []).forEach((stu) => {
@@ -398,7 +414,7 @@
 
     // الحفظ في الخلفية
     try {
-      await dbModule.saveSettings({ ...appState.settings, packages: packages });
+      await dbModule.saveSettings(appState.settings);
       
       (appState.students || []).forEach((stu) => {
           if (studentsToUpdate.includes(stu.id) || stu.packageId === pkgData.id || stu.packageId === "") {
@@ -415,12 +431,14 @@
     
     let packages = ensurePackagesExist().filter(p => p.id !== id);
     appState.settings.packages = packages;
+    appState.settings.packagesJSON = JSON.stringify(packages);
+    window.__LOCAL_PACKAGES__ = packages;
     
     router.render();
     showToast("تم حذف الباقة");
 
     try {
-      await dbModule.saveSettings({ ...appState.settings, packages: packages }); 
+      await dbModule.saveSettings(appState.settings); 
     } catch (err) {
       console.error(err);
     }
@@ -435,6 +453,7 @@
 
     appState.settings.defaultLimit = isNaN(defaultLimit) ? 12 : defaultLimit;
     appState.settings.accountingPhone = accountingPhone;
+    appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
     
     router.render(); 
     showToast("تم حفظ الإعدادات الأساسية");
@@ -447,7 +466,7 @@
   };
 
   // ==========================================
-  // Renders
+  // Renders (✅ تم إضافة type="button" للجميع لمنع الـ Refresh)
   // ==========================================
   function renderPackageForm(form) {
     return `
@@ -456,7 +475,7 @@
           <h3 style="font-size:20px;font-weight:800;color:#065f46;font-family: var(--font-display);">
             ${form.editId ? "<i class='ph-duotone ph-pencil-simple' style='margin-left:8px;'></i>تعديل الباقة" : "<i class='ph-duotone ph-plus-circle' style='margin-left:8px;'></i>إضافة باقة جديدة"}
           </h3>
-          <button class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closePackageForm()">✕</button>
+          <button type="button" class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closePackageForm()">✕</button>
         </div>
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
@@ -492,7 +511,7 @@
           </div>
         </div>
 
-        <button class="btn account-save-btn exec-animate" style="--stagger: 5; background: #059669; border: none; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);" onclick="savePackageForm()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 5; background: #059669; border: none; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);" onclick="savePackageForm()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إنشاء الباقة وربط الطلاب"}
         </button>
       </div>
@@ -507,7 +526,7 @@
           <h3 style="font-size:20px;font-weight:800;color:var(--gold);font-family: var(--font-display);">
             ${form.editId ? "<i class='ph-duotone ph-pencil-simple' style='margin-left:8px;'></i>تعديل بيانات الطالب" : "<i class='ph-duotone ph-plus-circle' style='margin-left:8px;'></i>إضافة طالب جديد"}
           </h3>
-          <button class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closeStudentForm()">✕</button>
+          <button type="button" class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closeStudentForm()">✕</button>
         </div>
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
@@ -519,8 +538,8 @@
         <div class="mb-4 exec-animate" style="--stagger: 3;">
           <label style="font-size:15px;color:#94A3B8;font-weight:600;margin-bottom:12px;display:block;">النوع</label>
           <div class="d-flex gap-3">
-            <button class="btn ${form.gender === "boy" ? "btn-primary" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','boy')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>ولد</button>
-            <button class="btn ${form.gender === "girl" ? "btn-gold" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','girl')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>بنت</button>
+            <button type="button" class="btn ${form.gender === "boy" ? "btn-primary" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','boy')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>ولد</button>
+            <button type="button" class="btn ${form.gender === "girl" ? "btn-gold" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','girl')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>بنت</button>
           </div>
         </div>
 
@@ -568,7 +587,7 @@
         <div class="card-soft mb-4 exec-animate" style="--stagger: 7; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212,175,55,0.4);">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <span style="font-weight:var(--fw-bold);color:var(--text-primary);"><i class="ph-duotone ph-calendar-blank" style="margin-left:8px;"></i>مواعيد الحلقة الأسبوعية</span>
-            <button class="btn btn-outline btn-sm" onclick="addScheduleSlot()"><i class="ph-bold ph-plus" style="margin-left:4px;"></i>إضافة موعد</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="addScheduleSlot()"><i class="ph-bold ph-plus" style="margin-left:4px;"></i>إضافة موعد</button>
           </div>
           ${form.schedule.length === 0 ? `<div style="color:#9ca3af;font-size:13px;text-align:center;padding:10px;">لا توجد مواعيد حتى الآن</div>` : ""}
           ${form.schedule
@@ -581,14 +600,14 @@
                 ).join("")}
               </select>
               <input type="time" class="form-control" style="background: rgba(255,255,255,0.7) !important; border-color: rgba(0,0,0,0.05);" value="${slot.time}" oninput="updateScheduleSlot(${idx}, 'time', this.value)" />
-              <button class="btn btn-danger" style="border-radius:var(--r-md);width:46px;height:46px;display:flex;align-items:center;justify-content:center;" onclick="removeScheduleSlot(${idx})">×</button>
+              <button type="button" class="btn btn-danger" style="border-radius:var(--r-md);width:46px;height:46px;display:flex;align-items:center;justify-content:center;" onclick="removeScheduleSlot(${idx})">×</button>
             </div>
           `
             )
             .join("")}
         </div>
 
-        <button class="btn account-save-btn exec-animate" style="--stagger: 8;" onclick="saveStudentForm()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 8;" onclick="saveStudentForm()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إضافة الطالب"}
         </button>
       </div>
@@ -602,7 +621,7 @@
           <h3 style="font-size:20px;font-weight:800;color:var(--gold);font-family: var(--font-display);">
             ${form.editId ? "<i class='ph-duotone ph-pencil-simple' style='margin-left:8px;'></i>تعديل المجموعة" : "<i class='ph-duotone ph-plus-circle' style='margin-left:8px;'></i>إنشاء مجموعة جديدة"}
           </h3>
-          <button class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closeGroupForm()">✕</button>
+          <button type="button" class="btn btn-light rounded-circle" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;" onclick="closeGroupForm()">✕</button>
         </div>
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
@@ -635,7 +654,7 @@
           </div>
         </div>
 
-        <button class="btn account-save-btn exec-animate" style="--stagger: 5;" onclick="saveGroupForm()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 5;" onclick="saveGroupForm()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إنشاء المجموعة"}
         </button>
       </div>
@@ -646,6 +665,7 @@
     const packages = ensurePackagesExist();
     
     return `
+      <!-- SYSTEM SETTINGS -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 1; padding: 32px !important;">
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
@@ -661,17 +681,18 @@
           <div class="account-input-line"></div>
         </div>
         
-        <button class="btn account-save-btn exec-animate" style="--stagger: 4; margin-top: 0;" onclick="saveSettings()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 4; margin-top: 0;" onclick="saveSettings()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>حفظ الإعدادات
         </button>
       </div>
 
+      <!-- PACKAGES (TIERS) MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 5; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:#065f46;margin:0;">
             <i class="ph-duotone ph-currency-circle-dollar" style="margin-left:8px;"></i>إدارة الباقات المالية
           </h3>
-          <button class="btn" style="background:#059669; color:white;" onclick="openPackageForm()">
+          <button type="button" class="btn" style="background:#059669; color:white;" onclick="openPackageForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>باقة جديدة
           </button>
         </div>
@@ -688,20 +709,21 @@
                 <div style="font-size:13px; color:#047857; margin-top:4px;">سعر الحلقة: <strong>${p.price} ج.م</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
               </div>
               <div class="d-flex gap-2">
-                <button class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                <button class="btn btn-danger icon-btn" onclick="deletePackage('${p.id}')"><i class="ph-duotone ph-trash"></i></button>
+                <button type="button" class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
+                <button type="button" class="btn btn-danger icon-btn" onclick="deletePackage('${p.id}')"><i class="ph-duotone ph-trash"></i></button>
               </div>
             </div>
           `;}).join('')}
         </div>
       </div>
 
+      <!-- STUDENTS MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
             <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${(appState.students || []).length})
           </h3>
-          <button class="btn btn-primary" onclick="openStudentForm()">
+          <button type="button" class="btn btn-primary" onclick="openStudentForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>طالب جديد
           </button>
         </div>
@@ -726,8 +748,8 @@
                   </div>
                 </div>
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline icon-btn" onclick="openStudentForm('${s.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                  <button class="btn btn-danger icon-btn" onclick="deleteStudent('${s.id}')"><i class="ph-duotone ph-trash"></i></button>
+                  <button type="button" class="btn btn-outline icon-btn" onclick="openStudentForm('${s.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
+                  <button type="button" class="btn btn-danger icon-btn" onclick="deleteStudent('${s.id}')"><i class="ph-duotone ph-trash"></i></button>
                 </div>
               </div>
             </div>
@@ -737,12 +759,13 @@
         </div>
       </div>
 
+      <!-- GROUPS MANAGEMENT -->
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
             <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${(appState.groups || []).length})
           </h3>
-          <button class="btn btn-primary" onclick="openGroupForm()">
+          <button type="button" class="btn btn-primary" onclick="openGroupForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>مجموعة جديدة
           </button>
         </div>
@@ -762,8 +785,8 @@
                       <div style="font-size:var(--fs-xs);color:var(--text-muted);line-height:1.5;">${names || "بدون طلاب"}</div>
                     </div>
                     <div class="d-flex gap-2">
-                      <button class="btn btn-outline icon-btn" onclick="openGroupForm('${g.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
-                      <button class="btn btn-danger icon-btn" onclick="deleteGroup('${g.id}')"><i class="ph-duotone ph-trash"></i></button>
+                      <button type="button" class="btn btn-outline icon-btn" onclick="openGroupForm('${g.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
+                      <button type="button" class="btn btn-danger icon-btn" onclick="deleteGroup('${g.id}')"><i class="ph-duotone ph-trash"></i></button>
                     </div>
                   </div>
                 </div>
