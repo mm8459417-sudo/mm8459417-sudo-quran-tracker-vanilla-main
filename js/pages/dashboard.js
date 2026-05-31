@@ -1,5 +1,5 @@
 // ==========================================
-// 1. نظام السكرتير الذكي (الإشعار العائم)
+// 1. نظام السكرتير الذكي (الإشعار العائم - تصميم نظيف وفاتح)
 // ==========================================
 function getSmartAlerts() {
   const alerts = [];
@@ -22,7 +22,7 @@ function getSmartAlerts() {
     alerts.push({ type: 'danger', icon: 'ph-clock', title: 'تذكير', message: 'لم تسجل أي جلسات هذا الأسبوع.' });
   }
 
-  // رسالة ترحيب لو مفيش تنبيهات عشان نتأكد إنه شغال
+  // رسالة ترحيب
   if (alerts.length === 0) {
     alerts.push({ 
       type: 'success', 
@@ -69,9 +69,9 @@ window.showSmartSecretaryPopup = function() {
     z-index: 99999;
     width: 90%;
     max-width: 350px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     border: 1px solid #e2e8f0;
     overflow: hidden;
     font-family: inherit;
@@ -85,16 +85,15 @@ window.showSmartSecretaryPopup = function() {
     document.head.appendChild(style);
   }
 
-  // تم استبدال المتغيرات الوهمية بألوان حقيقية (أخضر داكن)
   popup.innerHTML = `
-    <div style="background: linear-gradient(135deg, #0f9d7a, #065f46); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
-      <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="background: #ffffff; padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 8px; color: #0f9d7a;">
         <i class="ph-duotone ph-robot" style="font-size: 20px;"></i>
-        <span style="font-weight: bold; font-size: 14px;">السكرتير الذكي</span>
+        <span style="font-weight: bold; font-size: 14px; color: #1e293b;">السكرتير الذكي</span>
       </div>
-      <button onclick="this.closest('#smart-secretary-popup').remove()" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0;">&times;</button>
+      <button onclick="this.closest('#smart-secretary-popup').remove()" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; padding: 0;">&times;</button>
     </div>
-    <div style="padding: 16px; max-height: 60vh; overflow-y: auto;">
+    <div style="padding: 16px; max-height: 60vh; overflow-y: auto; background: #ffffff;">
       ${alertsHtml}
     </div>
   `;
@@ -104,7 +103,7 @@ window.showSmartSecretaryPopup = function() {
 
 
 // ==========================================
-// 2. كود لوحة التحكم (الرئيسية) بتصميم مدمج
+// 2. كود لوحة التحكم (الرئيسية) - تم إعادتها لتصميمك الأصلي بالملي
 // ==========================================
 (function () {
   window.setActiveTab = function (tab) {
@@ -135,52 +134,76 @@ window.showSmartSecretaryPopup = function() {
 
     const teacherName = appState.settings.teacherName || "المعلم";
     const todayLabel = formatArDate(new Date().toISOString());
+    const hour = new Date().getHours();
+    const greetTime = hour < 12 ? "صباح الخير" : hour < 17 ? "مساء النور" : "مساء الخير";
 
     return `
       <section class="dash-shell">
-        
-        <div style="background: linear-gradient(135deg, #0f9d7a, #065f46); border-radius: 16px; padding: 30px; color: white; margin-bottom: 24px; box-shadow: 0 10px 25px rgba(15,157,122,0.2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-          <div>
-            <div style="background: rgba(255,255,255,0.2); padding: 6px 15px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; display: inline-block;">
-              <i class="ph-duotone ph-calendar-check" style="margin-left: 5px;"></i> ${todayLabel}
-            </div>
-            <h1 style="font-size: 26px; font-weight: bold; margin: 0 0 10px 0; color: white;">السَّلَامُ عَلَيْكُمْ، ${teacherName}</h1>
-            <p style="margin: 0; opacity: 0.9; font-size: 15px; max-width: 500px;">مرحباً بك في مساحتك الخاصة. تابع إنجازات طلابك وتتبع تقدمهم في حفظ كتاب الله بكل يسر وسهولة.</p>
+        <!-- Premium Hero Section -->
+        <div class="premium-hero">
+          <div class="premium-hero__particles">
+            <div class="particle p1"></div>
+            <div class="particle p2"></div>
+            <div class="particle p3"></div>
+            <div class="particle p4"></div>
+            <div class="particle p5"></div>
           </div>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn" style="background: white; color: #0f9d7a; border: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; cursor: pointer;" onclick="setActiveTab('form')">
-              <i class="ph-duotone ph-plus-circle"></i> تسجيل جلسة
-            </button>
-            <button class="btn" style="background: rgba(255,255,255,0.2); color: white; border: none; font-weight: bold; padding: 10px 20px; border-radius: 8px; cursor: pointer;" onclick="setActiveTab('analysis')">
-              <i class="ph-duotone ph-chart-pie-slice"></i> التحليلات
-            </button>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px;">
+          <div class="premium-hero__bg"></div>
+          <div class="premium-hero__glass"></div>
           
-          <div class="card-soft" style="display: flex; align-items: center; gap: 15px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
-            <div style="width: 55px; height: 55px; background: rgba(15,157,122,0.1); color: #0f9d7a; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px;">
-              <i class="ph-duotone ph-users-three"></i>
+          <div class="premium-hero__content">
+            <div class="premium-hero__main">
+              <div class="premium-hero__date-pill">
+                <i class="ph-duotone ph-calendar-check"></i>
+                <span>${todayLabel}</span>
+              </div>
+              
+              <h1 class="premium-hero__title">
+                السَّلَامُ عَلَيْكُمْ، <span>${teacherName}</span>
+              </h1>
+              <p class="premium-hero__subtitle">
+                مرحباً بك في مساحتك الخاصة. تابع إنجازات طلابك وتتبع تقدمهم في حفظ كتاب الله بكل يسر وسهولة، مع تحليلات ذكية لرفع مستوى الأداء.
+              </p>
+
+              <div class="premium-hero__actions">
+                <button class="btn btn-primary btn-lg" onclick="setActiveTab('form')">
+                  <i class="ph-duotone ph-plus-circle"></i>
+                  تسجيل جلسة جديدة
+                </button>
+                <button class="btn btn-glass btn-lg" onclick="setActiveTab('analysis')">
+                  <i class="ph-duotone ph-chart-pie-slice"></i>
+                  التحليلات الذكية
+                </button>
+              </div>
             </div>
-            <div>
-              <div style="font-size: 13px; color: #64748b; font-weight: bold;">إجمالي الطلاب</div>
-              <div style="font-size: 24px; font-weight: 900; color: #1e293b;">${appState.students.length}</div>
+
+            <div class="premium-hero__side">
+              <div class="premium-hero__quran-icon">
+                <i class="ph-duotone ph-book-open-text"></i>
+                <div class="quran-glow"></div>
+              </div>
+
+              <div class="premium-hero__stats-stack">
+                <div class="premium-stat-card">
+                  <div class="stat-icon emerald"><i class="ph-duotone ph-users-three"></i></div>
+                  <div class="stat-info">
+                    <div class="stat-lbl">إجمالي الطلاب</div>
+                    <div class="stat-val" dir="ltr">${appState.students.length}</div>
+                  </div>
+                </div>
+                <div class="premium-stat-card float-delayed">
+                  <div class="stat-icon gold"><i class="ph-duotone ph-books"></i></div>
+                  <div class="stat-info">
+                    <div class="stat-lbl">جلسات مُنجزة</div>
+                    <div class="stat-val" dir="ltr">${appState.sessions.length}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div class="card-soft" style="display: flex; align-items: center; gap: 15px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
-            <div style="width: 55px; height: 55px; background: rgba(245,158,11,0.1); color: #f59e0b; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px;">
-              <i class="ph-duotone ph-books"></i>
-            </div>
-            <div>
-              <div style="font-size: 13px; color: #64748b; font-weight: bold;">جلسات مُنجزة</div>
-              <div style="font-size: 24px; font-weight: 900; color: #1e293b;">${appState.sessions.length}</div>
-            </div>
-          </div>
-
         </div>
 
+        <!-- Content -->
         <div class="dash-content">
           ${renderActiveTab()}
         </div>
@@ -206,14 +229,12 @@ window.showSmartSecretaryPopup = function() {
         initAccountPage();
         break;
       default:
-        // السكرتير بيشتغل أولاً
         setTimeout(() => {
           if (typeof showSmartSecretaryPopup === "function") {
             showSmartSecretaryPopup();
           }
         }, 500);
         
-        // بعدها الفورم بيحمل
         initSessionForm();
         break;
     }
