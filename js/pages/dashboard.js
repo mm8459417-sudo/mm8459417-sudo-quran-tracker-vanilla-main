@@ -223,15 +223,6 @@ window.showSmartSecretaryPopup = function() {
         initSessionForm();
         default:
         initSessionForm();
-        
-        // 🔴 استدعاء السكرتير الذكي هنا 🔴
-        setTimeout(() => {
-          if (typeof showSmartSecretaryPopup === "function") {
-            showSmartSecretaryPopup();
-          }
-        }, 500);
-        
-        break; // يفضل دايماً تحط break في نهاية الـ default
     }
   };
 })();
