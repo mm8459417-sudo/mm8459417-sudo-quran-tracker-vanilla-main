@@ -1095,6 +1095,26 @@
           <input type="date" class="dash-date-input" value="${form.date}" onchange="updateFormPath('date', this.value)" />
         </div>
 
+<div class="form-group" style="margin-bottom: 1rem;">
+  <label class="form-label" style="font-weight: bold; color: var(--color-slate-700); font-size: 14px; margin-bottom: 8px; display: block;">
+    <i class="ph-duotone ph-hash"></i> رقم الحلقة
+  </label>
+  <div style="display: flex; align-items: center; gap: 10px; max-width: 160px;">
+    <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
+            style="background: #e0f2fe; color: #0284c7; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
+      +
+    </button>
+    
+    <input type="number" id="session-number" class="form-control" value="1" min="1" 
+           style="text-align: center; font-weight: 900; font-size: 18px; border: 2px solid var(--color-slate-200); border-radius: 10px; width: 60px; height: 40px; padding: 0;">
+    
+    <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
+            style="background: #f1f5f9; color: #64748b; border: none; width: 40px; height: 40px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 20px; transition: 0.2s;">
+      -
+    </button>
+  </div>
+</div>
+
         <div class="dash-type-switch">
           <button class="dash-type-btn ${form.sessionType === "quran" ? "active" : ""}" onclick="updateFormPath('sessionType','quran'); router.render();"><i class="ph-duotone ph-book-open-text" style="margin-left: 4px;"></i>قرآن</button>
           <button class="dash-type-btn ${form.sessionType === "islamic" ? "active gold-active" : ""}" onclick="updateFormPath('sessionType','islamic'); router.render();"><i class="ph-duotone ph-books" style="margin-left: 4px;"></i>تربية إسلامية</button>
@@ -1125,10 +1145,7 @@
               ${renderStars("quran.closing.overall", form.quran.closing.overall)}
             </div>
             <div class="mb-2">
-              <label class="form-label">الإنجاز الكلي</label>
-              ${renderStars("quran.closing.achievement", form.quran.closing.achievement)}
-            </div>
-            <div class="card-soft">
+
               <div style="font-weight:var(--fw-bold);margin-bottom:10px;color:var(--gold);">📚 واجب الحلقة القادمة</div>
               ${renderSurahInput("الحفظ الجديد", "quran.closing.homework.new", form.quran.closing.homework.new.surah)}
               ${renderSurahInput("الماضي القريب", "quran.closing.homework.recent", form.quran.closing.homework.recent.surah)}
