@@ -11,10 +11,9 @@
 
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
-    if (!appState.settings.packages || appState.settings.packages.length === 0) {
-      appState.settings.packages = [
-        { id: 'pkg-default', name: 'الباقة الأساسية', price: 70 }
-      ];
+    // التعديل هنا: مبقاش يجبر الكود يعمل باقة لو العدد صفر. بيعملها بس لو المتغير مش موجود خالص.
+    if (!appState.settings.packages) {
+      appState.settings.packages = [];
     }
     return appState.settings.packages;
   }
@@ -28,7 +27,7 @@
         name: "",
         phone: "",
         gender: "boy",
-        packageId: packages[0].id,
+        packageId: packages.length > 0 ? packages[0].id : "",
         quranLimit: 8,
         islamicLimit: 4,
         maxAbsenceAllowed: 1, 
@@ -59,7 +58,7 @@
         editId: null,
         name: "",
         price: 70,
-        studentIds: [], // مصفوفة جديدة لحفظ الطلاب المرتبطين بالباقة
+        studentIds: [], 
       };
     }
     return appState.ui.packageForm;
@@ -78,7 +77,7 @@
         form.name = stu.name || "";
         form.phone = stu.phone || "";
         form.gender = stu.gender || "boy";
-        form.packageId = stu.packageId || packages[0].id;
+        form.packageId = stu.packageId || (packages.length > 0 ? packages[0].id : "");
         form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : 8;
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
         form.maxAbsenceAllowed = stu.maxAbsenceAllowed !== undefined ? stu.maxAbsenceAllowed : 1;
@@ -90,7 +89,7 @@
       form.name = "";
       form.phone = "";
       form.gender = "boy";
-      form.packageId = packages[0].id;
+      form.packageId = packages.length > 0 ? packages[0].id : "";
       form.quranLimit = 8;
       form.islamicLimit = 4;
       form.maxAbsenceAllowed = 1;
@@ -295,7 +294,6 @@
         form.editId = pkg.id;
         form.name = pkg.name || "";
         form.price = pkg.price || 70;
-        // جلب الطلاب التابعين لهذه الباقة
         form.studentIds = appState.students.filter(s => s.packageId === pkg.id).map(s => s.id);
       }
     } else {
@@ -318,7 +316,6 @@
     form[field] = value;
   };
 
-  // ربط أو فك ربط طالب بباقة محددة من داخل شاشة الباقة
   window.togglePackageStudent = function (studentId, checked) {
     const form = ensurePackageForm();
     if (checked) {
@@ -343,7 +340,6 @@
     };
 
     let packages = [...ensurePackagesExist()];
-    const defaultPkg = packages[0];
     
     if (form.editId) {
       const idx = packages.findIndex(p => p.id === form.editId);
@@ -353,27 +349,21 @@
     }
 
     try {
-      // 1. تحديث الباقات محلياً
       appState.settings.packages = packages;
-      
-      // 2. حفظ الإعدادات في الداتابيز
       await dbModule.saveSettings(appState.settings);
       
-      // 3. مسح الطلاب وتحديث باقاتهم المادية بناءً على اللي اختاره المعلم
       appState.students.forEach(async (stu) => {
           let hasChanged = false;
           
           if (form.studentIds.includes(stu.id)) {
-              // لو الطالب متحدد في باقة دي.. اربطه بيها
               if (stu.packageId !== pkgData.id || stu.sessionPrice !== pkgData.price) {
                   stu.packageId = pkgData.id;
                   stu.sessionPrice = pkgData.price;
                   hasChanged = true;
               }
           } else if (stu.packageId === pkgData.id) {
-              // لو الطالب متشال الصح من عليه وكان في الباقة دي.. رجعه للأساسية
-              stu.packageId = defaultPkg.id;
-              stu.sessionPrice = defaultPkg.price;
+              stu.packageId = ""; // إزالة الباقة
+              stu.sessionPrice = 70; // السعر الافتراضي
               hasChanged = true;
           }
 
@@ -517,6 +507,7 @@
           <div class="mb-3">
             <label class="form-label" style="font-size: 13px;">تحديد الباقة المالية</label>
             <select class="form-select" onchange="updateStudentFormField('packageId', this.value)" style="border-color: #cbd5e1;">
+              <option value="">-- بدون باقة --</option>
               ${packages.map(p => `<option value="${p.id}" ${form.packageId === p.id ? 'selected' : ''}>${p.name} (${p.price} ج.م/الحلقة)</option>`).join("")}
             </select>
           </div>
