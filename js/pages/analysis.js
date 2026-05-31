@@ -67,8 +67,7 @@
 
     const currentTheme = appState.ui.certTheme || 'theme-default';
 
-    // ديناميكية ألوان الزوايا والزخارف حسب القالب المختار
-    let themeColor1 = '#D4AF37'; // الافتراضي الذهبي
+    let themeColor1 = '#D4AF37'; 
     let themeColor2 = '#B8962E';
     if (currentTheme === 'theme-emerald') {
       themeColor1 = '#0F9D7A';
@@ -128,8 +127,30 @@
 
     const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
+    // حقن مباشر للستايل لضمان كسر الكاش وتطبيق الألوان فوراً
     return `
       <div class="cert-preview-container">
+        
+        <style>
+          /* الأخضر الإسلامي */
+          .royal-cert.theme-emerald .rc-bg-glow { background: radial-gradient(circle at center, rgba(15, 157, 122, 0.15) 0%, transparent 70%) !important; }
+          .royal-cert.theme-emerald .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0F9D7A, #145A46) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
+          .royal-cert.theme-emerald .rc-border-gold { border-color: #0F9D7A !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; }
+          .royal-cert.theme-emerald .rc-div-star, .royal-cert.theme-emerald .rc-highlight { color: #0F9D7A !important; }
+          .royal-cert.theme-emerald .rc-seal-ring { border-color: rgba(15, 157, 122, 0.3) !important; }
+          .royal-cert.theme-emerald .rc-seal-core { background: linear-gradient(135deg, #0F9D7A 0%, #145A46 100%) !important; }
+          .royal-cert.theme-emerald .rc-avatar-border { border-color: #0F9D7A !important; }
+
+          /* الأزرق الماسي */
+          .royal-cert.theme-sapphire .rc-bg-glow { background: radial-gradient(circle at center, rgba(13, 71, 161, 0.1) 0%, transparent 70%) !important; }
+          .royal-cert.theme-sapphire .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0D47A1, #1976D2) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
+          .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
+          .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
+          .royal-cert.theme-sapphire .rc-seal-ring { border-color: rgba(13, 71, 161, 0.3) !important; }
+          .royal-cert.theme-sapphire .rc-seal-core { background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%) !important; }
+          .royal-cert.theme-sapphire .rc-avatar-border { border-color: #0D47A1 !important; }
+        </style>
+
         <div class="royal-cert ${currentTheme}" id="certificate-box">
           
           <div class="rc-bg-base"></div>
@@ -212,7 +233,7 @@
 
               <div class="rc-seal-wrapper">
                 <div class="rc-seal-outer">
-                  <div class="rc-seal-ring"></div>
+                  <div class="rc-seal-ring" style="border-color: rgba(${currentTheme === 'theme-sapphire' ? '13,71,161' : currentTheme === 'theme-emerald' ? '15,157,122' : '212,175,55'}, 0.3)"></div>
                   <div class="rc-seal-core">
                     <div class="rc-seal-icon">
                       <svg viewBox="0 0 48 48" width="36" height="36"><path d="M24 2L30 16L44 18L34 28L36 42L24 36L12 42L14 28L4 18L18 16Z" fill="#FFF" opacity="0.95"/></svg>
