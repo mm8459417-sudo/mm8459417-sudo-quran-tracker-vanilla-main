@@ -1,4 +1,9 @@
 (function () {
+  // حالة فلتر الشيت (افتراضياً: شهر)
+  if (!appState.ui.sheetFilter) {
+    appState.ui.sheetFilter = "month"; 
+  }
+
   window.prevMonth = function () {
     if (appState.ui.month === 1) {
       appState.ui.month = 12;
@@ -60,14 +65,78 @@
 
   window.exportMonthlySheetPdf = async function () {
     const el = document.getElementById("monthly-sheet-box");
-    if (!el) return;
-    await exportElementAsPdf(el, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
+    if (!el) {
+      showToast("الجدول غير موجود");
+      return;
+    }
+    if (typeof exportElementAsPdf === 'function') {
+      await exportElementAsPdf(el, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
+    } else {
+      showToast("خاصية PDF غير متوفرة حالياً");
+    }
   };
 
   window.exportMonthlySheetImage = async function () {
     const el = document.getElementById("monthly-sheet-box");
     if (!el) return;
-    await exportElementAsImage(el, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
+    if (typeof exportElementAsImage === 'function') {
+      await exportElementAsImage(el, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
+    } else {
+      showToast("خاصية الصورة غير متوفرة حالياً");
+    }
+  };
+
+  // ✅ [إضافة مؤقتة] دالة لتعديل الأرقام يدوياً بالزيادة أو النقصان
+  window.adjustTempCount = function(studentId, field, amount) {
+    if (!appState.tempAdjustments) appState.tempAdjustments = {};
+    if (!appState.tempAdjustments[studentId]) {
+      appState.tempAdjustments[studentId] = { quran: 0, calc: 0 };
+    }
+    appState.tempAdjustments[studentId][field] += amount;
+    router.render(); // إعادة التصيير لتحديث الحسابات
+  };
+
+  // ✅ الدالة الجديدة للطباعة السليمة 100%
+  window.printCustomSheet = function () {
+    const tableHtml = document.getElementById("monthly-sheet-box").outerHTML;
+    const title = appState.ui.sheetFilter === "month" 
+        ? `تقرير شهر ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} لسنة ${appState.ui.year}` 
+        : "تقرير آخر 7 أيام";
+        
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html dir="rtl">
+        <head>
+            <title>طباعة الشيت المالي</title>
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+                h2 { text-align: center; color: #065f46; margin-bottom: 5px; }
+                h4 { text-align: center; color: #64748b; margin-top: 0; margin-bottom: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }
+                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 14px; }
+                th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; color: #1e293b; font-weight: bold; }
+                tr { page-break-inside: avoid; }
+                .group-label { font-size: 11px; color: #0284c7; display: block; margin-top: 4px; }
+                tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 16px; }
+                .price-col { color: #0f9d7a; font-weight: bold; }
+                /* ✅ [إضافة مؤقتة] إخفاء الأزرار عند الطباعة */
+                .no-print { display: none !important; }
+            </style>
+        </head>
+        <body>
+            <h2>الشيت المالي والحسابات</h2>
+            <h4>${title}</h4>
+            ${tableHtml}
+            <script>
+                setTimeout(() => {
+                    window.print();
+                    window.close();
+                }, 500);
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
   };
 
   window.setSheetFilter = function (filter) {
@@ -79,7 +148,6 @@
   window.renderMonthlySheetPage = function () {
     document.body.classList.add('monthly-active');
 
-    // ✅ تم نقل هذا السطر للداخل لحل مشكلة عدم التحميل
     if (!appState.ui.sheetFilter) {
       appState.ui.sheetFilter = "month"; 
     }
@@ -88,6 +156,7 @@
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     const monthNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+    appState.ui.monthNames = monthNames;
 
     // 1. تصفية الجلسات حسب الفلتر المختار (شهر أو أسبوع)
     const filteredSessions = appState.sessions.filter(s => {
@@ -95,12 +164,10 @@
       const d = new Date(s.date);
       
       if (appState.ui.sheetFilter === "week") {
-        // فلتر الأسبوع: آخر 7 أيام
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(now.getDate() - 7);
         return d >= oneWeekAgo && d <= now;
       } else {
-        // فلتر الشهر: نفس الشهر والسنة
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }
     });
@@ -154,39 +221,28 @@
         }
       });
 
+      // ✅ استدعاء التعديلات اليدوية المؤقتة
+      if (!appState.tempAdjustments) appState.tempAdjustments = {};
+      const adj = appState.tempAdjustments[student.id] || { quran: 0, calc: 0 };
+
+      quranCount += adj.quran; // إضافة أو طرح رقم حضور القرآن
+
       const totalAttended = quranCount + islamicCount;
       const sessionPrice = student.sessionPrice || 70;
-      const maxAbsenceAllowed = student.maxAbsenceAllowed || 1;
+      const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
       const groupName = student.group || "فردي (بدون مجموعة)";
 
       const payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
-      const totalCalculatedSessions = totalAttended + payableAbsences;
+      let totalCalculatedSessions = totalAttended + payableAbsences;
+      
+      totalCalculatedSessions += adj.calc; // إضافة أو طرح عدد الحلقات المحاسبة
+
       const totalAmount = totalCalculatedSessions * sessionPrice;
 
       grandTotalAmount += totalAmount;
       grandTotalCalculatedSessions += totalCalculatedSessions;
       grandTotalQuran += quranCount;
       grandTotalIslamic += islamicCount;
-
-      const ratedSessions = stdSessions.filter(s => {
-         if(s.mode === "group" && Array.isArray(s.participants)) {
-             const p = s.participants.find(x => x.studentId === student.id);
-             return p && p.present !== false && p.overall;
-         }
-         return (!s.attendance || s.attendance === "present") && s.overall;
-      });
-      
-      let sumRating = 0;
-      ratedSessions.forEach(s => {
-          if(s.mode === "group") {
-             const p = s.participants.find(x => x.studentId === student.id);
-             sumRating += (p.overall || 0);
-          } else {
-             sumRating += (s.overall || 0);
-          }
-      });
-
-      const avgRating = ratedSessions.length ? (sumRating / ratedSessions.length).toFixed(1) : "-";
 
       return {
         ...student,
@@ -199,7 +255,6 @@
         payableAbsences,
         totalCalculatedSessions,
         totalAmount,
-        avgRating,
         sessionPrice
       };
     });
@@ -230,23 +285,37 @@
         <tr style="background-color: ${rowBgColor}; border-bottom: 1px solid var(--color-border);">
           <td style="padding: 16px; font-weight: bold; color: var(--color-slate-800);">
             ${row.name} 
-            ${!row.groupName.includes("فردي") ? `<br><span style="font-size: 11px; color: var(--color-primary-600); background: rgba(255,255,255,0.6); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.05);">(مجموعة: ${row.groupName})</span>` : ''}
+            ${!row.groupName.includes("فردي") ? `<span class="group-label" style="font-size: 11px; color: var(--color-primary-600); background: rgba(255,255,255,0.6); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.05); display: inline-block; margin-top: 4px;">(مجموعة: ${row.groupName})</span>` : ''}
           </td>
           <td style="padding: 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
              ${row.sessionPrice} <span style="font-size:10px;">ج.م</span>
           </td>
-          <td style="padding: 16px; text-align: center;">${row.quranCount}</td>
+
+          <td style="padding: 16px; text-align: center;">
+            <div style="font-size: 15px;">${row.quranCount}</div>
+            <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 6px;">
+              <button onclick="adjustTempCount('${row.id}', 'quran', 1)" style="width: 22px; height: 22px; cursor: pointer; border: none; background: #cbd5e1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">+</button>
+              <button onclick="adjustTempCount('${row.id}', 'quran', -1)" style="width: 22px; height: 22px; cursor: pointer; border: none; background: #cbd5e1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">-</button>
+            </div>
+          </td>
+
           <td style="padding: 16px; text-align: center;">${row.islamicCount}</td>
           <td style="padding: 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
           <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
             ${row.unexcusedAbsenceCount} <br><span style="font-size:10px; color:#94a3b8; font-weight:normal;">(مُحاسب على ${row.payableAbsences})</span>
           </td>
+
           <td style="padding: 16px; text-align: center;">
             <span style="background: var(--color-slate-100); padding: 4px 10px; border-radius: 6px; font-weight: bold; color: #0284c7;">
               ${row.totalCalculatedSessions}
             </span>
+            <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 6px;">
+              <button onclick="adjustTempCount('${row.id}', 'calc', 1)" style="width: 22px; height: 22px; cursor: pointer; border: none; background: #bae6fd; color: #0369a1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">+</button>
+              <button onclick="adjustTempCount('${row.id}', 'calc', -1)" style="width: 22px; height: 22px; cursor: pointer; border: none; background: #bae6fd; color: #0369a1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">-</button>
+            </div>
           </td>
-          <td style="padding: 16px; text-align: center; font-weight: 900; font-size: 16px; color: #0f9d7a;">
+
+          <td class="price-col" style="padding: 16px; text-align: center; font-weight: 900; font-size: 16px; color: #0f9d7a;">
             ${row.totalAmount} <span style="font-size: 12px; font-weight: normal; color: #64748b;">ج.م</span>
           </td>
         </tr>
@@ -269,7 +338,7 @@
             </div>
           </div>
           
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 flex-wrap">
             <div style="background: var(--color-slate-100); padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
               <button onclick="setSheetFilter('month')" style="border: none; background: ${appState.ui.sheetFilter === 'month' ? 'white' : 'transparent'}; color: ${appState.ui.sheetFilter === 'month' ? 'var(--color-slate-800)' : 'var(--color-slate-500)'}; box-shadow: ${appState.ui.sheetFilter === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s;">
                 حصاد الشهر
@@ -279,7 +348,9 @@
               </button>
             </div>
             
-            <button class="btn btn-outline" onclick="window.print()"><i class="ph-duotone ph-printer"></i> طباعة</button>
+            <button class="btn btn-outline" style="color:#e11d48; border-color:#e11d48;" onclick="exportMonthlySheetPdf()" title="تحميل كملف PDF"><i class="ph-duotone ph-file-pdf"></i></button>
+            <button class="btn btn-outline" style="color:#0284c7; border-color:#0284c7;" onclick="exportMonthlySheetImage()" title="تحميل كصورة"><i class="ph-duotone ph-image"></i></button>
+            <button class="btn" style="background:#065f46; color:white;" onclick="printCustomSheet()"><i class="ph-duotone ph-printer"></i> طباعة</button>
           </div>
         </div>
 
