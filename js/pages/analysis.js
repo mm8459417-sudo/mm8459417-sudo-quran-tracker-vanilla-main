@@ -373,19 +373,19 @@
           </div>
         ` : ""}
 
-        <!-- استوديو الشهادات (نظام كانفا المصغر) -->
+       <!-- استوديو الشهادات (نظام كانفا المصغر) -->
         ${appState.ui.showCertificate && student ? `
-          <div class="certificate-studio-wrapper card-soft mb-4" style="padding: 0; overflow: hidden; display: flex; flex-direction: row; min-height: 600px; border: 1px solid var(--color-border-strong);">
+          <div class="certificate-studio-wrapper card-soft mb-4" style="padding: 0; overflow: hidden; display: flex; flex-wrap: wrap; border: 1px solid var(--color-border-strong);">
             
             <!-- اللوحة الجانبية (Sidebar) للأدوات والقوالب -->
-            <div class="studio-sidebar" style="width: 300px; background: #F8FAFC; border-left: 1px solid var(--color-border); display: flex; flex-direction: column;">
+            <div class="studio-sidebar" style="flex: 1 1 250px; max-width: 320px; background: #F8FAFC; border-left: 1px solid var(--color-border); display: flex; flex-direction: column; min-height: 500px;">
               
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fff;">
                 <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: var(--color-primary-800);">🎨 استوديو التصميم</h3>
                 <p style="margin: 5px 0 0; font-size: 12px; color: var(--text-muted);">اختر القالب المناسب للطالب</p>
               </div>
 
-              <!-- قائمة القوالب (هنا هنحط صور الديزاينر لما تخلص) -->
+              <!-- قائمة القوالب -->
               <div class="studio-tools" style="padding: 20px; overflow-y: auto; flex: 1;">
                 
                 <div class="template-category" style="margin-bottom: 20px;">
@@ -422,10 +422,11 @@
               </div>
             </div>
 
-            <!-- منطقة العرض (Preview) -->
-            <div class="studio-preview" style="flex: 1; padding: 40px; background: #F1F5F9; display: flex; align-items: center; justify-content: center; overflow: auto;">
-               <!-- هنا بننادي على دالة عرض الشهادة -->
-               ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
+            <!-- منطقة العرض (Preview) - التعديل هنا لضبط المساحات والقص -->
+            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 40px 20px; background: #e2e8f0; overflow: auto;">
+               <div style="width: max-content; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-radius: 12px;">
+                 ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
+               </div>
             </div>
 
           </div>
