@@ -9,14 +9,19 @@
     "السبت",
   ];
 
-  // تأكد من وجود مصفوفة الباقات في الإعدادات
-  if (!appState.settings.packages) {
-    appState.settings.packages = [
-      { id: 'pkg-default', name: 'الباقة الأساسية', price: 70 }
-    ];
+  // دالة أمان لضمان وجود الباقات قبل تحميل الصفحة (لحل مشكلة عدم فتح الصفحة)
+  function ensurePackagesExist() {
+    if (!appState.settings) appState.settings = {};
+    if (!appState.settings.packages || appState.settings.packages.length === 0) {
+      appState.settings.packages = [
+        { id: 'pkg-default', name: 'الباقة الأساسية', price: 70 }
+      ];
+    }
+    return appState.settings.packages;
   }
 
   function ensureStudentForm() {
+    const packages = ensurePackagesExist();
     if (!appState.ui.studentForm) {
       appState.ui.studentForm = {
         open: false,
@@ -24,7 +29,7 @@
         name: "",
         phone: "",
         gender: "boy",
-        packageId: appState.settings.packages[0]?.id || "",
+        packageId: packages[0].id,
         quranLimit: 8,
         islamicLimit: 4,
         maxAbsenceAllowed: 1, // الغياب المسموح بدون عذر
@@ -65,6 +70,7 @@
   // ==========================================
   window.openStudentForm = function (studentId) {
     const form = ensureStudentForm();
+    const packages = ensurePackagesExist();
     if (studentId) {
       const stu = appState.students.find((s) => s.id === studentId);
       if (stu) {
@@ -72,7 +78,7 @@
         form.name = stu.name || "";
         form.phone = stu.phone || "";
         form.gender = stu.gender || "boy";
-        form.packageId = stu.packageId || appState.settings.packages[0]?.id || "";
+        form.packageId = stu.packageId || packages[0].id;
         form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : 8;
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
         form.maxAbsenceAllowed = stu.maxAbsenceAllowed !== undefined ? stu.maxAbsenceAllowed : 1;
@@ -84,7 +90,7 @@
       form.name = "";
       form.phone = "";
       form.gender = "boy";
-      form.packageId = appState.settings.packages[0]?.id || "";
+      form.packageId = packages[0].id;
       form.quranLimit = 8;
       form.islamicLimit = 4;
       form.maxAbsenceAllowed = 1;
@@ -136,7 +142,8 @@
     }
 
     // ربط سعر الحلقة بالطالب بناءً على الباقة المختارة
-    const selectedPackage = appState.settings.packages.find(p => p.id === form.packageId);
+    const packages = ensurePackagesExist();
+    const selectedPackage = packages.find(p => p.id === form.packageId);
     const sessionPrice = selectedPackage ? selectedPackage.price : 70;
 
     const payload = {
@@ -270,8 +277,9 @@
   // ==========================================
   window.openPackageForm = function (pkgId) {
     const form = ensurePackageForm();
+    const packages = ensurePackagesExist();
     if (pkgId) {
-      const pkg = appState.settings.packages.find((p) => p.id === pkgId);
+      const pkg = packages.find((p) => p.id === pkgId);
       if (pkg) {
         form.editId = pkg.id;
         form.name = pkg.name || "";
@@ -309,7 +317,7 @@
       price: parseFloat(form.price) || 0,
     };
 
-    let packages = [...(appState.settings.packages || [])];
+    let packages = [...ensurePackagesExist()];
     
     if (form.editId) {
       const idx = packages.findIndex(p => p.id === form.editId);
@@ -338,7 +346,7 @@
 
   window.deletePackage = async function (id) {
     if (!window.confirm("هل تريد حذف هذه الباقة؟")) return;
-    let packages = appState.settings.packages.filter(p => p.id !== id);
+    let packages = ensurePackagesExist().filter(p => p.id !== id);
     try {
       await dbModule.saveSettings({ packages });
       showToast("تم حذف الباقة");
@@ -396,7 +404,7 @@
   }
 
   function renderStudentForm(form) {
-    const packages = appState.settings.packages || [];
+    const packages = ensurePackagesExist();
     return `
       <div class="card-soft account-card exec-animate" style="--stagger: 1; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
@@ -432,6 +440,7 @@
           <div class="account-input-line"></div>
         </div>
 
+        <!-- نظام الباقات والمسارات الجديد -->
         <div class="card-soft mb-4 exec-animate" style="--stagger: 6; background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2);">
           <div style="font-weight:var(--fw-bold);color:#065f46;margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px;"></i>النظام المالي والمسارات</div>
           
@@ -538,9 +547,10 @@
   }
 
   function renderSettingsMain() {
-    const packages = appState.settings.packages || [];
+    const packages = ensurePackagesExist();
     
     return `
+      <!-- SYSTEM SETTINGS -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 1; padding: 32px !important;">
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
@@ -561,6 +571,7 @@
         </button>
       </div>
 
+      <!-- PACKAGES (TIERS) MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 5; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:#065f46;margin:0;">
@@ -589,6 +600,7 @@
         </div>
       </div>
 
+      <!-- STUDENTS MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -630,6 +642,7 @@
         </div>
       </div>
 
+      <!-- GROUPS MANAGEMENT -->
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -669,12 +682,18 @@
   }
 
   window.renderSettingsPage = function () {
+    // التأكد من استدعاء الدالة هنا قبل فتح أي فورم لتفادي أي خطأ
+    ensurePackagesExist();
+
     const pkgForm = ensurePackageForm();
     if (pkgForm.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderPackageForm(pkgForm)}</div>`;
+    
     const form = ensureStudentForm();
     if (form.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderStudentForm(form)}</div>`;
+    
     const groupForm = ensureGroupForm();
     if (groupForm.open) return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderGroupForm(groupForm)}</div>`;
+    
     return `<div class="account-profile-container" style="padding-top:20px;max-width:800px;">${renderSettingsMain()}</div>`;
   };
 
