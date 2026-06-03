@@ -63,7 +63,7 @@
     const genderSuffix = isFemale ? 'ها' : 'ه';
     const todayDate = formatArDate(new Date().toISOString());
 
-    // SVG البنت (للبنات فقط)
+    // رسمة البنت (في حالة الطالبات)
     const girlAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
       <defs>
         <linearGradient id="bgGirl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF3E0"/><stop offset="100%" style="stop-color:#FFE0B2"/></linearGradient>
@@ -88,69 +88,74 @@
     </svg>`;
     const girlAvatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(girlAvatarSVG)))}`;
 
+    const defaultIntro = `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`;
     const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
+    
+    const introText = appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro;
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
     return `
-      <div class="cert-preview-container" style="position: relative; font-family: 'Cairo', sans-serif; width: 100%; max-width: 900px; margin: 0 auto;">
-        
-        <div id="certificate-box" style="position: relative; width: 100%; padding-bottom: 70.7%; background-image: url('js/pages/cert_template.jpg'); background-size: cover; background-position: center; border-radius: 4px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+      <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
+        <div style="width: 1000px; height: 710px; transform: scale(0.60); transform-origin: top center; margin-bottom: -280px;">
           
-          <div style="position: absolute; top: 8%; left: 15%; right: 15%; height: 35%; background: #ffffff; box-shadow: 0 0 20px 20px #ffffff; z-index: 1;"></div>
-          <div style="position: absolute; top: 45%; left: 15%; right: 15%; height: 45%; background: #ffffff; box-shadow: 0 0 20px 20px #ffffff; z-index: 1;"></div>
-
-          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5;">
+          <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; background-image: url('js/pages/cert_template.jpg'); background-size: 1000px 710px; background-position: center; background-repeat: no-repeat; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <div style="position: absolute; top: 4%; left: 50%; transform: translateX(-50%);">
-              <img src="js/pages/logo.png" style="height: 75px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" onerror="this.style.display='none'" />
-            </div>
+            <div style="position: absolute; top: 12%; left: 25%; width: 50%; height: 22%; background: #fdfaf6; box-shadow: 0 0 25px 25px #fdfaf6; border-radius: 50%; z-index: 1;"></div>
+            <div style="position: absolute; top: 55%; left: 20%; width: 60%; height: 38%; background: #fdfaf6; box-shadow: 0 0 35px 35px #fdfaf6; border-radius: 40%; z-index: 1;"></div>
 
-            <div style="position: absolute; top: 18%; left: 50%; transform: translateX(-50%); width: 100%; text-align: center;">
-              <h1 style="font-family: 'Amiri', serif; font-size: 58px; color: #21355e; margin: 0; font-weight: 700;">شَهَادَة إنجَاز وَتَفَوُّق</h1>
-            </div>
-
-            <div style="position: absolute; top: 31%; left: 50%; transform: translateX(-50%); width: 85%; text-align: center;">
-              <p style="font-size: 20px; color: #1e293b; font-weight: 700; margin: 0;">تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز</p>
-            </div>
-
-            <div style="position: absolute; top: 38%; left: 50%; transform: translateX(-50%);">
-              <div style="background-color: #2b3a61; color: #ffffff; padding: 10px 45px; border-radius: 8px; font-size: 26px; font-weight: 700; min-width: 250px; text-align: center; box-shadow: 0 4px 10px rgba(43, 58, 97, 0.3);">
-                ${student.name}
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
+              
+              <div style="position: absolute; top: 3%; left: 50%; transform: translateX(-50%);">
+                <img src="js/pages/logo.png" style="height: 80px; width: auto; object-fit: contain;" alt="Logo" onerror="this.style.display='none'" />
               </div>
-            </div>
 
-            <div style="position: absolute; top: 49%; left: 50%; transform: translateX(-50%); width: 85%; text-align: center;">
-              ${reasonText ? `<p style="font-size: 16px; color: #2c3e50; font-weight: 700; line-height: 1.6; margin: 0;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
-            </div>
+              <div style="position: absolute; top: 18%; width: 100%; text-align: center;">
+                <h1 style="font-family: 'Amiri', serif; font-size: 65px; color: #1c2b4d; margin: 0; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">شَهَادَة إنجَاز وَتَفَوُّق</h1>
+              </div>
 
-            <div style="position: absolute; top: 60%; left: 50%; transform: translateX(-50%); height: 160px; display: flex; justify-content: center; align-items: center;">
-              ${isFemale ? 
-                `<img src="${girlAvatarDataUrl}" style="height: 100%; width: auto; object-fit: contain;" alt="طالبة" />` : 
-                `<img src="js/pages/boy.png" style="height: 100%; width: auto; object-fit: contain; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.1));" alt="طالب" onerror="this.style.display='none'" />`
-              }
-            </div>
+              <div style="position: absolute; top: 32%; width: 100%; text-align: center;">
+                <p style="font-size: 22px; color: #1c2b4d; font-weight: 800; margin: 0;">${introText.replace(/\n/g, '<br>')}</p>
+              </div>
 
-            <div style="position: absolute; top: 82%; left: 50%; transform: translateX(-50%); text-align: center; display: flex; flex-direction: column; align-items: center; width: 100%;">
-              ${rewardAmount ? `
-                <div style="font-size: 14px; color: #2c3e50; font-weight: 800; margin-bottom: 2px;">وحصل على مكافأة مالية:</div>
-                <div style="position: relative; display: inline-flex; align-items: center; gap: 8px;">
-                  <div style="font-size: 38px; line-height: 1; text-shadow: 0 4px 6px rgba(0,0,0,0.1);">💰</div>
-                  <div style="background: #2b3a61; border-radius: 30px; padding: 4px 20px; color: #fff; font-weight: 900; font-size: 22px; box-shadow: 0 4px 8px rgba(43, 58, 97, 0.3);">
-                    ${rewardAmount} جنيهاً
-                  </div>
+              <div style="position: absolute; top: 40%; width: 100%; text-align: center; display: flex; justify-content: center;">
+                <div style="background-color: #2b3a61; color: #ffffff; padding: 10px 50px; border-radius: 8px; font-size: 32px; font-weight: bold; min-width: 320px; box-shadow: 0 5px 15px rgba(43,58,97,0.3);">
+                  ${student.name}
                 </div>
-              ` : ''}
-            </div>
+              </div>
 
-            <div style="position: absolute; top: 64%; right: 18%; text-align: center; color: #1e293b; font-weight: 700; font-size: 15px;">
-              ${todayDate}
-            </div>
+              <div style="position: absolute; top: 53%; width: 100%; text-align: center;">
+                ${reasonText ? `<p style="font-size: 19px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
+              </div>
 
-            <div style="position: absolute; top: 64%; left: 18%; text-align: center; color: #1e293b; font-weight: 700; font-size: 15px;">
-               ${appState.settings.teacherName}
-            </div>
+              <div style="position: absolute; top: 64%; left: 50%; transform: translateX(-50%); height: 160px; width: 160px; background: #fff; border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.15); border: 4px solid #e1b154; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                ${isFemale ? 
+                  `<img src="${girlAvatarDataUrl}" style="height: 90%; width: auto; object-fit: contain;" alt="طالبة" />` : 
+                  `<img src="js/pages/boy.png" style="height: 100%; width: 100%; object-fit: cover;" alt="طالب" onerror="this.style.display='none'" />`
+                }
+              </div>
 
+              <div style="position: absolute; top: 85%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+                ${rewardAmount ? `
+                  <div style="font-size: 15px; color: #1c2b4d; font-weight: bold; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
+                  <div style="display: inline-flex; align-items: center; gap: 8px;">
+                    <div style="font-size: 45px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">💰</div>
+                    <div style="background: linear-gradient(135deg, #fcd34d, #f59e0b); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);">
+                      ${rewardAmount} جنيهاً
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div style="position: absolute; top: 60%; right: 12%; text-align: center; color: #1e293b; font-weight: 800; font-size: 17px;">
+                ${todayDate}
+              </div>
+
+              <div style="position: absolute; top: 60%; left: 16%; text-align: center; color: #1e293b; font-weight: 800; font-size: 17px;">
+                ${appState.settings.teacherName}
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
@@ -276,6 +281,9 @@
               </div>
 
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
+                <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص العلوي (قبل الاسم)</label>
+                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 10px; border-color: #fde047;" placeholder="تتقدم إدارة المنصة..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`}</textarea>
+
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص السفلي (سبب التكريم والدعاء)</label>
                 <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="وذلك لتميزه الواضح..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : `وذلك لتميز${student.gender==='girl'?'ها':'ه'} الواضح وتفوق${student.gender==='girl'?'ها':'ه'} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${student.gender==='girl'?'ها':'ه'} من أهل القرآن`}</textarea>
 
@@ -290,7 +298,7 @@
               </div>
             </div>
 
-            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 40px 20px; background: #e2e8f0; overflow: auto; display: flex; justify-content: center; align-items: center;">
+            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 0; background: #e2e8f0; overflow: auto; display: flex; justify-content: center; align-items: flex-start;">
                  ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
             </div>
 
