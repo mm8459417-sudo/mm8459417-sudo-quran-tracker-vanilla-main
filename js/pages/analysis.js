@@ -49,7 +49,7 @@
     });
   }
 
-  function renderCertificate(student, rangeLabel) {
+ function renderCertificate(student, rangeLabel) {
     let isFemale = false;
     if (student.gender === 'girl' || student.gender === 'female') {
       isFemale = true;
@@ -101,8 +101,8 @@
 
     const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
-    const defaultCongrats = `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${isFemale ? 'الطالبة المتميزة' : 'الطالب المتميز'}`;
-    const congratsText = appState.ui.certCongratsText || defaultCongrats;
+    // التعديل: نص التهنئة هو النص المكتوب فقط، لا يوجد نص افتراضي.
+    const congratsText = appState.ui.certCongratsText || ""; 
     const rewardAmount = appState.ui.certRewardAmount || "";
 
     return `
@@ -167,16 +167,16 @@
             </div>
 
             <div class="rc-body">
-              <p class="rc-intro-text">${congratsText}</p>
+              ${congratsText ? `<p class="rc-intro-text">${congratsText}</p>` : ''}
               
               <div class="rc-student-block">
                 <div class="rc-avatar-wrapper">
                   <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
                   
-                  <div class="rc-avatar-border">
+                  <div class="rc-avatar-border" style="border: 4px solid ${themeColor1}; background: #fff; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 50%;">
                     ${isFemale ? 
                       `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
-                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: cover; width:100%; height:100%; border-radius:50%;" />`
+                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: contain; width: 100%; height: 100%; border-radius: 50%;" />`
                     }
                   </div>
 
@@ -201,15 +201,15 @@
                 <div class="rc-sig-underline"></div>
               </div>
 
-              <div class="rc-seal-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: flex-end;">
+              <div class="rc-seal-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: center; position: relative;">
                 ${rewardAmount ? `
-                  <div style="text-align: center; position: relative; transform: translateY(15px);">
-                      <div style="font-size: 55px; line-height: 1; margin-bottom: -18px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
-                      <div style="font-size: 13px; color: #4b5563; font-weight: 700; margin-bottom: 8px;">وحصل على مكافأة مالية:</div>
-                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 35px; display: inline-block; color: #fff; font-weight: 800; font-size: 28px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+                  <div style="text-align: center; position: absolute; bottom: 0;">
+                      <div style="font-size: 13px; color: #4b5563; font-weight: 700; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
+                      <div style="font-size: 55px; line-height: 1; margin-bottom: -15px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
+                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 30px; display: inline-block; color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
                           ${rewardAmount}
                       </div>
-                      <div style="font-size: 15px; font-weight: 800; color: #1c1c2e; margin-top: 5px;">جنيهاً مصرياً</div>
+                      <div style="font-size: 14px; font-weight: 800; color: #1c1c2e; margin-top: 2px;">جنيهاً مصرياً</div>
                   </div>
                 ` : ''}
               </div>
@@ -248,7 +248,7 @@
     await exportElementAsGif(el, "certificate.gif");
   };
 
-  window.renderAnalysisPage = function () {
+ window.renderAnalysisPage = function () {
     const selectedId = appState.ui.analysisStudentId;
     const student = selectedId === "all" ? null : appState.students.find((s) => s.id === selectedId);
 
@@ -350,14 +350,13 @@
 
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">نص التهنئة (اختياري)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="اكتب تهنئة خاصة للطالب..." onchange="appState.ui.certCongratsText = this.value; scheduleRender();">${appState.ui.certCongratsText || ''}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="اكتب الجملة كاملة هنا.. (مثال: تتقدم الإدارة بخالص الشكر...)" onchange="appState.ui.certCongratsText = this.value; scheduleRender();">${appState.ui.certCongratsText || ''}</textarea>
                 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">المكافأة المالية ج.م (اختياري)</label>
                 <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; scheduleRender();" />
               </div>
 
               <div class="studio-tools" style="padding: 20px; overflow-y: auto; flex: 1;">
-                
                 <div class="template-category" style="margin-bottom: 20px;">
                   <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب الأولاد</h4>
                   <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -365,7 +364,6 @@
                     <div class="template-btn ${appState.ui.certTheme === 'theme-sapphire' ? 'active' : ''}" onclick="setCertificateTheme('theme-sapphire')" style="height: 80px; background: #dbeafe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-sapphire' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #1e3a8a;">أزرق ملكي</div>
                   </div>
                 </div>
-
               </div>
 
               <div style="padding: 20px; border-top: 1px solid var(--color-border); background: #fff; display: flex; flex-direction: column; gap: 10px;">
