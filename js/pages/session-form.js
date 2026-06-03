@@ -481,12 +481,7 @@ window.sendReportWhatsApp = async function () {
     if (!appState.ui.report) return;
     
     const el = document.getElementById('session-report-box');
-    const textData = buildReportText(appState.ui.report.data);
-
-    if (!el) {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textData)}`, "_blank");
-      return;
-    }
+    if (!el) return;
 
     showToast("⏳ جاري تجهيز الصورة...");
 
@@ -496,36 +491,34 @@ window.sendReportWhatsApp = async function () {
       canvas.toBlob(async (blob) => {
         const file = new File([blob], "session-report.png", { type: "image/png" });
 
-        // 1. الموبايلات (شير مباشر بالصورة)
+        // 1. محاولة المشاركة المباشرة (هتشتغل بامتياز على الموبايلات)
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({
               files: [file],
               title: 'تقرير الجلسة'
             });
-            return; 
+            return; // لو نجحت، اقفل الدالة
           } catch (shareErr) {
             console.log("تم إلغاء المشاركة:", shareErr);
           }
         } 
         
-        // 2. الكمبيوتر (نسخ للصورة + فتح شاشة الاختيار)
+        // 2. الخطة البديلة للكمبيوتر (لو المتصفح رفض المشاركة المباشرة للملفات)
         try {
            const item = new ClipboardItem({ "image/png": blob });
            await navigator.clipboard.write([item]);
            
-           showToast("✅ تم نسخ الصورة! (اختر الطالب واضغط Ctrl+V)");
+           showToast("✅ تم نسخ الصورة! (افتح الشات واضغط Paste أو Ctrl+V)");
            
-           // هنا السر: رجعنا الـ text عشان يجبر واتساب يفتح شاشة الاختيار (Send to)
-           const promptText = "تقرير الجلسة:\n(اضغط Ctrl+V هنا للصق الصورة)";
+           // هيفتحلك شاشة الواتساب اللي إنت متعود عليها عشان تختار الشخص وتعمل لصق
            setTimeout(() => {
-              window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(promptText)}`, "_blank");
+              window.open(`https://wa.me/`, "_blank");
            }, 800);
 
         } catch (clipErr) {
            console.error("المتصفح يمنع النسخ التلقائي:", clipErr);
-           showToast("❌ متصفحك يمنع النسخ المباشر، جاري إرسال النص...");
-           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textData)}`, "_blank");
+           showToast("❌ جهازك يمنع النسخ المباشر، استخدم زر 'حفظ صورة'.");
         }
 
       }, "image/png");
@@ -533,7 +526,6 @@ window.sendReportWhatsApp = async function () {
     } catch (err) {
       console.error("خطأ في توليد الصورة:", err);
       showToast("❌ فشل تجهيز الصورة.");
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textData)}`, "_blank");
     }
   };
 
