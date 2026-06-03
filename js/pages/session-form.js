@@ -209,6 +209,7 @@
         sessionType: "quran",
         studentId: "",
         groupId: "",
+        sessionNumber: 0, // إضافة متغير لحفظ رقم الجلسة بالـ state
         date: new Date().toISOString().split("T")[0],
         quran: {
           hifz: { surah: "", from: "", to: "", rating: "", tajweed: [], notes: "" },
@@ -330,6 +331,7 @@
     appState.ui.selectedGroupId = "";
     form.scope = "individual";
     form.studentId = id;
+    form.sessionNumber = 0; // تصفير لتوليده تلقائياً بناء على حقول الطالب المحدثة
     router.render();
   };
 
@@ -460,6 +462,10 @@
       if (sessionData.quran?.distant?.surah) {
         lines.push(`بعيد: ${sessionData.quran.distant.surah} (${sessionData.quran.distant.from}-${sessionData.quran.distant.to})`);
       }
+      // ✅ إصلاح مشكلة 3: إضافة التدبر في نص التقرير
+      if (sessionData.quran?.tadabbur?.surah) {
+        lines.push(`التدبر: سورة ${sessionData.quran.tadabbur.surah} (${sessionData.quran.tadabbur.from || ""}-${sessionData.quran.tadabbur.to || ""})`);
+      }
       lines.push(`التقييم العام: ${sessionData.quran?.closing?.overall || 0} نجمة`);
     } else {
       sessionData.islamic?.categories?.forEach((c) => {
@@ -497,6 +503,7 @@
     form.studentId = data.studentId || "";
     form.groupId = data.groupId || "";
     form.date = data.date || form.date;
+    form.sessionNumber = data.packageSessionNum || 1; // استرجاع رقم الجلسة للتعديل
     form.quran = data.quran || form.quran;
     form.islamic = data.islamic || form.islamic;
     form.group = data.groupForm || form.group;
@@ -528,18 +535,18 @@
       sessionType: form.sessionType,
       mode: form.scope,
       overall,
-      sessionNumber: document.getElementById('session-number') ? parseInt(document.getElementById('session-number').value, 10) : 1,
     };
 
     if (form.scope === "individual") {
       const student = getStudentById(form.studentId);
-      const limit = student?.sessionLimit || appState.settings.defaultLimit || 12;
-      const packageSessionNum = getNextPackageNum(form.studentId, limit);
+      // ✅ إصلاح مشكلة 1: جعل التقرير يعتمد على رقم العداد المخزن في الـ State
+      const packageSessionNum = parseInt(form.sessionNumber, 10) || 1;
+      
       sessionData = {
         ...sessionData,
         studentId: form.studentId,
         studentName: student?.name || "",
-        packageSessionNum,
+        packageSessionNum, // حفظ الرقم المعدل يدوياً ليعرض بالتقرير والشيت
         quran: form.sessionType === "quran" ? form.quran : null,
         islamic: form.sessionType === "islamic" ? form.islamic : null,
       };
@@ -644,7 +651,6 @@
     return obj ?? "";
   }
 
-  // Helper: دالة أزرار التقييم السريعة (بديل القائمة المنسدلة)
   function renderRatingPills(selectedValue, onChangeCode) {
     const RATINGS_CONFIG = [
       { val: "ممتاز", emoji: "✨" },
@@ -830,7 +836,6 @@
     if (!report) return "";
     const data = report.data;
 
-    // Helper for rating badges
     const getRatingBadge = (rating) => {
       if (!rating) return "";
       let color = "#6b7280"; let bg = "#f3f4f6";
@@ -841,7 +846,6 @@
       return `<span style="background:${bg}; color:${color}; padding: 2px 10px; border-radius: 12px; font-size: 13px; font-weight: 700; display: inline-block;">التقييم: ${rating}</span>`;
     };
 
-    // Helper for tajweed errors
     const renderTajweed = (errors) => {
       if (!errors || errors.length === 0) return "";
       return `<div style="font-size: 13px; color: #b45309; margin-top: 6px; display: flex; align-items: start; gap: 6px;">
@@ -849,7 +853,6 @@
               </div>`;
     };
 
-    // Helper for notes
     const renderNotes = (notes) => {
       if (!notes) return "";
       return `<div style="font-size: 13px; color: #6b7280; margin-top: 6px; display: flex; align-items: start; gap: 6px;">
@@ -857,7 +860,6 @@
               </div>`;
     };
 
-    // Helper for Stars
     const renderMiniStars = (label, value) => {
       if (value === undefined || value === 0) return `<div style="text-align: center;"><div style="font-size: 12px; color: #1c1c2e; font-weight: 700; margin-bottom: 4px;">${label}</div><div style="direction: ltr; font-size: 16px; color: #e5e7eb;">★★★★★</div></div>`;
       const stars = Array.from({length: 5}, (_, i) => `<span style="color: ${i < value ? '#eab308' : '#e5e7eb'}; font-size: 16px;">★</span>`).join('');
@@ -902,13 +904,10 @@
                     return `
                       <div style="position: relative; padding-right: 16px; text-align: right;">
                         <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px; background: ${borders[secKey]};"></div>
-                        
                         <div style="font-weight: 700; color: #1c1c2e; font-size: 16px; margin-bottom: 8px;">${titles[secKey]}</div>
-                        
                         <div style="font-weight: 500; font-size: 15px; color: #4b5563; margin-bottom: 8px;">
                           سورة ${sec.surah} <span style="font-size: 13px; color: #6b7280;">(آية ${sec.from} - ${sec.to})</span>
                         </div>
-                        
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                           <div>${getRatingBadge(sec.rating)}</div>
                           ${renderTajweed(sec.tajweed)}
@@ -917,6 +916,16 @@
                       </div>
                     `;
                   }).join("")}
+
+                  ${data.quran?.tadabbur?.surah ? `
+                    <div style="position: relative; padding-right: 16px; text-align: right;">
+                      <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px; background: #eab308;"></div>
+                      <div style="font-weight: 700; color: #1c1c2e; font-size: 16px; margin-bottom: 8px;"><i class='ph-duotone ph-book-open' style='margin-left:4px;'></i>التدبر والملاحظة</div>
+                      <div style="font-weight: 500; font-size: 15px; color: #4b5563; margin-bottom: 4px;">
+                        سورة ${data.quran.tadabbur.surah} ${data.quran.tadabbur.from ? `<span style="font-size: 13px; color: #6b7280;">(من آية ${data.quran.tadabbur.from} إلى ${data.quran.tadabbur.to})</span>` : ""}
+                      </div>
+                    </div>
+                  ` : ""}
 
                   <div style="display: flex; justify-content: space-around; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 8px; margin-top: 12px;">
                     ${renderMiniStars("تفاعل", data.quran.tadabbur?.interaction)}
@@ -955,7 +964,7 @@
                 `}
 
                 ${!isGroup && data.packageSessionNum ? `
-                  <div style="text-align: center; color: #6b7280; font-size: 13px; margin-top: 8px;">
+                  <div style="text-align: center; color: #065f46; font-weight: bold; font-size: 14px; margin-top: 8px; background: #f0fdf4; padding: 6px; border-radius: 8px;">
                     الحلقة رقم ${data.packageSessionNum} من الباقة
                   </div>
                 ` : ""}
@@ -966,7 +975,7 @@
           <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; background: #f9fafb;">
             <div style="display: flex; gap: 10px;">
               <button class="btn" style="flex: 1; background: #22c55e; color: white; font-weight: 700; border-radius: 8px; padding: 10px; font-size: 15px;" onclick="sendReportWhatsApp()">
-                <i class="ph-bold ph-share-network" style="margin-left:4px;"></i>مشاركة
+                <i class="ph-bold ph-share-network" style="margin-left:4px;"></i>مشاركة نصية
               </button>
               <button class="btn" style="flex: 1; background: #0f5846; color: white; font-weight: 700; border-radius: 8px; padding: 10px; font-size: 15px;" onclick="exportElementAsImage(document.getElementById('session-report-box'), 'report.png')">
                 <i class="ph-bold ph-download-simple" style="margin-left:4px;"></i>حفظ صورة
@@ -1086,6 +1095,14 @@
     const headerTarget = scope === "individual" ? selectedStudent?.name : selectedGroup?.name;
     const groupMembers = scope === "group" ? getGroupMembers(selectedGroup.id) : [];
 
+    // ✅ احتساب وتأمين توليد رقم الجلسة التلقائي الأولي دون أن يتصفر عند أي Re-render
+    const limit = selectedStudent?.sessionLimit || appState.settings.defaultLimit || 12;
+    if (scope === "individual" && selectedStudent && form.sessionNumber === 0) {
+        form.sessionNumber = getNextPackageNum(selectedStudent.id, limit) || 1;
+    }
+
+    const progressPercent = Math.min(100, Math.round(((form.sessionNumber || 1) / limit) * 100));
+
     return `
       ${renderReportModal()}
       <div class="dash-form-card">
@@ -1114,20 +1131,20 @@
               الحلقة الحالية في الباقة
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <button type="button" onclick="let el = document.getElementById('session-number'); if(el.value > 1) el.value = parseInt(el.value) - 1;" 
+              <button type="button" onclick="let current = parseInt(document.getElementById('session-number').value, 10) || 1; if(current > 1) { updateFormPath('sessionNumber', current - 1); router.render(); }" 
                       style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
                 -
               </button>
-              <input type="number" id="session-number" value="1" min="1" 
+              <input type="number" id="session-number" value="${form.sessionNumber || 1}" min="1" oninput="updateFormPath('sessionNumber', parseInt(this.value, 10) || 1); router.render();"
                      style="text-align: center; font-weight: 900; font-size: 18px; color: #065f46; border: 2px solid #065f46; border-radius: 8px; width: 65px; height: 36px; padding: 0; background: white; outline: none;">
-              <button type="button" onclick="let el = document.getElementById('session-number'); el.value = parseInt(el.value || 0) + 1;" 
+              <button type="button" onclick="let current = parseInt(document.getElementById('session-number').value, 10) || 1; updateFormPath('sessionNumber', current + 1); router.render();" 
                       style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
                 +
               </button>
             </div>
           </div>
           <div style="height: 6px; background: #e2e8f0; border-radius: 10px; width: 100%; overflow: hidden; display: flex;">
-            <div style="width: 25%; background: #065f46; border-radius: 10px;"></div>
+            <div style="width: ${progressPercent}%; background: #065f46; border-radius: 10px; transition: 0.3s;"></div>
           </div>
         </div>
 
@@ -1161,7 +1178,6 @@
               ${renderStars("quran.closing.overall", form.quran.closing.overall)}
             </div>
             <div class="mb-2">
-
               <div style="font-weight:var(--fw-bold);margin-bottom:10px;color:var(--gold);">📚 واجب الحلقة القادمة</div>
               ${renderSurahInput("الحفظ الجديد", "quran.closing.homework.new", form.quran.closing.homework.new.surah)}
               ${renderSurahInput("الماضي القريب", "quran.closing.homework.recent", form.quran.closing.homework.recent.surah)}
