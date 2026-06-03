@@ -101,11 +101,9 @@
 
     const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
-    // النصوص الافتراضية
     const defaultIntro = `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${isFemale ? 'الطالبة المتميزة' : 'الطالب المتميز'}`;
     const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في <strong class="rc-highlight">${rangeLabel === 'الشهر' ? 'حصاد الشهر' : 'حصاد الأسبوع'}</strong>\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن الذين هم أهل الله وخاصته`;
 
-    // قراءة القيم من الواجهة أو استخدام الافتراضي
     const introText = appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro;
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
@@ -122,7 +120,7 @@
 
           .royal-cert.theme-sapphire .rc-bg-glow { background: radial-gradient(circle at center, rgba(13, 71, 161, 0.1) 0%, transparent 70%) !important; }
           .royal-cert.theme-sapphire .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0D47A1, #1976D2) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
-          .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
+          .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
           .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
           .royal-cert.theme-sapphire .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
         </style>
@@ -178,10 +176,10 @@
                 <div class="rc-avatar-wrapper">
                   <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
                   
-                  <div class="rc-avatar-border" style="border: 3px solid ${themeColor1}; background: #fff; padding: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 50%; overflow: hidden;">
+                  <div class="rc-avatar-border" style="width: 200px; height: 200px; border: 4px solid ${themeColor1}; background: #fff; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
                     ${isFemale ? 
                       `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
-                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: cover; object-position: center 20%; width: 100%; height: 100%; transform: scale(1.15);" />`
+                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: contain; width: 100%; height: 100%;" />`
                     }
                   </div>
 
@@ -206,10 +204,10 @@
               <div class="rc-seal-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 5px;">
                 ${rewardAmount ? `
                   <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-                      <div style="font-size: 14px; color: #4b5563; font-weight: 800; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
+                      <div style="font-size: 14px; color: #4b5563; font-weight: 800; margin-bottom: 40px;">وحصل على مكافأة مالية:</div>
                       
-                      <div style="position: relative; margin-top: 25px;">
-                          <div style="font-size: 55px; line-height: 1; position: absolute; top: -45px; left: 50%; transform: translateX(-50%); z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
+                      <div style="position: relative; margin-top: 30px;">
+                          <div style="font-size: 55px; line-height: 1; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
                           <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 6px 35px; display: inline-block; color: #fff; font-weight: 900; font-size: 30px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); position: relative; z-index: 1;">
                               ${rewardAmount}
                           </div>
@@ -360,7 +358,7 @@
                 <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 10px; border-color: #fde047;" placeholder="تتقدم إدارة المنصة..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${student.gender==='girl'?'الطالبة المتميزة':'الطالب المتميز'}`}</textarea>
                 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص السفلي (سبب التكريم والدعاء)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="وذلك لتميزه الواضح..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : `وذلك لتميز${student.gender==='girl'?'ها':'ه'} الواضح وتفوق${student.gender==='girl'?'ها':'ه'} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${student.gender==='girl'?'ها':'ه'} من أهل القرآن`}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="وذلك لتميزه الواضح..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : `وذلك لتميز${student.gender==='girl'?'ها':'ه'} الواضح وتفوق${student.gender==='girl'?'ها':'ه'} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${student.gender==='girl'?'ها':'ه'} من أهل القرآن الذين هم أهل الله وخاصته`}</textarea>
 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">المكافأة المالية ج.م (اختياري)</label>
                 <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; scheduleRender();" />
