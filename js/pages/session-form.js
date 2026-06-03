@@ -477,11 +477,41 @@
     return lines.join("\n");
   }
 
-  window.sendReportWhatsApp = function () {
+  window.sendReportWhatsApp = async function () {
     if (!appState.ui.report) return;
-    const text = buildReportText(appState.ui.report.data);
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank");
+    
+    const el = document.getElementById('session-report-box');
+    if (!el) return;
+
+    showToast("⏳ جاري تجهيز الصورة للمشاركة...");
+
+    try {
+      // 1. التقاط صورة التقرير
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+      
+      // 2. تحويلها لملف
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], "session-report.png", { type: "image/png" });
+
+        // 3. استخدام Web Share API لإرسال الصورة لتطبيق الواتساب
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'تقرير الجلسة'
+            });
+          } catch (shareErr) {
+            console.log("تم إلغاء المشاركة أو حدث خطأ:", shareErr);
+          }
+        } else {
+          showToast("⚠️ متصفحك الحالي لا يدعم مشاركة الصور مباشرة.");
+        }
+      }, "image/png");
+
+    } catch (err) {
+      console.error("خطأ في توليد الصورة:", err);
+      showToast("❌ فشل تجهيز الصورة للمشاركة.");
+    }
   };
 
   window.closeReport = function () {
