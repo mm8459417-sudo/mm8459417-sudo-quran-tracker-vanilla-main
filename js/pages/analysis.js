@@ -61,9 +61,7 @@
     }
 
     const genderSuffix = isFemale ? 'ها' : 'ه';
-    const certId = `RQ-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000) + 100000)}`;
     const todayDate = formatArDate(new Date().toISOString());
-    const hijriDate = new Date().toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric', month: 'long', day: 'numeric' });
 
     const currentTheme = appState.ui.certTheme || 'theme-default';
 
@@ -77,28 +75,7 @@
       themeColor2 = '#1976D2';
     }
 
-    const boyAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-      <defs>
-        <linearGradient id="bgBoy" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#E8F5E9"/><stop offset="100%" style="stop-color:#C8E6C9"/></linearGradient>
-        <linearGradient id="skinBoy" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FDDCB5"/><stop offset="100%" style="stop-color:#F5C69A"/></linearGradient>
-        <linearGradient id="capBoy" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FFFFFF"/><stop offset="100%" style="stop-color:#F0F0F0"/></linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="98" fill="url(#bgBoy)" stroke="#A5D6A7" stroke-width="2"/>
-      <ellipse cx="100" cy="145" rx="55" ry="40" fill="#0B6E4F" opacity="0.9"/>
-      <circle cx="100" cy="95" r="42" fill="url(#skinBoy)"/>
-      <ellipse cx="100" cy="68" rx="44" ry="30" fill="url(#capBoy)"/>
-      <path d="M56 72 Q100 55 144 72" fill="url(#capBoy)" stroke="#E0E0E0" stroke-width="1"/>
-      <rect x="85" y="55" width="30" height="8" rx="4" fill="#E8E8E8" opacity="0.6"/>
-      <circle cx="86" cy="95" r="4" fill="#3E2723"/>
-      <circle cx="114" cy="95" r="4" fill="#3E2723"/>
-      <circle cx="87" cy="94" r="1.5" fill="#FFF"/>
-      <circle cx="115" cy="94" r="1.5" fill="#FFF"/>
-      <ellipse cx="100" cy="105" rx="3" ry="1.5" fill="#D4A574"/>
-      <path d="M92 112 Q100 118 108 112" fill="none" stroke="#C97B63" stroke-width="2" stroke-linecap="round"/>
-      <ellipse cx="80" cy="102" rx="6" ry="4" fill="#F8B4A0" opacity="0.4"/>
-      <ellipse cx="120" cy="102" rx="6" ry="4" fill="#F8B4A0" opacity="0.4"/>
-    </svg>`;
-
+    // تصميم البنت يظل كما هو
     const girlAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
       <defs>
         <linearGradient id="bgGirl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF3E0"/><stop offset="100%" style="stop-color:#FFE0B2"/></linearGradient>
@@ -121,13 +98,14 @@
       <ellipse cx="82" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
       <ellipse cx="118" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
     </svg>`;
-
-    const avatarSVG = isFemale ? girlAvatarSVG : boyAvatarSVG;
-    const avatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(avatarSVG)))}`;
+    const girlAvatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(girlAvatarSVG)))}`;
 
     const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
-    // حقن مباشر للستايل لضمان كسر الكاش وتطبيق الألوان فوراً
+    const defaultCongrats = `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${isFemale ? 'الطالبة المتميزة' : 'الطالب المتميز'}`;
+    const congratsText = appState.ui.certCongratsText || defaultCongrats;
+    const rewardAmount = appState.ui.certRewardAmount || "";
+
     return `
       <div class="cert-preview-container">
         
@@ -137,8 +115,6 @@
           .royal-cert.theme-emerald .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0F9D7A, #145A46) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
           .royal-cert.theme-emerald .rc-border-gold { border-color: #0F9D7A !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; }
           .royal-cert.theme-emerald .rc-div-star, .royal-cert.theme-emerald .rc-highlight { color: #0F9D7A !important; }
-          .royal-cert.theme-emerald .rc-seal-ring { border-color: rgba(15, 157, 122, 0.3) !important; }
-          .royal-cert.theme-emerald .rc-seal-core { background: linear-gradient(135deg, #0F9D7A 0%, #145A46 100%) !important; }
           .royal-cert.theme-emerald .rc-avatar-border { border-color: #0F9D7A !important; }
 
           /* الأزرق الماسي */
@@ -146,8 +122,6 @@
           .royal-cert.theme-sapphire .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0D47A1, #1976D2) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
           .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
           .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
-          .royal-cert.theme-sapphire .rc-seal-ring { border-color: rgba(13, 71, 161, 0.3) !important; }
-          .royal-cert.theme-sapphire .rc-seal-core { background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%) !important; }
           .royal-cert.theme-sapphire .rc-avatar-border { border-color: #0D47A1 !important; }
         </style>
 
@@ -179,16 +153,10 @@
               </div>
               
               <div class="rc-logo-center">
-                <div class="rc-logo-ring" style="border-color:${themeColor1}">
-                  <img src="logo.jpeg" class="rc-logo-img" onerror="this.style.display='none'" />
-                </div>
-                <div class="rc-brand-text" style="color:${themeColor1}">رَفِيقُ القُرْآنِ</div>
+                <img src="logo.png" style="height: 100px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" onerror="this.style.display='none'" />
               </div>
 
-              <div class="rc-meta-block">
-                <div class="rc-meta-label">رقم التوثيق</div>
-                <div class="rc-meta-value rc-mono">${certId}</div>
-              </div>
+              <div class="rc-meta-block"></div>
             </div>
 
             <div class="rc-title-section">
@@ -202,14 +170,19 @@
             </div>
 
             <div class="rc-body">
-              <p class="rc-intro-text">تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${isFemale ? 'الطالبة المتميزة' : 'الطالب المتميز'}</p>
+              <p class="rc-intro-text">${congratsText}</p>
               
               <div class="rc-student-block">
                 <div class="rc-avatar-wrapper">
                   <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
+                  
                   <div class="rc-avatar-border" style="border-color:${themeColor1}">
-                    <img src="${avatarDataUrl}" class="rc-avatar-img" alt="${isFemale ? 'طالبة' : 'طالب'}" />
+                    ${isFemale ? 
+                      `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
+                      `<img src="boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: cover;" onerror="this.style.display='none'" />`
+                    }
                   </div>
+
                 </div>
                 <div class="rc-name-plate">
                   <div class="rc-name-plate-inner ${isFemale ? 'rc-female' : 'rc-male'}">
@@ -232,15 +205,16 @@
               </div>
 
               <div class="rc-seal-wrapper">
-                <div class="rc-seal-outer">
-                  <div class="rc-seal-ring" style="border-color: rgba(${currentTheme === 'theme-sapphire' ? '13,71,161' : currentTheme === 'theme-emerald' ? '15,157,122' : '212,175,55'}, 0.3)"></div>
-                  <div class="rc-seal-core">
-                    <div class="rc-seal-icon">
-                      <svg viewBox="0 0 48 48" width="36" height="36"><path d="M24 2L30 16L44 18L34 28L36 42L24 36L12 42L14 28L4 18L18 16Z" fill="#FFF" opacity="0.95"/></svg>
-                    </div>
-                    <div class="rc-seal-text">مُعْتَمَد</div>
+                ${rewardAmount ? `
+                  <div style="text-align: center; position: relative; top: -30px;">
+                      <div style="font-size: 55px; line-height: 1; margin-bottom: -15px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
+                      <div style="font-size: 11px; color: #4b5563; font-weight: 700; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
+                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 25px; display: inline-block; color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+                          ${rewardAmount}
+                      </div>
+                      <div style="font-size: 14px; font-weight: 800; color: #1c1c2e; margin-top: 2px;">جنيهاً مصرياً</div>
                   </div>
-                </div>
+                ` : ''}
               </div>
 
               <div class="rc-sig-col">
@@ -310,7 +284,6 @@
 
     return `
       <div>
-        <!-- رأس الصفحة -->
         <div class="d-flex align-items-center gap-3 mb-5">
           <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--emerald-bg);display:flex;align-items:center;justify-content:center;">
             <i class="ph-duotone ph-chart-line-up" style="font-size: 20px; color: var(--emerald)"></i>
@@ -321,7 +294,6 @@
           </div>
         </div>
 
-        <!-- فلاتر البحث -->
         <div class="card-soft mb-4">
           <div class="d-flex gap-3 mb-3" style="flex-wrap:wrap;">
             <select class="form-select" style="flex:1;min-width:180px;" onchange="setAnalysisStudent(this.value)">
@@ -337,7 +309,6 @@
         </div>
 
         ${chartData.length > 0 ? `
-        <!-- الإحصائيات -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-bottom:var(--sp-5);">
           <div class="card-soft hover-elevation" style="text-align:center;padding:var(--sp-4);">
             <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--emerald-dark);">${totalSessions}</div>
@@ -357,7 +328,6 @@
           </div>
         </div>
 
-        <!-- الرسم البياني -->
         <div class="card-soft mb-4">
           <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:var(--sp-3);">معدل الإنجاز</div>
           <div style="height:260px;">
@@ -373,48 +343,35 @@
           </div>
         ` : ""}
 
-       <!-- استوديو الشهادات (نظام كانفا المصغر) -->
-        ${appState.ui.showCertificate && student ? `
+       ${appState.ui.showCertificate && student ? `
           <div class="certificate-studio-wrapper card-soft mb-4" style="padding: 0; overflow: hidden; display: flex; flex-wrap: wrap; border: 1px solid var(--color-border-strong);">
             
-            <!-- اللوحة الجانبية (Sidebar) للأدوات والقوالب -->
             <div class="studio-sidebar" style="flex: 1 1 250px; max-width: 320px; background: #F8FAFC; border-left: 1px solid var(--color-border); display: flex; flex-direction: column; min-height: 500px;">
               
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fff;">
-                <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: var(--color-primary-800);">🎨 استوديو التصميم</h3>
-                <p style="margin: 5px 0 0; font-size: 12px; color: var(--text-muted);">اختر القالب المناسب للطالب</p>
+                <h3 style="margin: 0; font-size: 16px; font-weight: bold; color: var(--color-primary-800);">🎨 إعدادات الشهادة</h3>
               </div>
 
-              <!-- قائمة القوالب -->
+              <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
+                <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">نص التهنئة (اختياري)</label>
+                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="اكتب تهنئة خاصة للطالب..." onchange="appState.ui.certCongratsText = this.value; scheduleRender();">${appState.ui.certCongratsText || ''}</textarea>
+                
+                <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">المكافأة المالية ج.م (اختياري)</label>
+                <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; scheduleRender();" />
+              </div>
+
               <div class="studio-tools" style="padding: 20px; overflow-y: auto; flex: 1;">
                 
                 <div class="template-category" style="margin-bottom: 20px;">
                   <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب الأولاد</h4>
                   <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-boy-1' ? 'active' : ''}" onclick="setCertificateTheme('theme-boy-1')" style="height: 80px; background: #e0f2fe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-boy-1' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 1 (مؤقت)</div>
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-boy-2' ? 'active' : ''}" onclick="setCertificateTheme('theme-boy-2')" style="height: 80px; background: #dbeafe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-boy-2' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 2 (مؤقت)</div>
-                  </div>
-                </div>
-
-                <div class="template-category" style="margin-bottom: 20px;">
-                  <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب البنات</h4>
-                  <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-girl-1' ? 'active' : ''}" onclick="setCertificateTheme('theme-girl-1')" style="height: 80px; background: #fce7f3; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-girl-1' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 1 (مؤقت)</div>
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-girl-2' ? 'active' : ''}" onclick="setCertificateTheme('theme-girl-2')" style="height: 80px; background: #fae8ff; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-girl-2' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">قالب 2 (مؤقت)</div>
-                  </div>
-                </div>
-                
-                <div class="template-category">
-                  <h4 style="font-size: 13px; font-weight: bold; color: var(--color-slate-600); margin-bottom: 10px;">قوالب الكبار</h4>
-                  <div class="template-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-men' ? 'active' : ''}" onclick="setCertificateTheme('theme-men')" style="height: 80px; background: #fef3c7; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-men' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">رجال (مؤقت)</div>
-                    <div class="template-btn ${appState.ui.certTheme === 'theme-women' ? 'active' : ''}" onclick="setCertificateTheme('theme-women')" style="height: 80px; background: #fdf2f8; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-women' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px;">نساء (مؤقت)</div>
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-emerald' ? 'active' : ''}" onclick="setCertificateTheme('theme-emerald')" style="height: 80px; background: #d1fae5; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-emerald' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #065f46;">أخضر إسلامي</div>
+                    <div class="template-btn ${appState.ui.certTheme === 'theme-sapphire' ? 'active' : ''}" onclick="setCertificateTheme('theme-sapphire')" style="height: 80px; background: #dbeafe; border-radius: 8px; cursor: pointer; border: 2px solid ${appState.ui.certTheme === 'theme-sapphire' ? 'var(--color-primary-600)' : 'transparent'}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #1e3a8a;">أزرق ملكي</div>
                   </div>
                 </div>
 
               </div>
 
-              <!-- أزرار التصدير تحت اللوحة الجانبية -->
               <div style="padding: 20px; border-top: 1px solid var(--color-border); background: #fff; display: flex; flex-direction: column; gap: 10px;">
                 <button class="btn btn-primary w-100" onclick="exportCertificateImage()"><i class="ph-duotone ph-image" style="margin-left:4px;"></i>تحميل كصورة</button>
                 <button class="btn btn-gold w-100" onclick="exportCertificatePdf()"><i class="ph-duotone ph-file-pdf" style="margin-left:4px;"></i>تحميل PDF</button>
@@ -422,9 +379,8 @@
               </div>
             </div>
 
-            <!-- منطقة العرض (Preview) - التعديل هنا لضبط المساحات والقص -->
-            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 40px 20px; background: #e2e8f0; overflow: auto;">
-               <div style="width: max-content; margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border-radius: 12px;">
+            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 40px 20px; background: #e2e8f0; overflow: auto; display: flex; justify-content: center;">
+               <div style="box-shadow: 0 20px 40px rgba(0,0,0,0.2); border-radius: 12px; max-width: 100%;">
                  ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
                </div>
             </div>
