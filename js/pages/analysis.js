@@ -75,6 +75,7 @@
       themeColor2 = '#1976D2';
     }
 
+    // SVG البنت (للبنات فقط)
     const girlAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
       <defs>
         <linearGradient id="bgGirl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF3E0"/><stop offset="100%" style="stop-color:#FFE0B2"/></linearGradient>
@@ -97,144 +98,114 @@
       <ellipse cx="82" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
       <ellipse cx="118" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
     </svg>`;
-    const girlAvatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(girlAvatarSVG)))}`;
+    const girlAvatarDataUrl = `data:image/svg+xml;base64,{girlAvatarSVG}`;
 
     const cornerOrnamentSVG = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${themeColor1}"/><stop offset="100%" style="stop-color:${themeColor2}"/></linearGradient></defs><path d="M0 0 L40 0 Q25 25 0 40 Z" fill="url(#g1)" opacity="0.8"/><path d="M0 0 L60 0 Q35 35 0 60 Z" fill="none" stroke="${themeColor1}" stroke-width="1" opacity="0.4"/><path d="M0 0 L80 0 Q50 50 0 80 Z" fill="none" stroke="${themeColor1}" stroke-width="0.5" opacity="0.2"/><circle cx="20" cy="20" r="3" fill="${themeColor1}" opacity="0.6"/></svg>`)))}`;
 
-    const defaultIntro = `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${isFemale ? 'الطالبة المتميزة' : 'الطالب المتميز'}`;
-    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في <strong class="rc-highlight">${rangeLabel === 'الشهر' ? 'حصاد الشهر' : 'حصاد الأسبوع'}</strong>\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن الذين هم أهل الله وخاصته`;
+    const defaultIntro = `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`;
+    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن الذين هم أهل الله وخاصته`;
 
     const introText = appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro;
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
     return `
-      <div class="cert-preview-container">
+      <div class="cert-preview-container" style="position: relative; font-family: 'Cairo', sans-serif;">
         
-        <style>
-          .royal-cert.theme-emerald .rc-bg-glow { background: radial-gradient(circle at center, rgba(15, 157, 122, 0.15) 0%, transparent 70%) !important; }
-          .royal-cert.theme-emerald .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0F9D7A, #145A46) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
-          .royal-cert.theme-emerald .rc-border-gold { border-color: #0F9D7A !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; }
-          .royal-cert.theme-emerald .rc-div-star, .royal-cert.theme-emerald .rc-highlight { color: #0F9D7A !important; }
-          .royal-cert.theme-emerald .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-
-          .royal-cert.theme-sapphire .rc-bg-glow { background: radial-gradient(circle at center, rgba(13, 71, 161, 0.1) 0%, transparent 70%) !important; }
-          .royal-cert.theme-sapphire .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0D47A1, #1976D2) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
-          .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
-          .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
-          .royal-cert.theme-sapphire .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
-        </style>
-
-        <div class="royal-cert ${currentTheme}" id="certificate-box">
+        <div class="certificate-template-background" id="certificate-box" style="position: relative; width: 100%; height: 100%; background-image: url('js/pages/cert_template.jpg'); background-size: cover; background-position: center; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
           
-          <div class="rc-bg-base"></div>
-          <div class="rc-bg-pattern"></div>
-          <div class="rc-bg-glow"></div>
+          <style>
+            .royal-cert.theme-emerald .rc-border-gold { border-color: #0F9D7A !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; }
+            .royal-cert.theme-emerald .rc-div-star, .royal-cert.theme-emerald .rc-highlight { color: #0F9D7A !important; }
+            .royal-cert.theme-emerald .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+
+            .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
+            .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
+            .royal-cert.theme-sapphire .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
+
+            /* إخفاء الفوانيس القديمة (برمجياً عبر overlay) */
+            .fanoos-remover {
+              position: absolute;
+              top: 0; left: 0; right: 0; height: 15%;
+              background: #1b263b; /* نفس لون الخلفية الكحلي */
+              z-index: 5;
+            }
+          </style>
+
+          <div class="fanoos-remover"></div>
+
+          <div class="text-remover intro-remover" style="position: absolute; top: 32%; left: 10%; right: 10%; height: 6%; background: rgba(27,38,59,0.9); z-index: 10;"></div>
+          <div class="text-remover reason-remover" style="position: absolute; top: 40%; left: 10%; right: 10%; height: 10%; background: rgba(27,38,59,0.9); z-index: 10;"></div>
           
-          <div class="rc-border-gold"></div>
-          <div class="rc-border-inner"></div>
-          
-          <img src="${cornerOrnamentSVG}" class="rc-corner rc-corner-tr" alt="" />
-          <img src="${cornerOrnamentSVG}" class="rc-corner rc-corner-tl" alt="" />
-          <img src="${cornerOrnamentSVG}" class="rc-corner rc-corner-br" alt="" />
-          <img src="${cornerOrnamentSVG}" class="rc-corner rc-corner-bl" alt="" />
-          
-          <div class="rc-top-bar">
-            <div class="rc-top-bar-line"></div>
-            <div class="rc-top-bar-diamond" style="color:${themeColor1}">◆</div>
-            <div class="rc-top-bar-line"></div>
-          </div>
+          <div class="cert-content-overlay royal-cert ${currentTheme}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 15;">
+            
+            <div class="rc-date" style="position: absolute; top: 90.3%; right: 10%; font-size: 16px; color: #fff;">${appState.sessions[0].date}</div>
 
-          <div class="rc-content">
-            <div class="rc-header">
-              <div class="rc-meta-block">
-                <div class="rc-meta-label">التاريخ الميلادي</div>
-                <div class="rc-meta-value">${todayDate}</div>
-              </div>
-              
-              <div class="rc-logo-center"></div>
-
-              <div class="rc-meta-block" style="display: flex; justify-content: flex-end; opacity: 1;">
-                <img src="js/pages/logo.png" style="height: 85px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" />
-              </div>
-            </div>
-
-            <div class="rc-title-section">
-              <div class="rc-title-ornament" style="color:${themeColor1}">❋ ❋ ❋</div>
-              <h1 class="rc-main-title">شَهَادَةُ إِنْجَازٍ وَتَفَوُّق</h1>
-              <div class="rc-title-divider">
-                <span class="rc-div-wing" style="color:${themeColor1}">━━━━━━━━</span>
-                <span class="rc-div-star">✦</span>
-                <span class="rc-div-wing" style="color:${themeColor1}">━━━━━━━━</span>
-              </div>
-            </div>
-
-            <div class="rc-body">
-              ${introText ? `<p class="rc-intro-text">${introText.replace(/\n/g, '<br>')}</p>` : ''}
-              
-              <div class="rc-student-block">
-                <div class="rc-avatar-wrapper">
-                  <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
-                  
-                  <div class="rc-avatar-border" style="width: 200px; height: 200px; border: 4px solid ${themeColor1}; background: #fff; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-                    ${isFemale ? 
-                      `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
-                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: contain; width: 100%; height: 100%;" />`
-                    }
-                  </div>
-
-                </div>
-                <div class="rc-name-plate">
-                  <div class="rc-name-plate-inner ${isFemale ? 'rc-female' : 'rc-male'}">
-                    <h2 class="rc-student-name">${student.name}</h2>
-                  </div>
+            <div class="rc-content" style="position: relative; width: 100%; height: 100%;">
+              <div class="rc-header">
+                <div class="rc-meta-block" style="position: absolute; top: 10%; left: 15%; opacity: 1;">
+                  <img src="js/pages/logo.png" style="height: 85px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" />
                 </div>
               </div>
 
-              ${reasonText ? `<p class="rc-achievement-text" style="margin-top: 15px; line-height: 1.6;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
-            </div>
-
-            <div class="rc-footer" style="align-items: flex-end; margin-top: 25px;">
-              <div class="rc-sig-col">
-                <div class="rc-sig-label">توقيع المعلم</div>
-                <div class="rc-sig-value">${appState.settings.teacherName}</div>
-                <div class="rc-sig-underline"></div>
+              <div class="rc-title-section" style="position: absolute; top: 22%; left: 50%; transform: translateX(-50%); text-align: center; width: 80%;">
+                <h1 class="rc-main-title" style="font-family: 'Amiri', serif; font-size: 60px; color: transparent; background-image: linear-gradient(to left, #e9c46a, #c9973a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">شهادة إنجاز وتفوق</h1>
               </div>
 
-              <div class="rc-seal-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: flex-end; padding-bottom: 5px;">
+              <div class="rc-body" style="position: absolute; top: 32%; left: 50%; transform: translateX(-50%); width: 80%;">
+                ${introText ? `<p class="rc-intro-text" style="color: #fff; font-size: 20px; text-align: center; line-height: 1.5; margin-bottom: 30px;">${introText.replace(/\n/g, '<br>')}</p>` : ''}
+                
+                <div class="rc-student-block" style="position: absolute; top: 40%; left: 50%; transform: translateX(-50%); width: 100%;">
+                  <div class="rc-avatar-wrapper" style="position: relative; display: flex; justify-content: center;">
+                    <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
+                    
+                    <div class="rc-avatar-border" style="width: 170px; height: 170px; border: 4px solid transparent; background: transparent; padding: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                      ${isFemale ? 
+                        `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
+                        `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: contain; width: 100%; height: 100%; border-radius: 50%;" />`
+                      }
+                    </div>
+
+                  </div>
+                  <div class="rc-name-plate" style="margin-top: 10px;">
+                    <div class="rc-name-plate-inner ${isFemale ? 'rc-female' : 'rc-male'}" style="text-align: center;">
+                      <h2 class="rc-student-name" style="font-family: 'Amiri', serif; font-size: 35px; color: #fff;">${student.name}</h2>
+                    </div>
+                  </div>
+                </div>
+
+                ${reasonText ? `<p class="rc-achievement-text" style="color: #fff; font-size: 18px; text-align: center; line-height: 1.6;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
+              </div>
+
+              <div class="rc-footer" style="position: absolute; top: 85%; left: 50%; transform: translateX(-50%); width: 80%; display: flex; align-items: flex-end; margin-top: 30px;">
+                <div class="rc-sig-col rc-sig-teacher" style="flex: 1; text-align: right; color: #fff; font-size: 16px;">توقيع المعلم</div>
+                
+                <div class="rc-sig-col rc-sig-admin" style="flex: 1; text-align: left; color: #fff; font-size: 16px;">توقيع الإدارة</div>
+              </div>
+              
+              <div class="rc-bottom-verse" style="position: absolute; top: 92%; left: 50%; transform: translateX(-50%); text-align: center; width: 80%; font-size: 14px; color: transparent; background-image: linear-gradient(to left, #e9c46a, #c9973a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                <span>﴿ إِنَّ الَّذِينَ آمَنُوا وَعَمِلُوا الصَّالِحَاتِ كَانَتْ لَهُمْ جَنَّاتُ الْفردوس نزلا ﴾</span>
+              </div>
+
+              <div class="rc-seal-wrapper" style="position: absolute; bottom: 15%; right: 10%; text-align: center; display: flex; flex-direction: column; align-items: center; z-index: 20;">
                 ${rewardAmount ? `
-                  <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-                      <div style="font-size: 14px; color: #4b5563; font-weight: 800; margin-bottom: 40px;">وحصل على مكافأة مالية:</div>
-                      
-                      <div style="position: relative; margin-top: 30px;">
-                          <div style="font-size: 55px; line-height: 1; position: absolute; top: -50px; left: 50%; transform: translateX(-50%); z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
-                          <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 6px 35px; display: inline-block; color: #fff; font-weight: 900; font-size: 30px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); position: relative; z-index: 1;">
-                              ${rewardAmount}
-                          </div>
+                  <div style="text-align: center; position: absolute; bottom: 0;">
+                      <div style="font-size: 13px; color: #fff; font-weight: 700; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
+                      <div style="font-size: 55px; line-height: 1; margin-bottom: -15px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
+                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 30px; display: inline-block; color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+                          ${rewardAmount}
                       </div>
-                      
-                      <div style="font-size: 15px; font-weight: 800; color: #1c1c2e; margin-top: 6px;">جنيهاً مصرياً</div>
+                      <div style="font-size: 14px; font-weight: 800; color: #fff; margin-top: 2px;">جنيهاً مصرياً</div>
                   </div>
                 ` : ''}
               </div>
 
-              <div class="rc-sig-col">
-                <div class="rc-sig-label">التقدير العام</div>
-                <div class="rc-sig-grade" style="color:${themeColor1}">مُمْتَــاز</div>
-                <div class="rc-sig-underline"></div>
-              </div>
             </div>
-            
-            <div class="rc-bottom-verse">
-              <span style="color:${themeColor1}">﴿ وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ ﴾</span>
-            </div>
-
           </div>
         </div>
       </div>
     `;
   }
-
   window.exportCertificateImage = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
@@ -344,7 +315,7 @@
           </div>
         ` : ""}
 
-        ${appState.ui.showCertificate && student ? `
+       ${appState.ui.showCertificate && student ? `
           <div class="certificate-studio-wrapper card-soft mb-4" style="padding: 0; overflow: hidden; display: flex; flex-wrap: wrap; border: 1px solid var(--color-border-strong);">
             
             <div class="studio-sidebar" style="flex: 1 1 250px; max-width: 320px; background: #F8FAFC; border-left: 1px solid var(--color-border); display: flex; flex-direction: column; min-height: 500px;">
@@ -355,7 +326,7 @@
 
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص العلوي (قبل الاسم)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 10px; border-color: #fde047;" placeholder="تتقدم إدارة المنصة..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : `تتقدم إدارة المنصة والمعلم الفاضل بخالص الشكر والتقدير إلى ${student.gender==='girl'?'الطالبة المتميزة':'الطالب المتميز'}`}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 10px; border-color: #fde047;" placeholder="تتقدم إدارة المنصة..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`}</textarea>
                 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص السفلي (سبب التكريم والدعاء)</label>
                 <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="وذلك لتميزه الواضح..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : `وذلك لتميز${student.gender==='girl'?'ها':'ه'} الواضح وتفوق${student.gender==='girl'?'ها':'ه'} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${student.gender==='girl'?'ها':'ه'} من أهل القرآن الذين هم أهل الله وخاصته`}</textarea>
