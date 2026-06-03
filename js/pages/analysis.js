@@ -75,7 +75,6 @@
       themeColor2 = '#1976D2';
     }
 
-    // تصميم البنت يظل كما هو
     const girlAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
       <defs>
         <linearGradient id="bgGirl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF3E0"/><stop offset="100%" style="stop-color:#FFE0B2"/></linearGradient>
@@ -110,19 +109,17 @@
       <div class="cert-preview-container">
         
         <style>
-          /* الأخضر الإسلامي */
           .royal-cert.theme-emerald .rc-bg-glow { background: radial-gradient(circle at center, rgba(15, 157, 122, 0.15) 0%, transparent 70%) !important; }
           .royal-cert.theme-emerald .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0F9D7A, #145A46) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
           .royal-cert.theme-emerald .rc-border-gold { border-color: #0F9D7A !important; box-shadow: inset 0 0 0 2px rgba(15, 157, 122, 0.2) !important; }
           .royal-cert.theme-emerald .rc-div-star, .royal-cert.theme-emerald .rc-highlight { color: #0F9D7A !important; }
-          .royal-cert.theme-emerald .rc-avatar-border { border-color: #0F9D7A !important; }
+          .royal-cert.theme-emerald .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
 
-          /* الأزرق الماسي */
           .royal-cert.theme-sapphire .rc-bg-glow { background: radial-gradient(circle at center, rgba(13, 71, 161, 0.1) 0%, transparent 70%) !important; }
           .royal-cert.theme-sapphire .rc-main-title { color: transparent !important; background-image: linear-gradient(to left, #0D47A1, #1976D2) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; }
           .royal-cert.theme-sapphire .rc-border-gold { border-color: #0D47A1 !important; box-shadow: inset 0 0 0 2px rgba(13, 71, 161, 0.2) !important; }
           .royal-cert.theme-sapphire .rc-div-star, .royal-cert.theme-sapphire .rc-highlight { color: #0D47A1 !important; }
-          .royal-cert.theme-sapphire .rc-avatar-border { border-color: #0D47A1 !important; }
+          .royal-cert.theme-sapphire .rc-avatar-border { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
         </style>
 
         <div class="royal-cert ${currentTheme}" id="certificate-box">
@@ -152,11 +149,11 @@
                 <div class="rc-meta-value">${todayDate}</div>
               </div>
               
-              <div class="rc-logo-center">
-                <img src="logo.png" style="height: 100px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" onerror="this.style.display='none'" />
-              </div>
+              <div class="rc-logo-center"></div>
 
-              <div class="rc-meta-block"></div>
+              <div class="rc-meta-block" style="display: flex; justify-content: flex-end; opacity: 1;">
+                <img src="js/pages/logo.png" style="height: 85px; width: auto; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" alt="Logo" />
+              </div>
             </div>
 
             <div class="rc-title-section">
@@ -176,10 +173,10 @@
                 <div class="rc-avatar-wrapper">
                   <div class="rc-avatar-glow" style="background: radial-gradient(circle, ${themeColor1} 0%, transparent 70%);"></div>
                   
-                  <div class="rc-avatar-border" style="border-color:${themeColor1}">
+                  <div class="rc-avatar-border">
                     ${isFemale ? 
                       `<img src="${girlAvatarDataUrl}" class="rc-avatar-img" alt="طالبة" />` : 
-                      `<img src="boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: cover;" onerror="this.style.display='none'" />`
+                      `<img src="js/pages/boy.png" class="rc-avatar-img" alt="طالب" style="object-fit: cover; width:100%; height:100%; border-radius:50%;" />`
                     }
                   </div>
 
@@ -197,22 +194,22 @@
               <p class="rc-dua-text">سائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن الذين هم أهل الله وخاصته</p>
             </div>
 
-            <div class="rc-footer">
+            <div class="rc-footer" style="align-items: flex-end; margin-top: 30px;">
               <div class="rc-sig-col">
                 <div class="rc-sig-label">توقيع المعلم</div>
                 <div class="rc-sig-value">${appState.settings.teacherName}</div>
                 <div class="rc-sig-underline"></div>
               </div>
 
-              <div class="rc-seal-wrapper">
+              <div class="rc-seal-wrapper" style="flex: 1; display: flex; justify-content: center; align-items: flex-end;">
                 ${rewardAmount ? `
-                  <div style="text-align: center; position: relative; top: -30px;">
-                      <div style="font-size: 55px; line-height: 1; margin-bottom: -15px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
-                      <div style="font-size: 11px; color: #4b5563; font-weight: 700; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
-                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 25px; display: inline-block; color: #fff; font-weight: 800; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
+                  <div style="text-align: center; position: relative; transform: translateY(15px);">
+                      <div style="font-size: 55px; line-height: 1; margin-bottom: -18px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.15);">💰</div>
+                      <div style="font-size: 13px; color: #4b5563; font-weight: 700; margin-bottom: 8px;">وحصل على مكافأة مالية:</div>
+                      <div style="background: linear-gradient(to bottom, #fcd34d, #f59e0b); border-radius: 50px; padding: 5px 35px; display: inline-block; color: #fff; font-weight: 800; font-size: 28px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);">
                           ${rewardAmount}
                       </div>
-                      <div style="font-size: 14px; font-weight: 800; color: #1c1c2e; margin-top: 2px;">جنيهاً مصرياً</div>
+                      <div style="font-size: 15px; font-weight: 800; color: #1c1c2e; margin-top: 5px;">جنيهاً مصرياً</div>
                   </div>
                 ` : ''}
               </div>
@@ -233,7 +230,6 @@
       </div>
     `;
   }
-
   window.exportCertificateImage = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
