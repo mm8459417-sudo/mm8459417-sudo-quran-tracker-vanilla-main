@@ -70,19 +70,17 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
-    // كاسر الكاش القوي لجلب الصورة الطازجة من السيرفر ومنع ظهور المربع الأبيض
-    const cacheBuster = window.location.protocol === 'file:' ? '' : '?v=' + new Date().getTime();
-
     return `
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
         <div style="width: 1000px; height: 710px; transform: scale(0.60); transform-origin: top center; margin-bottom: -280px;">
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img src="./js/pages/cert_template.jpg${cacheBuster}" 
+            <img src="js/pages/الماهِرُ بالقرآنِ مع السفرَةِ الكرامِ البرَرَةِ والذي يقرؤُهُ ويتَعْتَعُ فيهِ وهو عليه شاقٌّ لَهُ أجرانِ(1).png" 
+                 crossorigin="anonymous" 
                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" 
                  alt="" 
-                 onerror="if(!this.dataset.retry){ this.dataset.retry='1'; this.src='./js/pages/cert_template.JPG${cacheBuster}'; } else if(this.dataset.retry==='1'){ this.dataset.retry='2'; this.src='./js/pages/cert_template.jpeg${cacheBuster}'; }" />
+                 onerror="if(!this.dataset.retry){ this.dataset.retry='1'; this.src='js/pages/الماهِرُ بالقرآنِ مع السفرَةِ الكرامِ البرَرَةِ والذي يقرؤُهُ ويتَعْتَعُ فيهِ وهو عليه شاقٌّ لَهُ أجرانِ(1).jpg'; }" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
