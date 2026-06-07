@@ -70,9 +70,12 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
-    // دالة ذكية لاكتشاف مسار الموقع الحالي أوتوماتيكياً (لحل مشكلة جيت هب)
-    const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const imageUrl = basePath + "js/pages/cert_template.jpg";
+    // النظام الذكي لجلب مسار الصورة وتخطي مشاكل جيت هب
+    let basePath = window.location.pathname;
+    if (!basePath.endsWith('/')) {
+        basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+    }
+    const imgPath = basePath + "js/pages/cert_template.jpg";
 
     return `
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
@@ -80,7 +83,8 @@
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img src="${imageUrl}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="Background Template" onerror="this.onerror=null; this.src='js/pages/cert_template.jpg';" />
+            <img src="${imgPath}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="Background Template" 
+                 onerror="if(!this.dataset.tried) { this.dataset.tried=1; this.src='${basePath}js/pages/cert_template.jpeg'; } else if(this.dataset.tried=='1') { this.dataset.tried=2; this.src='${basePath}js/pages/cert_template.png'; } else if(this.dataset.tried=='2') { this.dataset.tried=3; this.src='${basePath}js/pages/cert_template.JPG'; }" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
