@@ -50,6 +50,7 @@
   }
 
   function renderCertificate(student, rangeLabel) {
+    // تحديد صيغة المذكر والمؤنث للنصوص الافتراضية
     let isFemale = false;
     if (student.gender === 'girl' || student.gender === 'female') {
       isFemale = true;
@@ -63,33 +64,8 @@
     const genderSuffix = isFemale ? 'ها' : 'ه';
     const todayDate = formatArDate(new Date().toISOString());
 
-    // رسمة البنت (في حالة الطالبات)
-    const girlAvatarSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-      <defs>
-        <linearGradient id="bgGirl" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF3E0"/><stop offset="100%" style="stop-color:#FFE0B2"/></linearGradient>
-        <linearGradient id="skinGirl" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#FDDCB5"/><stop offset="100%" style="stop-color:#F5C69A"/></linearGradient>
-        <linearGradient id="hijab" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1B5E20"/><stop offset="50%" style="stop-color:#2E7D32"/><stop offset="100%" style="stop-color:#1B5E20"/></linearGradient>
-      </defs>
-      <circle cx="100" cy="100" r="98" fill="url(#bgGirl)" stroke="#FFD54F" stroke-width="2"/>
-      <ellipse cx="100" cy="150" rx="50" ry="35" fill="url(#hijab)"/>
-      <path d="M50 90 Q50 45 100 40 Q150 45 150 90 Q150 130 140 145 L60 145 Q50 130 50 90Z" fill="url(#hijab)"/>
-      <path d="M53 92 Q53 48 100 43 Q147 48 147 92" fill="none" stroke="#FFD54F" stroke-width="1.5" opacity="0.6"/>
-      <circle cx="100" cy="95" r="37" fill="url(#skinGirl)"/>
-      <circle cx="87" cy="92" r="3.5" fill="#3E2723"/>
-      <circle cx="113" cy="92" r="3.5" fill="#3E2723"/>
-      <circle cx="88" cy="91" r="1.3" fill="#FFF"/>
-      <circle cx="114" cy="91" r="1.3" fill="#FFF"/>
-      <path d="M83 86 Q87 83 91 86" fill="none" stroke="#5D4037" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M109 86 Q113 83 117 86" fill="none" stroke="#5D4037" stroke-width="1.5" stroke-linecap="round"/>
-      <ellipse cx="100" cy="100" rx="2.5" ry="1.5" fill="#D4A574"/>
-      <path d="M94 108 Q100 113 106 108" fill="none" stroke="#C97B63" stroke-width="1.8" stroke-linecap="round"/>
-      <ellipse cx="82" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
-      <ellipse cx="118" cy="100" rx="5" ry="3.5" fill="#F8B4A0" opacity="0.35"/>
-    </svg>`;
-    const girlAvatarDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(girlAvatarSVG)))}`;
-
-    const defaultIntro = `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`;
-    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
+    const defaultIntro = `تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز`;
+    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حفظ كتاب الله\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
     
     const introText = appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro;
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
@@ -99,60 +75,53 @@
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
         <div style="width: 1000px; height: 710px; transform: scale(0.60); transform-origin: top center; margin-bottom: -280px;">
           
-          <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; background-image: url('js/pages/cert_template.jpg'); background-size: 1000px 710px; background-position: center; background-repeat: no-repeat; overflow: hidden; font-family: 'Cairo', sans-serif;">
+          <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <div style="position: absolute; top: 12%; left: 25%; width: 50%; height: 22%; background: #fdfaf6; box-shadow: 0 0 25px 25px #fdfaf6; border-radius: 50%; z-index: 1;"></div>
-            <div style="position: absolute; top: 55%; left: 20%; width: 60%; height: 38%; background: #fdfaf6; box-shadow: 0 0 35px 35px #fdfaf6; border-radius: 40%; z-index: 1;"></div>
+            <!-- صورة القالب الفاضي اللي اعتمدناها -->
+            <img src="js/pages/cert_template.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="Background Template" onerror="alert('تأكد من وجود صورة cert_template.jpg في مسار js/pages')" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
-              <div style="position: absolute; top: 3%; left: 50%; transform: translateX(-50%);">
-                <img src="js/pages/logo.png" style="height: 80px; width: auto; object-fit: contain;" alt="Logo" onerror="this.style.display='none'" />
+              <!-- 1. النص العلوي (المقدمة) -->
+              <div style="position: absolute; top: 34%; width: 100%; text-align: center;">
+                <p style="font-size: 22px; color: #1c2b4d; font-weight: 800; margin: 0; padding: 0 10%; line-height: 1.5;">${introText.replace(/\n/g, '<br>')}</p>
               </div>
 
-              <div style="position: absolute; top: 18%; width: 100%; text-align: center;">
-                <h1 style="font-family: 'Amiri', serif; font-size: 65px; color: #1c2b4d; margin: 0; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">شَهَادَة إنجَاز وَتَفَوُّق</h1>
-              </div>
-
-              <div style="position: absolute; top: 32%; width: 100%; text-align: center;">
-                <p style="font-size: 22px; color: #1c2b4d; font-weight: 800; margin: 0;">${introText.replace(/\n/g, '<br>')}</p>
-              </div>
-
-              <div style="position: absolute; top: 40%; width: 100%; text-align: center; display: flex; justify-content: center;">
-                <div style="background-color: #2b3a61; color: #ffffff; padding: 10px 50px; border-radius: 8px; font-size: 32px; font-weight: bold; min-width: 320px; box-shadow: 0 5px 15px rgba(43,58,97,0.3);">
+              <!-- 2. اسم الطالب (قالب زجاجي بلور بخط أخضر المنصة) -->
+              <div style="position: absolute; top: 43%; width: 100%; text-align: center; display: flex; justify-content: center;">
+                <div style="background: rgba(250, 248, 240, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 0 12px rgba(255,255,255,0.6); text-shadow: 0px 1px 2px rgba(255,255,255,0.8);">
                   ${student.name}
                 </div>
               </div>
 
-              <div style="position: absolute; top: 53%; width: 100%; text-align: center;">
-                ${reasonText ? `<p style="font-size: 19px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
+              <!-- 3. النص السفلي (سبب التكريم والدعاء) -->
+              <div style="position: absolute; top: 56%; width: 100%; text-align: center;">
+                ${reasonText ? `<p style="font-size: 20px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
               </div>
 
-              <div style="position: absolute; top: 64%; left: 50%; transform: translateX(-50%); height: 160px; width: 160px; background: #fff; border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.15); border: 4px solid #e1b154; display: flex; justify-content: center; align-items: center; overflow: hidden;">
-                ${isFemale ? 
-                  `<img src="${girlAvatarDataUrl}" style="height: 90%; width: auto; object-fit: contain;" alt="طالبة" />` : 
-                  `<img src="js/pages/boy.png" style="height: 100%; width: 100%; object-fit: cover;" alt="طالب" onerror="this.style.display='none'" />`
-                }
-              </div>
-
-              <div style="position: absolute; top: 85%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+              <!-- 4. المكافأة المالية (تحت النص السفلي) -->
+              <div style="position: absolute; top: 68%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
                 ${rewardAmount ? `
-                  <div style="font-size: 15px; color: #1c2b4d; font-weight: bold; margin-bottom: 5px;">وحصل على مكافأة مالية:</div>
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="font-size: 45px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">💰</div>
-                    <div style="background: linear-gradient(135deg, #fcd34d, #f59e0b); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 26px; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);">
-                      ${rewardAmount} جنيهاً
+                    <div style="font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">💰</div>
+                    <div style="background: linear-gradient(135deg, #d4af37, #b58d22); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 24px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);">
+                      مكافأة: ${rewardAmount} جنيهاً
                     </div>
                   </div>
                 ` : ''}
               </div>
 
-              <div style="position: absolute; top: 60%; right: 12%; text-align: center; color: #1e293b; font-weight: 800; font-size: 17px;">
-                ${todayDate}
+              <!-- التوقيعات (مظبوطة في مساحاتها المخصصة) -->
+              <div style="position: absolute; bottom: 12%; right: 12%; text-align: center; color: #1e293b;">
+                <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px; color: #2b5641;">توقيع المعلم</div>
+                <div style="font-weight: 800; font-size: 17px;">${appState.settings.teacherName}</div>
+                <div style="border-top: 2px solid #d4af37; width: 120px; margin: 5px auto 0;"></div>
               </div>
 
-              <div style="position: absolute; top: 60%; left: 16%; text-align: center; color: #1e293b; font-weight: 800; font-size: 17px;">
-                ${appState.settings.teacherName}
+              <div style="position: absolute; bottom: 12%; left: 12%; text-align: center; color: #1e293b;">
+                <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px; color: #2b5641;">توقيع الإدارة</div>
+                <div style="font-weight: 800; font-size: 17px;">إدارة حلقات الصحبة</div>
+                <div style="border-top: 2px solid #d4af37; width: 120px; margin: 5px auto 0;"></div>
               </div>
 
             </div>
@@ -191,7 +160,7 @@
       );
 
     const targetSessions = filterSessionsByRange(baseSessions, appState.ui.analysisRange);
-    const chartData = buildChartData(targetSessions);
+    const data = buildChartData(targetSessions);
 
     let weeklyAvg = 0;
     let monthlyAvg = 0;
@@ -236,7 +205,7 @@
           </div>
         </div>
 
-        ${chartData.length > 0 ? `
+        ${data.length > 0 ? `
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-bottom:var(--sp-5);">
           <div class="card-soft hover-elevation" style="text-align:center;padding:var(--sp-4);">
             <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--emerald-dark);">${totalSessions}</div>
@@ -281,11 +250,11 @@
               </div>
 
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
-                <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص العلوي (قبل الاسم)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 10px; border-color: #fde047;" placeholder="تتقدم إدارة المنصة..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : `تتقدم إدارة حلقات الصحبة بخالص الشكر والتقدير إلى الطالب المتميز`}</textarea>
+                <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص العلوي (المقدمة)</label>
+                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro}</textarea>
 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص السفلي (سبب التكريم والدعاء)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="وذلك لتميزه الواضح..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : `وذلك لتميز${student.gender==='girl'?'ها':'ه'} الواضح وتفوق${student.gender==='girl'?'ها':'ه'} في حصاد الشهر\nسائلين المولى عز وجل أن يجعل${student.gender==='girl'?'ها':'ه'} من أهل القرآن`}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason}</textarea>
 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">المكافأة المالية ج.م (اختياري)</label>
                 <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; scheduleRender();" />
@@ -298,7 +267,7 @@
               </div>
             </div>
 
-            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 0; background: #e2e8f0; overflow: auto; display: flex; justify-content: center; align-items: flex-start;">
+            <div class="studio-preview" style="flex: 1 1 500px; min-width: 0; padding: 40px 20px; background: #e2e8f0; overflow: auto; display: flex; justify-content: center; align-items: center;">
                  ${renderCertificate(student, monthlyAvg >= 4.5 ? "الشهر" : "الأسبوع")}
             </div>
 
