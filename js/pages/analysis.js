@@ -76,7 +76,7 @@
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img src="js/pages/cert_template.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="Background Template" onerror="alert('تأكد من وجود صورة cert_template.jpg في مسار js/pages')" />
+            <img src="./js/pages/cert_template.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" onerror="this.onerror=null; this.src='/quran-tracker-vanilla-main/js/pages/cert_template.jpg';" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
