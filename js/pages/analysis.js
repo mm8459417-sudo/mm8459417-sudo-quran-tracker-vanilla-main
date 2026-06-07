@@ -50,7 +50,6 @@
   }
 
   function renderCertificate(student, rangeLabel) {
-    // تحديد صيغة المذكر والمؤنث للنصوص الافتراضية
     let isFemale = false;
     if (student.gender === 'girl' || student.gender === 'female') {
       isFemale = true;
@@ -77,29 +76,24 @@
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <!-- صورة القالب الفاضي اللي اعتمدناها -->
             <img src="js/pages/cert_template.jpg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="Background Template" onerror="alert('تأكد من وجود صورة cert_template.jpg في مسار js/pages')" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
-              <!-- 1. النص العلوي (المقدمة) -->
               <div style="position: absolute; top: 34%; width: 100%; text-align: center;">
                 <p style="font-size: 22px; color: #1c2b4d; font-weight: 800; margin: 0; padding: 0 10%; line-height: 1.5;">${introText.replace(/\n/g, '<br>')}</p>
               </div>
 
-              <!-- 2. اسم الطالب (قالب زجاجي بلور بخط أخضر المنصة) -->
               <div style="position: absolute; top: 43%; width: 100%; text-align: center; display: flex; justify-content: center;">
                 <div style="background: rgba(250, 248, 240, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 0 12px rgba(255,255,255,0.6); text-shadow: 0px 1px 2px rgba(255,255,255,0.8);">
                   ${student.name}
                 </div>
               </div>
 
-              <!-- 3. النص السفلي (سبب التكريم والدعاء) -->
               <div style="position: absolute; top: 56%; width: 100%; text-align: center;">
                 ${reasonText ? `<p style="font-size: 20px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
               </div>
 
-              <!-- 4. المكافأة المالية (تحت النص السفلي) -->
               <div style="position: absolute; top: 68%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
                 ${rewardAmount ? `
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
@@ -111,7 +105,6 @@
                 ` : ''}
               </div>
 
-              <!-- التوقيعات (مظبوطة في مساحاتها المخصصة) -->
               <div style="position: absolute; bottom: 12%; right: 12%; text-align: center; color: #1e293b;">
                 <div style="font-weight: bold; font-size: 18px; margin-bottom: 5px; color: #2b5641;">توقيع المعلم</div>
                 <div style="font-weight: 800; font-size: 17px;">${appState.settings.teacherName}</div>
@@ -164,6 +157,8 @@
 
     let weeklyAvg = 0;
     let monthlyAvg = 0;
+    let isFemale = false;
+    
     if (student) {
       const now = Date.now();
       const weekSessions = baseSessions.filter((s) => new Date(s.date).getTime() >= now - 7 * 86400000);
@@ -171,7 +166,20 @@
       const calc = (arr) => arr.length ? arr.reduce((sum, s) => sum + (s.overall || 0), 0) / arr.length : 0;
       weeklyAvg = calc(weekSessions);
       monthlyAvg = calc(monthSessions);
+
+      if (student.gender === 'girl' || student.gender === 'female') {
+        isFemale = true;
+      } else if (student.gender !== 'boy') {
+        const firstName = student.name.split(' ')[0];
+        if (firstName.endsWith('ة') || firstName.endsWith('اء') || firstName.endsWith('ى') || ['مريم', 'زينب', 'هند', 'سعاد', 'ريم', 'نور', 'فاطمة', 'عائشة', 'خديجة', 'آمنة', 'سارة', 'حفصة', 'رقية'].includes(firstName)) {
+          isFemale = true;
+        }
+      }
     }
+
+    const genderSuffix = isFemale ? 'ها' : 'ه';
+    const defaultIntro = `تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز`;
+    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حفظ كتاب الله\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
 
     const showReward = student && (weeklyAvg >= 4 || monthlyAvg >= 4.5);
     const totalSessions = targetSessions.length;
@@ -251,13 +259,13 @@
 
               <div style="padding: 20px; border-bottom: 1px solid var(--color-border); background: #fefce8;">
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص العلوي (المقدمة)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certIntroText = this.value; scheduleRender();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 50px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certIntroText = this.value; router.render();">${appState.ui.certIntroText !== undefined ? appState.ui.certIntroText : defaultIntro}</textarea>
 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">النص السفلي (سبب التكريم والدعاء)</label>
-                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certReasonText = this.value; scheduleRender();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason}</textarea>
+                <textarea class="form-control" style="font-size: 12px; min-height: 60px; margin-bottom: 15px; border-color: #fde047;" placeholder="..." onchange="appState.ui.certReasonText = this.value; router.render();">${appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason}</textarea>
 
                 <label style="font-size: 13px; font-weight: bold; color: #854d0e; display: block; margin-bottom: 5px;">المكافأة المالية ج.م (اختياري)</label>
-                <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; scheduleRender();" />
+                <input type="number" class="form-control" style="border-color: #fde047; font-weight: bold;" placeholder="مثال: 50 (اتركه فارغ للإخفاء)" value="${appState.ui.certRewardAmount || ''}" onchange="appState.ui.certRewardAmount = this.value; router.render();" />
               </div>
 
               <div style="padding: 20px; border-top: 1px solid var(--color-border); background: #fff; display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
