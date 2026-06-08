@@ -1,5 +1,28 @@
 (function () {
   let chartInstance = null;
+  
+  // المتغير ده هيشيل الصورة ككود مشفر عشان يمنع الشاشة البيضاء تماماً
+  let safeBgBase64 = "./js/pages/cert_bg.png"; 
+
+  // الخدعة السحرية: تحويل الصورة لـ Base64 أول ما الموقع يفتح
+  function preloadCertificateBg() {
+      fetch("./js/pages/cert_bg.png?v=" + new Date().getTime())
+        .then(res => res.blob())
+        .then(blob => {
+            let reader = new FileReader();
+            reader.onloadend = function() {
+                safeBgBase64 = reader.result; // الصورة بقت كود
+                let imgEl = document.getElementById('cert-bg-img');
+                if(imgEl && imgEl.src !== safeBgBase64) {
+                    imgEl.src = safeBgBase64;
+                }
+            }
+            reader.readAsDataURL(blob);
+        }).catch(e => console.log("الصورة لسه بتحمل..."));
+  }
+  
+  // تشغيل الخدعة فوراً
+  preloadCertificateBg();
 
   window.setAnalysisStudent = function (id) {
     appState.ui.analysisStudentId = id;
@@ -16,6 +39,7 @@
     if (!appState.ui.certTheme) {
       appState.ui.certTheme = 'theme-default';
     }
+    preloadCertificateBg(); // تأكيد تحميل الصورة
     router.render();
   };
 
@@ -69,17 +93,13 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
-    // كاسر كاش خفيف مع الاسم الجديد النظيف بالإنجليزي (png)
-    const cacheBuster = window.location.protocol === 'file:' ? '' : '?v=' + new Date().getTime();
-    const imgPath = "js/pages/cert_bg.png" + cacheBuster;
-
     return `
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
         <div style="width: 1000px; height: 710px; transform: scale(0.60); transform-origin: top center; margin-bottom: -280px;">
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img src="${imgPath}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" />
+            <img id="cert-bg-img" src="${safeBgBase64}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
@@ -88,7 +108,7 @@
               </div>
 
               <div style="position: absolute; top: 46%; width: 100%; text-align: center; display: flex; justify-content: center;">
-                <div style="background: rgba(250, 248, 240, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 0 12px rgba(255,255,255,0.6); text-shadow: 0px 1px 2px rgba(255,255,255,0.8);">
+                <div style="background: rgba(253, 251, 246, 0.95); border: 2px solid #0F9D7A; border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
                   ${student.name}
                 </div>
               </div>
@@ -100,8 +120,8 @@
               <div style="position: absolute; top: 67%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
                 ${rewardAmount ? `
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
-                    <div style="font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">💰</div>
-                    <div style="background: linear-gradient(135deg, #d4af37, #b58d22); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 24px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);">
+                    <div style="font-size: 38px; line-height: 1;">💰</div>
+                    <div style="background: linear-gradient(135deg, #d4af37, #b58d22); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 24px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">
                       مكافأة: ${rewardAmount} جنيهاً
                     </div>
                   </div>
