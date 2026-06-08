@@ -61,7 +61,6 @@
     }
 
     const genderSuffix = isFemale ? 'ها' : 'ه';
-    // const todayDate = formatArDate(new Date().toISOString()); (مش محتاجين التاريخ لأننا شلناه من التصميم)
 
     const defaultIntro = `تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز`;
     const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حفظ كتاب الله\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
@@ -70,14 +69,9 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
-    // تشفير اسم الملف العربي عشان أداة التحميل متعملش Crash وتطلع الصورة بيضاء
-    const arabicFileName = encodeURI("الماهِرُ بالقرآنِ مع السفرَةِ الكرامِ البرَرَةِ والذي يقرؤُهُ ويتَعْتَعُ فيهِ وهو عليه شاقٌّ لَهُ أجرانِ(1).png");
-    
-    let basePath = window.location.pathname;
-    if (!basePath.endsWith('/')) {
-        basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
-    }
-    const imgPath = basePath + "js/pages/" + arabicFileName;
+    // كاسر كاش خفيف مع الاسم الجديد النظيف بالإنجليزي (png)
+    const cacheBuster = window.location.protocol === 'file:' ? '' : '?v=' + new Date().getTime();
+    const imgPath = "js/pages/cert_bg.png" + cacheBuster;
 
     return `
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
@@ -85,25 +79,25 @@
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img src="${imgPath}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" />
+            <img src="${imgPath}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
-              <div style="position: absolute; top: 39%; width: 100%; text-align: center;">
-                <p style="font-size: 24px; color: #1c2b4d; font-weight: 800; margin: 0; padding: 0 10%; line-height: 1.5;">${introText.replace(/\n/g, '<br>')}</p>
+              <div style="position: absolute; top: 38%; width: 100%; text-align: center;">
+                <p style="font-size: 22px; color: #1c2b4d; font-weight: 800; margin: 0; padding: 0 10%; line-height: 1.5;">${introText.replace(/\n/g, '<br>')}</p>
               </div>
 
-              <div style="position: absolute; top: 48%; width: 100%; text-align: center; display: flex; justify-content: center;">
+              <div style="position: absolute; top: 46%; width: 100%; text-align: center; display: flex; justify-content: center;">
                 <div style="background: rgba(250, 248, 240, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 0 12px rgba(255,255,255,0.6); text-shadow: 0px 1px 2px rgba(255,255,255,0.8);">
                   ${student.name}
                 </div>
               </div>
 
-              <div style="position: absolute; top: 61%; width: 100%; text-align: center;">
+              <div style="position: absolute; top: 58%; width: 100%; text-align: center;">
                 ${reasonText ? `<p style="font-size: 22px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
               </div>
 
-              <div style="position: absolute; top: 72%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+              <div style="position: absolute; top: 67%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
                 ${rewardAmount ? `
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
                     <div style="font-size: 38px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">💰</div>
@@ -114,11 +108,11 @@
                 ` : ''}
               </div>
 
-              <div style="position: absolute; bottom: 8.5%; right: 10.5%; text-align: center; color: #1e293b; width: 150px;">
+              <div style="position: absolute; bottom: 4%; right: 12%; text-align: center; color: #1e293b; width: 200px;">
                 <div style="font-weight: 800; font-size: 20px; color: #1c2b4d;">${appState.settings.teacherName}</div>
               </div>
 
-              <div style="position: absolute; bottom: 8.5%; left: 10.5%; text-align: center; color: #1e293b; width: 150px;">
+              <div style="position: absolute; bottom: 4%; left: 12%; text-align: center; color: #1e293b; width: 200px;">
                 <div style="font-weight: 800; font-size: 20px; color: #1c2b4d;">إدارة حلقات الصحبة</div>
               </div>
 
