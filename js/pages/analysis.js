@@ -1,28 +1,5 @@
 (function () {
   let chartInstance = null;
-  
-  // المتغير ده هيشيل الصورة ككود مشفر عشان يمنع الشاشة البيضاء تماماً
-  let safeBgBase64 = "./js/pages/cert_bg.png"; 
-
-  // الخدعة السحرية: تحويل الصورة لـ Base64 أول ما الموقع يفتح
-  function preloadCertificateBg() {
-      fetch("./js/pages/cert_bg.png?v=" + new Date().getTime())
-        .then(res => res.blob())
-        .then(blob => {
-            let reader = new FileReader();
-            reader.onloadend = function() {
-                safeBgBase64 = reader.result; // الصورة بقت كود
-                let imgEl = document.getElementById('cert-bg-img');
-                if(imgEl && imgEl.src !== safeBgBase64) {
-                    imgEl.src = safeBgBase64;
-                }
-            }
-            reader.readAsDataURL(blob);
-        }).catch(e => console.log("الصورة لسه بتحمل..."));
-  }
-  
-  // تشغيل الخدعة فوراً
-  preloadCertificateBg();
 
   window.setAnalysisStudent = function (id) {
     appState.ui.analysisStudentId = id;
@@ -39,7 +16,6 @@
     if (!appState.ui.certTheme) {
       appState.ui.certTheme = 'theme-default';
     }
-    preloadCertificateBg(); // تأكيد تحميل الصورة
     router.render();
   };
 
@@ -93,13 +69,16 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
+    // مسار مباشر جداً للصورة بدون أي تعقيدات
+    const imgPath = "./js/pages/cert_bg.png";
+
     return `
       <div style="width: 100%; display: flex; justify-content: center; overflow: hidden; background: #e2e8f0; padding: 20px 0; border-radius: 12px;">
         <div style="width: 1000px; height: 710px; transform: scale(0.60); transform-origin: top center; margin-bottom: -280px;">
           
           <div id="certificate-box" style="width: 1000px; height: 710px; position: relative; background-color: #fdfaf6; overflow: hidden; font-family: 'Cairo', sans-serif;">
             
-            <img id="cert-bg-img" src="${safeBgBase64}" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;" alt="" />
+            <img src="${imgPath}" style="position: absolute; top: 0; left: 0; width: 1000px; height: 710px; object-fit: cover; z-index: 0;" alt="" />
 
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;">
               
@@ -108,7 +87,7 @@
               </div>
 
               <div style="position: absolute; top: 46%; width: 100%; text-align: center; display: flex; justify-content: center;">
-                <div style="background: rgba(253, 251, 246, 0.95); border: 2px solid #0F9D7A; border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <div style="background-color: rgba(253, 251, 246, 0.95); border: 2px solid #0F9D7A; border-radius: 14px; padding: 12px 60px; font-size: 42px; font-weight: 900; color: #0F9D7A; min-width: 350px;">
                   ${student.name}
                 </div>
               </div>
@@ -117,11 +96,11 @@
                 ${reasonText ? `<p style="font-size: 22px; color: #2c3e50; font-weight: bold; line-height: 1.6; margin: 0; padding: 0 10%;">${reasonText.replace(/\n/g, '<br>')}</p>` : ''}
               </div>
 
-              <div style="position: absolute; top: 67%; left: 50%; transform: translateX(-50%); text-align: center; width: 100%;">
+              <div style="position: absolute; top: 67%; width: 100%; display: flex; justify-content: center;">
                 ${rewardAmount ? `
                   <div style="display: inline-flex; align-items: center; gap: 8px;">
                     <div style="font-size: 38px; line-height: 1;">💰</div>
-                    <div style="background: linear-gradient(135deg, #d4af37, #b58d22); border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 24px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">
+                    <div style="background-color: #d4af37; border-radius: 30px; padding: 6px 30px; color: #fff; font-weight: 900; font-size: 24px; border: 1px solid #b58d22;">
                       مكافأة: ${rewardAmount} جنيهاً
                     </div>
                   </div>
@@ -143,22 +122,29 @@
     `;
   }
 
+  // إضافة (تأخير زمني بسيط جداً) لإعطاء فرصة لأداة التحميل ترسم الصورة صح بدون استعجال
   window.exportCertificateImage = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
-    await exportElementAsImage(el, "certificate.png");
+    setTimeout(async () => {
+        await exportElementAsImage(el, "certificate.png");
+    }, 400); // تأخير 400 ملي ثانية
   };
 
   window.exportCertificatePdf = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
-    await exportElementAsPdf(el, "certificate.pdf");
+    setTimeout(async () => {
+        await exportElementAsPdf(el, "certificate.pdf");
+    }, 400);
   };
 
   window.exportCertificateGif = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
-    await exportElementAsGif(el, "certificate.gif");
+    setTimeout(async () => {
+        await exportElementAsGif(el, "certificate.gif");
+    }, 400);
   };
 
   window.renderAnalysisPage = function () {
