@@ -332,9 +332,9 @@
     form.scope = "individual";
     form.studentId = id;
 
-    // حساب عدد الحصص السابقة للطالب ده عشان العداد التلقائي
+    // حساب عدد الحصص السابقة للطالب من السجلات
     const sessions = appState.sessions || [];
-    const studentSessionsCount = sessions.filter(s => s.participant && s.participant.id === id).length;
+    const studentSessionsCount = sessions.filter(s => s.studentId === id || (s.participant && s.participant.id === id)).length;
     
     // رقم الجلسة الحالية = عدد الجلسات السابقة + 1
     form.sessionNumber = studentSessionsCount + 1;
