@@ -1,4 +1,13 @@
 (function () {
+  // دالة تنظيف وتوحيد نصوص اللغة العربية (إزالة الهمزات عشان المقارنة تنجح 100%)
+  function normalizeArabic(text) {
+    if (!text) return "";
+    return text.trim()
+      .replace(/[أإآ]/g, "ا") // تحويل أ، إ، آ إلى ا عادية
+      .replace(/ة$/g, "ه");   // احتياطاً لو فيه اختلاف في التاء المربوطة والهاء
+  }
+
+  // دالة لضبط شكل الوقت (من 17:00 إلى 5:00 م)
   function formatTime(timeStr) {
     if (!timeStr) return "--:--";
     if (timeStr.includes('م') || timeStr.includes('ص') || timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
@@ -12,16 +21,16 @@
   }
 
   window.renderSchedulePage = function () {
+    // الأيام بالديباجة الرسمية
     const allDays = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
     let autoScheduleItems = [];
     let students = window.appState?.students || [];
     let sessions = window.appState?.sessions || [];
 
-    // سحب البيانات الحقيقية من الطلاب بذكاء أكبر وتغطية أوسع
+    // سحب البيانات من الطلاب
     students.forEach((student) => {
         let studentSessionsCount = sessions.filter(s => s.participant && s.participant.id === student.id).length;
-        
         let studentSchedules = [];
 
         // الفحص الشامل لكل الأماكن المحتملة لحفظ المواعيد
@@ -36,7 +45,6 @@
         possibleScheduleArrays.forEach(scheduleArray => {
             if (Array.isArray(scheduleArray)) {
                 scheduleArray.forEach(s => {
-                    // نتأكد إن الميعاد ده مش موجود قبل كده لنفس الطالب عشان التكرار
                     if (s.day && s.time && !studentSchedules.some(existing => existing.day === s.day && existing.time === s.time)) {
                         studentSchedules.push({ day: s.day, time: s.time });
                     }
@@ -44,12 +52,11 @@
             }
         });
 
-        // لو مفيش قائمة، هنفحص لو متسجل كقيمة مفردة
         if (studentSchedules.length === 0 && student.day && student.time) {
             studentSchedules.push({ day: student.day, time: student.time });
         }
 
-        // تفريغ كل المواعيد اللي لقيناها للطالب ده في الجدول الرئيسي
+        // تجميع المواعيد
         studentSchedules.forEach(sched => {
             autoScheduleItems.push({
                 day: sched.day, 
@@ -61,12 +68,14 @@
         });
     });
 
-    // ترتيب المواعيد تصاعدياً
+    // ترتيب المواعيد تصاعدياً حسب الوقت
     autoScheduleItems.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
 
     // بناء أعمدة الجدول
     let daysHtml = allDays.map((day, index) => {
-      let dayItems = autoScheduleItems.filter(item => item.day === day);
+      
+      // هنا السحر! بنقارن اليوم بعد ما نشيل منه الهمزات من الطرفين
+      let dayItems = autoScheduleItems.filter(item => normalizeArabic(item.day) === normalizeArabic(day));
 
       let itemsHtml = dayItems.map((item, idx) => {
          let isFemale = item.gender === 'girl' || item.gender === 'female';
