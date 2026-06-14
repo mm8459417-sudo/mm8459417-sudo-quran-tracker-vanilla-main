@@ -55,11 +55,14 @@
 
     const teacherName = appState.settings.teacherName || "المعلم";
     const initial = teacherName ? teacherName.charAt(0) : "م";
+    
+    // تم إضافة الجدول الأسبوعي هنا
     const tabs = [
       { key: "form", icon: `<i class="ph-duotone ph-house"></i>`, label: "الرئيسية" },
       { key: "history", icon: `<i class="ph-duotone ph-clock-counter-clockwise"></i>`, label: "سجلات الطلاب" },
       { key: "analysis", icon: `<i class="ph-duotone ph-chart-line-up"></i>`, label: "تحليل الأداء" },
       { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت الشهري" },
+      { key: "schedule", icon: `<i class="ph-duotone ph-calendar-plus"></i>`, label: "الجدول الأسبوعي" },
       { key: "settings", icon: `<i class="ph-duotone ph-gear-six"></i>`, label: "الإعدادات" },
       { key: "account", icon: `<i class="ph-duotone ph-user-circle"></i>`, label: "الحساب" },
     ];
@@ -111,11 +114,13 @@
       return;
     }
 
+    // تم إضافة الجدول هنا أيضاً للموبايل
     const items = [
       { key: "form", icon: `<i class="ph-duotone ph-house"></i>`, label: "الرئيسية" },
       { key: "history", icon: `<i class="ph-duotone ph-clock-counter-clockwise"></i>`, label: "السجل" },
       { key: "analysis", icon: `<i class="ph-duotone ph-chart-line-up"></i>`, label: "التحليل" },
       { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت" },
+      { key: "schedule", icon: `<i class="ph-duotone ph-calendar-plus"></i>`, label: "الجدول" },
       { key: "settings", icon: `<i class="ph-duotone ph-gear-six"></i>`, label: "الإعدادات" },
     ];
 
