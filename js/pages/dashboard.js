@@ -103,7 +103,7 @@ window.showSmartSecretaryPopup = function() {
 
 
 // ==========================================
-// 2. كود لوحة التحكم (الرئيسية) - مع إضافة الجدول الأسبوعي
+// 2. كود لوحة التحكم (الرئيسية) - تم إعادتها لتصميمك الأصلي مع الجدول الأسبوعي
 // ==========================================
 (function () {
   window.setActiveTab = function (tab) {
@@ -120,7 +120,7 @@ window.showSmartSecretaryPopup = function() {
         return renderAnalysisPage();
       case "monthly":
         return renderMonthlySheetPage();
-      case "schedule": // تمت الإضافة: صفحة الجدول الأسبوعي
+      case "schedule": // تمت الإضافة: الجدول الأسبوعي
         return renderSchedulePage();
       case "settings":
         return renderSettingsPage();
@@ -134,13 +134,14 @@ window.showSmartSecretaryPopup = function() {
   window.renderDashboardPage = function () {
     document.body.classList.add('dashboard-active');
 
-    const teacherName = appState.settings.teacherName || "المعلم";
-    const todayLabel = formatArDate(new Date().toISOString());
+    const teacherName = appState.settings?.teacherName || "المعلم";
+    const todayLabel = typeof formatArDate === "function" ? formatArDate(new Date().toISOString()) : new Date().toLocaleDateString('ar-EG');
     const hour = new Date().getHours();
     const greetTime = hour < 12 ? "صباح الخير" : hour < 17 ? "مساء النور" : "مساء الخير";
 
     return `
       <section class="dash-shell">
+        <!-- Premium Hero Section -->
         <div class="premium-hero">
           <div class="premium-hero__particles">
             <div class="particle p1"></div>
@@ -189,14 +190,14 @@ window.showSmartSecretaryPopup = function() {
                   <div class="stat-icon emerald"><i class="ph-duotone ph-users-three"></i></div>
                   <div class="stat-info">
                     <div class="stat-lbl">إجمالي الطلاب</div>
-                    <div class="stat-val" dir="ltr">${appState.students.length}</div>
+                    <div class="stat-val" dir="ltr">${appState.students ? appState.students.length : 0}</div>
                   </div>
                 </div>
                 <div class="premium-stat-card float-delayed">
                   <div class="stat-icon gold"><i class="ph-duotone ph-books"></i></div>
                   <div class="stat-info">
                     <div class="stat-lbl">جلسات مُنجزة</div>
-                    <div class="stat-val" dir="ltr">${appState.sessions.length}</div>
+                    <div class="stat-val" dir="ltr">${appState.sessions ? appState.sessions.length : 0}</div>
                   </div>
                 </div>
               </div>
@@ -204,6 +205,7 @@ window.showSmartSecretaryPopup = function() {
           </div>
         </div>
 
+        <!-- Content -->
         <div class="dash-content">
           ${renderActiveTab()}
         </div>
@@ -222,7 +224,7 @@ window.showSmartSecretaryPopup = function() {
       case "monthly":
         if (typeof initMonthlySheetPage === "function") initMonthlySheetPage();
         break;
-      case "schedule": // تمت الإضافة: تهيئة الجدول الأسبوعي لو فيه دوال معينة جواه
+      case "schedule": // تمت الإضافة: تهيئة الجدول الأسبوعي
         if (typeof initSchedulePage === "function") initSchedulePage();
         break;
       case "settings":
@@ -239,36 +241,6 @@ window.showSmartSecretaryPopup = function() {
         }, 500);
         
         if (typeof initSessionForm === "function") initSessionForm();
-        break;
-    }
-  };
-})();
-
-  window.initDashboardPage = function () {
-    switch (appState.activeTab) {
-      case "history":
-        initHistoryPage();
-        break;
-      case "analysis":
-        initAnalysisPage();
-        break;
-      case "monthly":
-        initMonthlySheetPage();
-        break;
-      case "settings":
-        initSettingsPage();
-        break;
-      case "account":
-        initAccountPage();
-        break;
-      default:
-        setTimeout(() => {
-          if (typeof showSmartSecretaryPopup === "function") {
-            showSmartSecretaryPopup();
-          }
-        }, 500);
-        
-        initSessionForm();
         break;
     }
   };
