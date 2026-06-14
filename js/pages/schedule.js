@@ -41,31 +41,50 @@
   };
 
   // 4. دالة رسم واجهة الجدول الأسبوعي
-  window.renderSchedulePage = function () {
-    initScheduleState(); // التأكد إن البيانات موجودة قبل الرسم
+ window.renderSchedulePage = function () {
+    initScheduleState(); 
 
-    // أيام الأسبوع (بترتيب مصر/الدول العربية)
     const days = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
-    // بناء الأعمدة لكل يوم
+    // 1. تجميع المواعيد اليدوية + مواعيد الطلاب التلقائية
+    let allScheduleItems = [...(window.appState.schedule || [])];
+
+    if (window.appState.students && window.appState.students.length > 0) {
+      window.appState.students.forEach(student => {
+        // لو الطالب متسجل له يوم ووقت في بياناته، ضيفه للجدول التلقائي
+        if (student.day && student.time) {
+          allScheduleItems.push({
+            id: 'auto_' + student.id,
+            day: student.day,
+            time: student.time,
+            title: `تسميع: ${student.name}`,
+            isAuto: true // عشان نميزه عن المواعيد اليدوية
+          });
+        }
+      });
+    }
+
+    // 2. ترتيب كل المواعيد حسب الوقت
+    allScheduleItems.sort((a, b) => a.time.localeCompare(b.time));
+
+    // 3. بناء الأعمدة لكل يوم
     let daysHtml = days.map(day => {
-      // فلترة مواعيد هذا اليوم فقط
-      const dayItems = window.appState.schedule.filter(item => item.day === day);
+      const dayItems = allScheduleItems.filter(item => item.day === day);
       
-      // بناء كروت المواعيد جوا اليوم
       let itemsHtml = dayItems.map(item => `
-        <div style="background: #fff; border-right: 4px solid var(--emerald); padding: 12px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; transition: transform 0.2s;">
+        <div style="background: #fff; border-right: 4px solid ${item.isAuto ? '#3b82f6' : 'var(--emerald)'}; padding: 12px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative;">
           <div style="font-weight: 800; color: var(--text-primary); font-size: 14px; margin-bottom: 4px; padding-left: 20px;">${item.title}</div>
-          <div style="color: var(--emerald-dark); font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+          <div style="color: ${item.isAuto ? '#2563eb' : 'var(--emerald-dark)'}; font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 4px;">
             <i class="ph-duotone ph-clock"></i> ${item.time}
           </div>
-          <button onclick="deleteScheduleItem(${item.id})" style="position: absolute; top: 10px; left: 10px; background: none; border: none; color: #ef4444; cursor: pointer; padding: 5px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
+          ${!item.isAuto ? `
+          <button onclick="deleteScheduleItem(${item.id})" style="position: absolute; top: 10px; left: 10px; background: none; border: none; color: #ef4444; cursor: pointer; padding: 5px; border-radius: 4px;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">
             <i class="ph-duotone ph-trash" style="font-size: 16px;"></i>
           </button>
+          ` : `<div style="position: absolute; top: 10px; left: 10px; color: #94a3b8; font-size: 11px;">تلقائي</div>`}
         </div>
       `).join('');
 
-      // رسالة في حالة اليوم الفاضي
       if (dayItems.length === 0) {
         itemsHtml = `
           <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0; background: rgba(255,255,255,0.5); border-radius: 6px; border: 1px dashed var(--color-border);">
@@ -95,7 +114,7 @@
 
         <div class="card-soft mb-4">
           <h3 style="font-size: 15px; font-weight: 800; margin-bottom: 15px; color: var(--text-primary);">
-            <i class="ph-duotone ph-plus-circle" style="color: var(--emerald); margin-left: 5px;"></i>إضافة حلقة جديدة
+            <i class="ph-duotone ph-plus-circle" style="color: var(--emerald); margin-left: 5px;"></i>إضافة حلقة جديدة (يدوي)
           </h3>
           <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
             
@@ -128,8 +147,6 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
           ${daysHtml}
         </div>
-
       </div>
     `;
   };
-})();
