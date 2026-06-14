@@ -18,28 +18,38 @@
     let students = window.appState?.students || [];
     let sessions = window.appState?.sessions || [];
 
-    // سحب البيانات الحقيقية من الطلاب بذكاء
+    // سحب البيانات الحقيقية من الطلاب بذكاء أكبر وتغطية أوسع
     students.forEach((student) => {
         let studentSessionsCount = sessions.filter(s => s.participant && s.participant.id === student.id).length;
         
         let studentSchedules = [];
 
-        // 1. البحث لو المواعيد متخزنة في قائمة (Array) زي ما الصورة بتوضح
-        let scheduleArray = student.schedule || student.days || student.appointments || student.weeklySchedule || student.times;
-        
-        if (Array.isArray(scheduleArray)) {
-            scheduleArray.forEach(s => {
-                if (s.day && s.time) {
-                    studentSchedules.push({ day: s.day, time: s.time });
-                }
-            });
-        } 
-        // 2. البحث لو متسجلة كقيمة عادية
-        else if (student.day && student.time) {
+        // الفحص الشامل لكل الأماكن المحتملة لحفظ المواعيد
+        const possibleScheduleArrays = [
+            student.schedule,
+            student.days,
+            student.appointments,
+            student.weeklySchedule,
+            student.times
+        ];
+
+        possibleScheduleArrays.forEach(scheduleArray => {
+            if (Array.isArray(scheduleArray)) {
+                scheduleArray.forEach(s => {
+                    // نتأكد إن الميعاد ده مش موجود قبل كده لنفس الطالب عشان التكرار
+                    if (s.day && s.time && !studentSchedules.some(existing => existing.day === s.day && existing.time === s.time)) {
+                        studentSchedules.push({ day: s.day, time: s.time });
+                    }
+                });
+            }
+        });
+
+        // لو مفيش قائمة، هنفحص لو متسجل كقيمة مفردة
+        if (studentSchedules.length === 0 && student.day && student.time) {
             studentSchedules.push({ day: student.day, time: student.time });
         }
 
-        // تفريغ المواعيد اللي لقيناها جوه الجدول
+        // تفريغ كل المواعيد اللي لقيناها للطالب ده في الجدول الرئيسي
         studentSchedules.forEach(sched => {
             autoScheduleItems.push({
                 day: sched.day, 
