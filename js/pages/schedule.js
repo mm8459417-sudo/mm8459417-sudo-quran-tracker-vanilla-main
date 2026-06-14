@@ -6,7 +6,7 @@
   }
 
   // 2. دالة إضافة موعد جديد للجدول
-  window.addScheduleItem = function () {
+ window.addScheduleItem = function () {
     initScheduleState();
     const day = document.getElementById('sched-day').value;
     const time = document.getElementById('sched-time').value;
@@ -17,7 +17,15 @@
       return;
     }
 
-    // إضافة الموعد الجديد
+    // الميزة الجديدة: التحقق من تضارب المواعيد
+    const isConflict = window.appState.schedule.some(item => item.day === day && item.time === time);
+    
+    if (isConflict) {
+      alert(`❌ عذراً يا معلمي! يوجد حلقة أخرى محجوزة بالفعل يوم ${day} الساعة ${time}. يرجى اختيار موعد آخر.`);
+      return; // وقف الكود ومتضيفش الموعد
+    }
+
+    // لو مفيش تضارب، كمل إضافة الموعد الجديد
     window.appState.schedule.push({
       id: Date.now(),
       day: day,
@@ -30,16 +38,6 @@
     
     if (typeof saveData === 'function') saveData(); // حفظ الداتا في الـ LocalStorage
     router.render(); // تحديث الصفحة لرؤية التغيير فوراً
-  };
-
-  // 3. دالة حذف موعد من الجدول
-  window.deleteScheduleItem = function (id) {
-    initScheduleState();
-    if(confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
-      window.appState.schedule = window.appState.schedule.filter(item => item.id !== id);
-      if (typeof saveData === 'function') saveData();
-      router.render();
-    }
   };
 
   // 4. دالة رسم واجهة الجدول الأسبوعي
