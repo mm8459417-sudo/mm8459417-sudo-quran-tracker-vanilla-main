@@ -1,11 +1,13 @@
 (function () {
-  // 1. تعريف مصفوفة الجدول في قاعدة البيانات لو مش موجودة
-  if (!appState.schedule) {
-    appState.schedule = [];
+  // دالة تأمين المتغيرات عشان ميعملش Error لو اشتغل قبل أي ملف تاني
+  function initScheduleState() {
+    if (!window.appState) window.appState = {};
+    if (!window.appState.schedule) window.appState.schedule = [];
   }
 
   // 2. دالة إضافة موعد جديد للجدول
   window.addScheduleItem = function () {
+    initScheduleState();
     const day = document.getElementById('sched-day').value;
     const time = document.getElementById('sched-time').value;
     const title = document.getElementById('sched-title').value;
@@ -16,7 +18,7 @@
     }
 
     // إضافة الموعد الجديد
-    appState.schedule.push({
+    window.appState.schedule.push({
       id: Date.now(),
       day: day,
       time: time,
@@ -24,30 +26,33 @@
     });
 
     // ترتيب المواعيد تلقائياً تصاعدياً حسب الوقت
-    appState.schedule.sort((a, b) => a.time.localeCompare(b.time));
+    window.appState.schedule.sort((a, b) => a.time.localeCompare(b.time));
     
-    saveData(); // حفظ الداتا في الـ LocalStorage
+    if (typeof saveData === 'function') saveData(); // حفظ الداتا في الـ LocalStorage
     router.render(); // تحديث الصفحة لرؤية التغيير فوراً
   };
 
   // 3. دالة حذف موعد من الجدول
   window.deleteScheduleItem = function (id) {
+    initScheduleState();
     if(confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
-      appState.schedule = appState.schedule.filter(item => item.id !== id);
-      saveData();
+      window.appState.schedule = window.appState.schedule.filter(item => item.id !== id);
+      if (typeof saveData === 'function') saveData();
       router.render();
     }
   };
 
   // 4. دالة رسم واجهة الجدول الأسبوعي
   window.renderSchedulePage = function () {
+    initScheduleState(); // التأكد إن البيانات موجودة قبل الرسم
+
     // أيام الأسبوع (بترتيب مصر/الدول العربية)
     const days = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
     // بناء الأعمدة لكل يوم
     let daysHtml = days.map(day => {
       // فلترة مواعيد هذا اليوم فقط
-      const dayItems = appState.schedule.filter(item => item.day === day);
+      const dayItems = window.appState.schedule.filter(item => item.day === day);
       
       // بناء كروت المواعيد جوا اليوم
       let itemsHtml = dayItems.map(item => `
