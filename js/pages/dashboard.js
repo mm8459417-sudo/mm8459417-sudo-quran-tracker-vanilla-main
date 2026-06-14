@@ -103,7 +103,7 @@ window.showSmartSecretaryPopup = function() {
 
 
 // ==========================================
-// 2. كود لوحة التحكم (الرئيسية) - تم إعادتها لتصميمك الأصلي بالملي
+// 2. كود لوحة التحكم (الرئيسية) - مع إضافة الجدول الأسبوعي
 // ==========================================
 (function () {
   window.setActiveTab = function (tab) {
@@ -120,6 +120,8 @@ window.showSmartSecretaryPopup = function() {
         return renderAnalysisPage();
       case "monthly":
         return renderMonthlySheetPage();
+      case "schedule": // تمت الإضافة: صفحة الجدول الأسبوعي
+        return renderSchedulePage();
       case "settings":
         return renderSettingsPage();
       case "account":
@@ -139,7 +141,6 @@ window.showSmartSecretaryPopup = function() {
 
     return `
       <section class="dash-shell">
-        <!-- Premium Hero Section -->
         <div class="premium-hero">
           <div class="premium-hero__particles">
             <div class="particle p1"></div>
@@ -203,13 +204,45 @@ window.showSmartSecretaryPopup = function() {
           </div>
         </div>
 
-        <!-- Content -->
         <div class="dash-content">
           ${renderActiveTab()}
         </div>
       </section>
     `;
   };
+
+  window.initDashboardPage = function () {
+    switch (appState.activeTab) {
+      case "history":
+        if (typeof initHistoryPage === "function") initHistoryPage();
+        break;
+      case "analysis":
+        if (typeof initAnalysisPage === "function") initAnalysisPage();
+        break;
+      case "monthly":
+        if (typeof initMonthlySheetPage === "function") initMonthlySheetPage();
+        break;
+      case "schedule": // تمت الإضافة: تهيئة الجدول الأسبوعي لو فيه دوال معينة جواه
+        if (typeof initSchedulePage === "function") initSchedulePage();
+        break;
+      case "settings":
+        if (typeof initSettingsPage === "function") initSettingsPage();
+        break;
+      case "account":
+        if (typeof initAccountPage === "function") initAccountPage();
+        break;
+      default:
+        setTimeout(() => {
+          if (typeof showSmartSecretaryPopup === "function") {
+            showSmartSecretaryPopup();
+          }
+        }, 500);
+        
+        if (typeof initSessionForm === "function") initSessionForm();
+        break;
+    }
+  };
+})();
 
   window.initDashboardPage = function () {
     switch (appState.activeTab) {
