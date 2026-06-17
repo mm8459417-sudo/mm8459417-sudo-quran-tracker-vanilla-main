@@ -10,35 +10,44 @@
   ];
 
   // ==========================================
-  // إعدادات المظهر والوضع الليلي (تمت الإضافة هنا)
+  // إعدادات المظهر والوضع الليلي (تأمين الحماية من التحميل المبكر)
   // ==========================================
-  if (!appState.settings) appState.settings = {};
-  if (!appState.settings.teacherName) appState.settings.teacherName = "محمد محمود";
-  if (!appState.settings.centerName) appState.settings.centerName = "إدارة حلقات الصحبة";
-  if (!appState.settings.themeColor) appState.settings.themeColor = "#0F9D7A";
-  if (appState.settings.darkMode === undefined) appState.settings.darkMode = false;
+  function initThemeState() {
+    if (!window.appState) window.appState = {};
+    if (!window.appState.settings) window.appState.settings = {};
+    if (!window.appState.settings.themeColor) window.appState.settings.themeColor = "#0F9D7A";
+    if (window.appState.settings.darkMode === undefined) window.appState.settings.darkMode = false;
+  }
 
   window.updateSetting = function (key, value) {
-    appState.settings[key] = value;
+    initThemeState();
+    window.appState.settings[key] = value;
     if (typeof saveData === 'function') saveData();
   };
 
   window.updateThemeColor = function (color) {
-    appState.settings.themeColor = color;
+    initThemeState();
+    window.appState.settings.themeColor = color;
     if (typeof saveData === 'function') saveData();
     applyTheme();
   };
 
   window.toggleDarkMode = function (isDark) {
-    appState.settings.darkMode = isDark;
+    initThemeState();
+    window.appState.settings.darkMode = isDark;
     if (typeof saveData === 'function') saveData();
     applyTheme();
   };
 
   window.applyTheme = function () {
-    document.documentElement.style.setProperty('--emerald', appState.settings.themeColor);
-    document.documentElement.style.setProperty('--emerald-dark', adjustColorBrightness(appState.settings.themeColor, -20));
-    if (appState.settings.darkMode) {
+    initThemeState();
+    const themeColor = window.appState.settings.themeColor;
+    const darkMode = window.appState.settings.darkMode;
+
+    document.documentElement.style.setProperty('--emerald', themeColor);
+    document.documentElement.style.setProperty('--emerald-dark', adjustColorBrightness(themeColor, -20));
+    
+    if (darkMode) {
       document.body.classList.add('dark-mode');
     } else {
       document.body.classList.remove('dark-mode');
@@ -59,38 +68,38 @@
   }
 
   // ==========================================
-  // الدوال الأصلية للمنصة
+  // الدوال الأصلية للمنصة (إدارة الطلاب والباقات والمجموعات)
   // ==========================================
 
   // 🚀 حماية ثلاثية الأبعاد لضمان عدم اختفاء الباقات أبداً
   function ensurePackagesExist() {
-    if (!appState.settings) appState.settings = {};
+    initThemeState();
     
     // 1. الاسترجاع من الذاكرة المحلية (عشان لو الداتابيز مسحتها متختفيش من قدامك)
     if (window.__LOCAL_PACKAGES__) {
-        appState.settings.packages = window.__LOCAL_PACKAGES__;
+        window.appState.settings.packages = window.__LOCAL_PACKAGES__;
     } 
     // 2. الاسترجاع من النص (عشان لو السيرفر بيرفض الـ Arrays)
-    else if (appState.settings.packagesJSON && typeof appState.settings.packagesJSON === 'string') {
+    else if (window.appState.settings.packagesJSON && typeof window.appState.settings.packagesJSON === 'string') {
         try {
-            appState.settings.packages = JSON.parse(appState.settings.packagesJSON);
-            window.__LOCAL_PACKAGES__ = appState.settings.packages;
+            window.appState.settings.packages = JSON.parse(window.appState.settings.packagesJSON);
+            window.__LOCAL_PACKAGES__ = window.appState.settings.packages;
         } catch(e) {
-            appState.settings.packages = [];
+            window.appState.settings.packages = [];
         }
     } 
     // 3. الوضع الافتراضي
-    else if (!appState.settings.packages || !Array.isArray(appState.settings.packages)) {
-        appState.settings.packages = [];
+    else if (!window.appState.settings.packages || !Array.isArray(window.appState.settings.packages)) {
+        window.appState.settings.packages = [];
     }
 
-    return appState.settings.packages;
+    return window.appState.settings.packages;
   }
 
   function ensureStudentForm() {
     const packages = ensurePackagesExist();
-    if (!appState.ui.studentForm) {
-      appState.ui.studentForm = {
+    if (!window.appState.ui.studentForm) {
+      window.appState.ui.studentForm = {
         open: false,
         editId: null,
         name: "",
@@ -104,12 +113,12 @@
         schedule: [],
       };
     }
-    return appState.ui.studentForm;
+    return window.appState.ui.studentForm;
   }
 
   function ensureGroupForm() {
-    if (!appState.ui.groupForm) {
-      appState.ui.groupForm = {
+    if (!window.appState.ui.groupForm) {
+      window.appState.ui.groupForm = {
         open: false,
         editId: null,
         name: "",
@@ -117,12 +126,12 @@
         studentIds: [],
       };
     }
-    return appState.ui.groupForm;
+    return window.appState.ui.groupForm;
   }
 
   function ensurePackageForm() {
-    if (!appState.ui.packageForm) {
-      appState.ui.packageForm = {
+    if (!window.appState.ui.packageForm) {
+      window.appState.ui.packageForm = {
         open: false,
         editId: null,
         name: "",
@@ -130,7 +139,7 @@
         studentIds: [], 
       };
     }
-    return appState.ui.packageForm;
+    return window.appState.ui.packageForm;
   }
 
   // ==========================================
@@ -140,7 +149,7 @@
     const form = ensureStudentForm();
     const packages = ensurePackagesExist();
     if (studentId) {
-      const stu = appState.students.find((s) => s.id === studentId);
+      const stu = window.appState.students.find((s) => s.id === studentId);
       if (stu) {
         form.editId = stu.id;
         form.name = stu.name || "";
@@ -235,10 +244,10 @@
     let tempId = form.editId || `temp-${Date.now()}`;
     
     if (isEdit) {
-      const idx = appState.students.findIndex(s => s.id === form.editId);
-      if(idx !== -1) Object.assign(appState.students[idx], payload);
+      const idx = window.appState.students.findIndex(s => s.id === form.editId);
+      if(idx !== -1) Object.assign(window.appState.students[idx], payload);
     } else {
-      appState.students.push({ ...payload, id: tempId });
+      window.appState.students.push({ ...payload, id: tempId });
     }
 
     form.open = false;
@@ -251,8 +260,8 @@
       } else {
         const addedStudent = await dbModule.addStudent(payload);
         if (addedStudent && addedStudent.id) {
-            const tempIdx = appState.students.findIndex(s => s.id === tempId);
-            if (tempIdx !== -1) appState.students[tempIdx].id = addedStudent.id;
+            const tempIdx = window.appState.students.findIndex(s => s.id === tempId);
+            if (tempIdx !== -1) window.appState.students[tempIdx].id = addedStudent.id;
         }
       }
     } catch (err) {
@@ -263,7 +272,7 @@
   window.deleteStudent = async function (id) {
     if (!window.confirm("هل تريد حذف الطالب وكل بياناته؟")) return;
     
-    appState.students = appState.students.filter(s => s.id !== id);
+    window.appState.students = window.appState.students.filter(s => s.id !== id);
     router.render();
     showToast("تم حذف الطالب");
 
@@ -280,7 +289,7 @@
   window.openGroupForm = function (groupId) {
     const form = ensureGroupForm();
     if (groupId) {
-      const group = appState.groups.find((g) => g.id === groupId);
+      const group = window.appState.groups.find((g) => g.id === groupId);
       if (group) {
         form.editId = group.id;
         form.name = group.name || "";
@@ -339,10 +348,10 @@
     let tempId = form.editId || `temp-grp-${Date.now()}`;
 
     if (isEdit) {
-      const idx = appState.groups.findIndex(g => g.id === form.editId);
-      if(idx !== -1) Object.assign(appState.groups[idx], payload);
+      const idx = window.appState.groups.findIndex(g => g.id === form.editId);
+      if(idx !== -1) Object.assign(window.appState.groups[idx], payload);
     } else {
-      appState.groups.push({ ...payload, id: tempId });
+      window.appState.groups.push({ ...payload, id: tempId });
     }
 
     form.open = false;
@@ -355,8 +364,8 @@
       } else {
         const addedGroup = await dbModule.addGroup(payload);
         if (addedGroup && addedGroup.id) {
-            const tempIdx = appState.groups.findIndex(g => g.id === tempId);
-            if (tempIdx !== -1) appState.groups[tempIdx].id = addedGroup.id;
+            const tempIdx = window.appState.groups.findIndex(g => g.id === tempId);
+            if (tempIdx !== -1) window.appState.groups[tempIdx].id = addedGroup.id;
         }
       }
     } catch (err) {
@@ -367,7 +376,7 @@
   window.deleteGroup = async function (id) {
     if (!window.confirm("هل تريد حذف المجموعة؟")) return;
     
-    appState.groups = appState.groups.filter(g => g.id !== id);
+    window.appState.groups = window.appState.groups.filter(g => g.id !== id);
     router.render();
     showToast("تم حذف المجموعة");
 
@@ -390,7 +399,7 @@
         form.editId = pkg.id;
         form.name = pkg.name || "";
         form.price = pkg.price || 70;
-        form.studentIds = (appState.students || []).filter(s => s.packageId === pkg.id).map(s => s.id);
+        form.studentIds = (window.appState.students || []).filter(s => s.packageId === pkg.id).map(s => s.id);
       }
     } else {
       form.editId = null;
@@ -445,13 +454,12 @@
       packages.push(pkgData);
     }
 
-    // 🚀 تحديث محلي مضاعف لضمان الاستقرار
-    appState.settings.packages = packages;
-    appState.settings.packagesJSON = JSON.stringify(packages);
+    window.appState.settings.packages = packages;
+    window.appState.settings.packagesJSON = JSON.stringify(packages);
     window.__LOCAL_PACKAGES__ = packages;
     
     const studentsToUpdate = form.studentIds || [];
-    (appState.students || []).forEach((stu) => {
+    (window.appState.students || []).forEach((stu) => {
         if (studentsToUpdate.includes(stu.id)) {
             stu.packageId = pkgData.id;
             stu.sessionPrice = pkgData.price;
@@ -465,11 +473,10 @@
     router.render();
     showToast("تم حفظ الباقة بنجاح");
 
-    // الحفظ في الخلفية
     try {
-      await dbModule.saveSettings(appState.settings);
+      await dbModule.saveSettings(window.appState.settings);
       
-      (appState.students || []).forEach((stu) => {
+      (window.appState.students || []).forEach((stu) => {
           if (studentsToUpdate.includes(stu.id) || stu.packageId === pkgData.id || stu.packageId === "") {
               dbModule.updateStudent(stu.id, { packageId: stu.packageId, sessionPrice: stu.sessionPrice }).catch(e => console.error(e));
           }
@@ -483,15 +490,15 @@
     if (!window.confirm("هل تريد حذف هذه الباقة؟")) return;
     
     let packages = ensurePackagesExist().filter(p => p.id !== id);
-    appState.settings.packages = packages;
-    appState.settings.packagesJSON = JSON.stringify(packages);
+    window.appState.settings.packages = packages;
+    window.appState.settings.packagesJSON = JSON.stringify(packages);
     window.__LOCAL_PACKAGES__ = packages;
     
     router.render();
     showToast("تم حذف الباقة");
 
     try {
-      await dbModule.saveSettings(appState.settings); 
+      await dbModule.saveSettings(window.appState.settings); 
     } catch (err) {
       console.error(err);
     }
@@ -504,21 +511,20 @@
     const defaultLimit = parseInt(document.getElementById("settings-limit").value, 10);
     const accountingPhone = document.getElementById("settings-phone").value.trim();
 
-    // التقاط بيانات المظهر والاسم المضافين حديثاً
-    const teacherName = document.getElementById("settings-teacher-name") ? document.getElementById("settings-teacher-name").value.trim() : (appState.settings.teacherName || "");
-    const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (appState.settings.centerName || "");
+    const teacherName = document.getElementById("settings-teacher-name") ? document.getElementById("settings-teacher-name").value.trim() : (window.appState.settings.teacherName || "");
+    const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (window.appState.settings.centerName || "");
 
-    appState.settings.defaultLimit = isNaN(defaultLimit) ? 12 : defaultLimit;
-    appState.settings.accountingPhone = accountingPhone;
-    appState.settings.teacherName = teacherName;
-    appState.settings.centerName = centerName;
-    appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
+    window.appState.settings.defaultLimit = isNaN(defaultLimit) ? 12 : defaultLimit;
+    window.appState.settings.accountingPhone = accountingPhone;
+    window.appState.settings.teacherName = teacherName;
+    window.appState.settings.centerName = centerName;
+    window.appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
     
     router.render(); 
     showToast("تم حفظ الإعدادات الأساسية");
 
     try {
-      await dbModule.saveSettings(appState.settings);
+      await dbModule.saveSettings(window.appState.settings);
     } catch (err) {
       console.error(err);
     }
@@ -552,10 +558,10 @@
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:#065f46;"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>ربط الطلاب بهذه الباقة (اختياري)</div>
           
-          ${(!appState.students || appState.students.length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
+          ${(!window.appState.students || window.appState.students.length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
           
           <div class="d-grid gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
-            ${(appState.students || [])
+            ${(window.appState.students || [])
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:10px;background:white;border-radius:10px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;">
@@ -695,10 +701,10 @@
           <div class="account-input-line"></div>
         </div>
 
-        <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212,175,55,0.4);">
+        <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212, 175, 55, 0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:var(--text-primary);"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>اختر طلاب المجموعة</div>
           <div class="d-grid gap-3">
-            ${(appState.students || [])
+            ${(window.appState.students || [])
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.6);border-radius:12px;border:1px solid rgba(0,0,0,0.03);cursor:pointer;transition:all 0.2s;">
@@ -733,14 +739,14 @@
               <div style="font-size: 12px; color: var(--text-muted);">إراحة العين في الإضاءة المنخفضة</div>
             </div>
             <label class="switch">
-              <input type="checkbox" ${appState.settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
+              <input type="checkbox" ${window.appState.settings && window.appState.settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
               <span class="slider round"></span>
             </label>
           </div>
           <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px;">
             <label style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted);">اللون الأساسي للمنصة</label>
             <div style="display: flex; gap: 10px; align-items: center;">
-              <input type="color" value="${appState.settings.themeColor}" onchange="updateThemeColor(this.value)" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0;">
+              <input type="color" value="${window.appState.settings && window.appState.settings.themeColor ? window.appState.settings.themeColor : '#0F9D7A'}" onchange="updateThemeColor(this.value)" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0;">
               <button class="btn btn-outline" onclick="updateThemeColor('#0F9D7A'); router.render();">استعادة الافتراضي</button>
             </div>
           </div>
@@ -751,25 +757,25 @@
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
         <div class="form-group mb-4 exec-animate" style="--stagger: 2.1;">
-          <input id="settings-teacher-name" type="text" class="form-control account-custom-input" value="${appState.settings.teacherName || ''}" placeholder=" " />
+          <input id="settings-teacher-name" type="text" class="form-control account-custom-input" value="${window.appState.settings && window.appState.settings.teacherName ? window.appState.settings.teacherName : ''}" placeholder=" " />
           <label class="form-label" for="settings-teacher-name">اسم المعلم (يظهر في التوقيع)</label>
           <div class="account-input-line"></div>
         </div>
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 2.2;">
-          <input id="settings-center-name" type="text" class="form-control account-custom-input" value="${appState.settings.centerName || ''}" placeholder=" " />
+          <input id="settings-center-name" type="text" class="form-control account-custom-input" value="${window.appState.settings && window.appState.settings.centerName ? window.appState.settings.centerName : ''}" placeholder=" " />
           <label class="form-label" for="settings-center-name">اسم إدارة الحلقة</label>
           <div class="account-input-line"></div>
         </div>
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 2.3;">
-          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit !== undefined ? appState.settings.defaultLimit : 12}" placeholder=" " />
+          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${window.appState.settings && window.appState.settings.defaultLimit !== undefined ? window.appState.settings.defaultLimit : 12}" placeholder=" " />
           <label class="form-label" for="settings-limit">الحد الافتراضي للباقة (عدد الحصص الكلي)</label>
           <div class="account-input-line"></div>
         </div>
         
         <div class="form-group mb-4 exec-animate" style="--stagger: 2.4;">
-          <input id="settings-phone" class="form-control account-custom-input" dir="ltr" style="text-align: right;" value="${appState.settings.accountingPhone || ''}" placeholder=" " />
+          <input id="settings-phone" class="form-control account-custom-input" dir="ltr" style="text-align: right;" value="${window.appState.settings && window.appState.settings.accountingPhone ? window.appState.settings.accountingPhone : ''}" placeholder=" " />
           <label class="form-label" for="settings-phone">رقم المحاسب (واتساب)</label>
           <div class="account-input-line"></div>
         </div>
@@ -793,7 +799,7 @@
         
         <div class="d-grid gap-3">
           ${packages.map((p, index) => {
-            const stuCount = (appState.students || []).filter(s => s.packageId === p.id).length;
+            const stuCount = (window.appState.students || []).filter(s => s.packageId === p.id).length;
             return `
             <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
@@ -812,17 +818,17 @@
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${(appState.students || []).length})
+            <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${(window.appState.students || []).length})
           </h3>
           <button type="button" class="btn btn-primary" onclick="openStudentForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>طالب جديد
           </button>
         </div>
         
-        ${(!appState.students || appState.students.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا يوجد طلاب مسجلين بعد.</div>` : ""}
+        ${(!window.appState.students || window.appState.students.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا يوجد طلاب مسجلين بعد.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${(appState.students || [])
+          ${(window.appState.students || [])
             .map(
               (s, index) => {
                 const pkg = packages.find(p => p.id === s.packageId);
@@ -853,19 +859,19 @@
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${(appState.groups || []).length})
+            <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${(window.appState.groups || []).length})
           </h3>
           <button type="button" class="btn btn-primary" onclick="openGroupForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>مجموعة جديدة
           </button>
         </div>
         
-        ${(!appState.groups || appState.groups.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد مجموعات حالياً.</div>` : ""}
+        ${(!window.appState.groups || window.appState.groups.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد مجموعات حالياً.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${(appState.groups || [])
+          ${(window.appState.groups || [])
             .map((g, index) => {
-              const members = (appState.students || []).filter((s) => g.studentIds?.includes(s.id));
+              const members = (window.appState.students || []).filter((s) => g.studentIds?.includes(s.id));
               const names = members.map((m) => m.name).join("، ");
               return `
                 <div class="card-soft exec-animate" style="--stagger: ${9 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease;">
@@ -908,5 +914,10 @@
     return;
   };
 
-  if (typeof applyTheme === 'function') applyTheme();
+  // تشغيل آمن عند التحميل لا يسبب انهيار السكريبت
+  try {
+    if (typeof applyTheme === 'function') applyTheme();
+  } catch (e) {
+    console.log("AppState not ready yet, theme will apply on render.");
+  }
 })();
