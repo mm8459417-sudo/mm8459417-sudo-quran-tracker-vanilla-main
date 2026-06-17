@@ -759,3 +759,47 @@ body.dark-mode .toast-pill {
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
 }
+/* ══════════════════════════════════════════
+   تظبيط البانر العلوي (Hero) وأيقونات العناوين
+   ══════════════════════════════════════════ */
+
+/* 1. تظبيط زرار التاريخ وزرار التحليلات في الهيرو */
+body.dark-mode .premium-hero__date-pill {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-mode .btn-glass {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-mode .btn-glass:hover {
+  background: rgba(30, 41, 59, 0.95) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* تخفيف الإضاءة البيضاء اللي كانت عاملة ضباب على البانر */
+body.dark-mode .premium-hero__glass {
+  background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 70%) !important;
+}
+
+/* 2. تظبيط الدوائر الفاتحة اللي ورا أيقونات العناوين الكبيرة */
+body.dark-mode .dash-form-header__avatar,
+body.dark-mode .dash-picker-header__icon {
+  background-color: rgba(15, 157, 122, 0.15) !important; /* لون زمردي شفاف هادي ومريح */
+  border: 1px solid rgba(15, 157, 122, 0.2) !important;
+  color: var(--emerald-light) !important; /* الأيقونة نفسها هتنور زمردي فاتح */
+}
+
+/* التغلب على أي لون خلفية فاتح إضافي في الأيقونات */
+body.dark-mode [style*="background: var(--emerald-bg)"],
+body.dark-mode [style*="background:var(--emerald-bg)"],
+body.dark-mode [style*="background: var(--emerald-50)"],
+body.dark-mode [style*="background: #F0FDF4"],
+body.dark-mode [style*="background:#F0FDF4"] {
+  background-color: rgba(15, 157, 122, 0.15) !important;
+  border: 1px solid rgba(15, 157, 122, 0.2) !important;
+}
