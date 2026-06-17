@@ -12,20 +12,31 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-  <!-- Phosphor Icons (Premium Professional Icons) -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <!-- Premium Design System -->
   <link rel="stylesheet" href="css/rafiq-tokens.css" />
   <link rel="stylesheet" href="css/rafiq-components.css" />
   <link rel="stylesheet" href="css/rafiq-pages.css" />
 </head>
 
 <body>
+  <script>
+    try {
+      const localData = localStorage.getItem('appState') || localStorage.getItem('app_state');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (parsed.settings && parsed.settings.darkMode) {
+          document.body.classList.add('dark-mode');
+        }
+      }
+    } catch (e) {
+      console.error("Theme quick-check error:", e);
+    }
+  </script>
+
   <a class="skip-link" href="#app-main">تخطي إلى المحتوى</a>
   <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
   <aside id="app-sidebar" class="app-sidebar hidden"></aside>
