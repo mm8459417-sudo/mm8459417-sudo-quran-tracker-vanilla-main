@@ -1,39 +1,4 @@
-// ==========================================
-// 1. نظام السكرتير الذكي (الإشعار العائم - تصميم نظيف وفاتح)
-// ==========================================
-function getSmartAlerts() {
-  const alerts = [];
-  const now = Date.now();
-  const weekSessions = appState.sessions.filter(s => new Date(s.date).getTime() >= now - 7 * 86400000);
-  
-  appState.students.forEach(student => {
-    const studentSessions = weekSessions.filter(s => s.participant && s.participant.id === student.id);
-    if (studentSessions.length > 0) {
-      const avg = studentSessions.reduce((sum, s) => sum + (s.participant.overall || 0), 0) / studentSessions.length;
-      if (avg >= 4.5) {
-        alerts.push({ type: 'success', icon: 'ph-star', title: 'مرشح للتكريم', message: `الطالب ${student.name} أداؤه ممتاز (${avg.toFixed(1)}/5).` });
-      } else if (avg <= 3) {
-        alerts.push({ type: 'warning', icon: 'ph-warning-circle', title: 'يحتاج متابعة', message: `مستوى ${student.name} تراجع مؤخراً.` });
-      }
-    }
-  });
 
-  if (weekSessions.length === 0 && appState.students.length > 0) {
-    alerts.push({ type: 'danger', icon: 'ph-clock', title: 'تذكير', message: 'لم تسجل أي جلسات هذا الأسبوع.' });
-  }
-
-  // رسالة ترحيب
-  if (alerts.length === 0) {
-    alerts.push({ 
-      type: 'success', 
-      icon: 'ph-sparkle', 
-      title: 'جاهز للعمل', 
-      message: 'كل شيء على ما يرام يا معلمي، المنصة جاهزة لتسجيل إنجازات اليوم!' 
-    });
-  }
-
-  return alerts;
-}
 
 window.showSmartSecretaryPopup = function() {
   const alerts = getSmartAlerts();
