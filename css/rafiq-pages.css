@@ -1825,3 +1825,17 @@ body.dark-mode .royal-cert,
 body.dark-mode .cert-preview-container * {
   /* ممنوع التغيير هنا */
 }
+/* ── تأثير الـ Hover لقوائم الطلاب والعناصر التفاعلية في الدارك مود ── */
+body.dark-mode .dash-item:hover,
+body.dark-mode .nav-item:hover,
+body.dark-mode .bottom-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  transform: translateX(-4px); /* بيحرك العنصر سنة صغيرة يمين عشان يدي إحساس بالتفاعل */
+  transition: all 0.3s ease;
+}
+
+/* تظبيط شكل العنصر النشط (Active) عشان ما يختلطش بالـ Hover */
+body.dark-mode .dash-item.active,
+body.dark-mode .nav-item.active {
+  background-color: rgba(15, 157, 122, 0.15) !important;
+}
