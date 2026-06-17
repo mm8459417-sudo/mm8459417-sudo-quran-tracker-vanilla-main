@@ -668,3 +668,48 @@ body.dark-mode .royal-cert,
 body.dark-mode .cert-preview-container * {
   /* ممنوع الدخول للدارك مود هنا للحفاظ على جودة الطباعة */
 }
+/* ── حل مشكلة الأيقونات (Phosphor Icons) ── */
+/* إجبار الأيقونات إنها تاخد لون النص الفاتح في الدارك مود لو كانت واخده لون غامق ثابت */
+body.dark-mode i[class^="ph-"],
+body.dark-mode .bottom-nav-item__icon,
+body.dark-mode .nav-item__icon {
+  color: inherit !important;
+}
+
+/* لو في أيقونات واخده لون "زمردي غامق" ثابت، نقلبها للزمردي الفاتح عشان تنور */
+body.dark-mode [style*="color: var(--emerald-dark)"],
+body.dark-mode [style*="color:var(--emerald-dark)"],
+body.dark-mode [style*="color: #0B3D2E"],
+body.dark-mode [style*="color:#0B3D2E"] {
+  color: var(--emerald-light) !important;
+}
+
+/* ── حل مشكلة النصوص الباهتة أو الثابتة ── */
+body.dark-mode .stat-val,
+body.dark-mode .account-name-display,
+body.dark-mode .dash-hero__name {
+  color: var(--text-primary) !important;
+}
+
+body.dark-mode .stat-lbl,
+body.dark-mode .dash-hero__subtitle,
+body.dark-mode .account-welcome {
+  color: var(--text-secondary) !important;
+}
+
+/* إجبار خلفيات بعض الكروت المستعصية (زي رسائل الخطأ أو التنبيهات) */
+body.dark-mode .login-error,
+body.dark-mode .account-logout-card {
+  background-color: rgba(220, 38, 38, 0.1) !important; /* أحمر شفاف هادي */
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  color: #FCA5A5 !important;
+}
+
+body.dark-mode .account-logout-btn {
+  background-color: transparent !important;
+  color: #FCA5A5 !important;
+}
+
+body.dark-mode .account-logout-btn:hover {
+  background-color: rgba(220, 38, 38, 0.15) !important;
+}
