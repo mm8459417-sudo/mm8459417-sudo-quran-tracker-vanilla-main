@@ -1825,17 +1825,20 @@ body.dark-mode .royal-cert,
 body.dark-mode .cert-preview-container * {
   /* ممنوع التغيير هنا */
 }
-/* ── تأثير الـ Hover لقوائم الطلاب والعناصر التفاعلية في الدارك مود ── */
+/* ── تأثير الـ Hover الإجباري لكل العناصر في الدارك مود ── */
 body.dark-mode .dash-item:hover,
-body.dark-mode .nav-item:hover,
-body.dark-mode .bottom-nav-item:hover {
+body.dark-mode .dash-picker-list .dash-item:hover,
+body.dark-mode .form-check:hover,
+body.dark-mode label.form-check:hover,
+body.dark-mode [class*="dash-item"]:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
-  transform: translateX(-4px); /* بيحرك العنصر سنة صغيرة يمين عشان يدي إحساس بالتفاعل */
-  transition: all 0.3s ease;
+  border-radius: 8px !important;
+  transform: translateX(-4px) !important;
+  transition: background-color 0.2s ease, transform 0.2s ease !important;
 }
 
-/* تظبيط شكل العنصر النشط (Active) عشان ما يختلطش بالـ Hover */
-body.dark-mode .dash-item.active,
-body.dark-mode .nav-item.active {
-  background-color: rgba(15, 157, 122, 0.15) !important;
+/* حل مشكلة كروت المجموعات والطلاب في صفحة الحساب (Account) */
+body.dark-mode .account-card .card-soft:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
