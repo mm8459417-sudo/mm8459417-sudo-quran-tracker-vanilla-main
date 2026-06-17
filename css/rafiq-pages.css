@@ -1670,118 +1670,138 @@
   line-height: 1.7;
 }
 /* ══════════════════════════════════════════
-   الوضع الليلي (Dark Mode) - رفيق القرآن
+   الوضع الليلي (Dark Mode) - النسخة النهائية المفلترة
    ══════════════════════════════════════════ */
 
 body.dark-mode {
-  /* تعديل الألوان الأساسية للمنصة بالكامل */
-  --bg-primary: #0F172A !important;
-  --bg-secondary: #1E293B !important;
+  /* ── الألوان الأساسية ── */
+  --bg-primary: #0F172A !important;       /* كحلي غامق جداً للخلفية */
+  --bg-secondary: #1E293B !important;     /* كحلي أفتح شوية للكروت */
   --bg-card: rgba(30, 41, 59, 0.85) !important;
   --bg-card-solid: #1E293B !important;
-  --bg-sidebar: rgba(15, 23, 42, 0.95) !important;
+  --bg-sidebar: #0F172A !important;       /* السايدبار ياخد نفس لون الخلفية */
   --bg-glass: rgba(30, 41, 59, 0.6) !important;
 
-  /* تظبيط النصوص المريحة للعين */
+  /* ── النصوص ── */
   --text-primary: #F8FAFC !important;
   --text-secondary: #CBD5E1 !important;
   --text-muted: #94A3B8 !important;
   --text-light: #64748B !important;
 
-  /* تظبيط الحدود والظلال للوضع الليلي */
+  /* ── الحدود ── */
   --border: rgba(255, 255, 255, 0.08) !important;
   --border-light: rgba(255, 255, 255, 0.04) !important;
-  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
   
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
 }
 
-/* ── تظبيط شاشة الـ Login ── */
-body.dark-mode .login-page {
-  background: linear-gradient(160deg, #0F172A 0%, #1E293B 40%, #0B1320 100%) !important;
-}
-body.dark-mode .login-google {
-  background: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-}
-body.dark-mode .login-google:hover {
-  background: var(--bg-card-solid) !important;
+/* ── السايدبار (Sidebar) ── */
+body.dark-mode .app-sidebar {
+  background: var(--bg-sidebar) !important;
+  border-left: 1px solid var(--border) !important;
 }
 
-/* ── تظبيط الكروت والمربعات (Overrides) ── */
-body.dark-mode .dash-stat,
+body.dark-mode .app-sidebar__user {
+  background: var(--bg-secondary) !important; /* لون الكارت بتاع اسم المعلم */
+  border: 1px solid var(--border) !important;
+}
+
+body.dark-mode .app-sidebar__user-name {
+  color: var(--text-primary) !important;
+}
+
+body.dark-mode .nav-item {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-mode .nav-item.active {
+  background: rgba(15, 157, 122, 0.15) !important;
+  color: var(--emerald) !important;
+}
+
+/* زرار تسجيل الخروج في الدارك مود */
+body.dark-mode .btn-danger,
+body.dark-mode .account-logout-btn,
+body.dark-mode [onclick*="logout"] {
+  background-color: rgba(220, 38, 38, 0.1) !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  color: #FCA5A5 !important;
+}
+
+/* ── الكروت العادية ── */
+body.dark-mode .card-soft,
 body.dark-mode .account-card,
 body.dark-mode .dash-form-card,
 body.dark-mode .dash-picker-col,
-body.dark-mode .premium-stat-card {
-  background-color: var(--bg-card-solid) !important;
+body.dark-mode .premium-stat-card,
+body.dark-mode .dash-stat {
+  background-color: var(--bg-secondary) !important;
   border-color: var(--border) !important;
-  box-shadow: var(--shadow-md) !important;
   color: var(--text-primary) !important;
 }
 
-/* ── حقول الإدخال والبحث ── */
-body.dark-mode input.form-control, 
-body.dark-mode select.form-select, 
-body.dark-mode textarea.form-control,
-body.dark-mode .account-custom-input,
-body.dark-mode .dash-search,
-body.dark-mode .dash-date-input,
-body.dark-mode .royal-input {
-  background-color: #0F172A !important;
-  color: #F8FAFC !important;
-  border-color: var(--border) !important;
-}
-
-body.dark-mode input:focus, 
-body.dark-mode select:focus, 
-body.dark-mode textarea:focus,
-body.dark-mode .dash-search:focus-within {
-  border-color: var(--emerald) !important;
-  box-shadow: 0 0 0 2px rgba(15, 157, 122, 0.3) !important;
-}
-
-/* ── تظبيط الأزرار الفرعية والتبويبات ── */
+/* ── الهيدرات اللي منورة أبيض ── */
+/* استهداف أي هيدر أو مربع بياخد كلاس bg-white أو واخد لون أبيض مباشر */
+body.dark-mode .dash-picker-header,
+body.dark-mode .dash-form-header,
+body.dark-mode .dash-item,
 body.dark-mode .dash-tabs,
 body.dark-mode .dash-type-switch {
-  background: var(--bg-secondary) !important;
-}
-body.dark-mode .dash-tab.active,
-body.dark-mode .dash-type-btn.active {
-  background: var(--bg-card-solid) !important;
-  color: var(--emerald) !important;
-}
-body.dark-mode .dash-item:hover,
-body.dark-mode .dash-form-back:hover {
-  background: var(--bg-secondary) !important;
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-light) !important;
 }
 
-/* ── التغلب على أي خلفية بيضاء ثابتة بالـ JS ── */
+body.dark-mode .dash-tab.active,
+body.dark-mode .dash-type-btn.active {
+  background-color: #0F172A !important;
+  color: var(--emerald) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── أيقونات المربعات الصغيرة اللي منورة أبيض ── */
+body.dark-mode .dash-picker-header__icon.group,
+body.dark-mode .dash-item__avatar,
+body.dark-mode .dash-form-header__avatar {
+  background-color: #0F172A !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── المربعات العشوائية اللي منورة أبيض (زي المربعات اللي جنب سجلات الطلاب وتحليل الأداء) ── */
+/* ده بيكوي أي خلفية بيضاء صريحة مكتوبة بالـ Inline Style في الـ JS أو الـ HTML */
 body.dark-mode [style*="background: #fff"], 
-body.dark-mode [style*="background: white"], 
 body.dark-mode [style*="background:#fff"], 
+body.dark-mode [style*="background: white"], 
 body.dark-mode [style*="background:white"],
-body.dark-mode [style*="background: rgba(255,255,255"],
-body.dark-mode [style*="background:rgba(255,255,255"],
-body.dark-mode [style*="background: rgba(255, 255, 255"] {
-  background-color: var(--bg-card-solid) !important;
+body.dark-mode [style*="background-color: #fff"],
+body.dark-mode [style*="background-color:#fff"],
+body.dark-mode [style*="background-color: white"],
+body.dark-mode [style*="background-color:white"],
+body.dark-mode [style*="background: rgba(255, 255, 255"],
+body.dark-mode [style*="background-color: rgba(255, 255, 255"] {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
 }
 
 body.dark-mode [style*="background: #f8fafc"],
 body.dark-mode [style*="background: #f9fafb"],
 body.dark-mode [style*="background: #f3f4f6"],
 body.dark-mode [style*="background: #f0fdf4"],
-body.dark-mode [style*="background:#f0fdf4"],
-body.dark-mode [style*="background: #ecfdf5"] {
-  background-color: var(--bg-secondary) !important;
-  border-color: var(--border) !important;
+body.dark-mode [style*="background: #ecfdf5"],
+body.dark-mode [style*="background: #EEF2FF"],
+body.dark-mode [style*="background:#EEF2FF"] {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--border-light) !important;
 }
 
-/* ── تظبيط ألوان النصوص الثابتة ── */
+/* ── الأيقونات اللي لونها مش مقروء ── */
+body.dark-mode i[class^="ph-"],
+body.dark-mode .bottom-nav-item__icon,
+body.dark-mode .nav-item__icon {
+  color: inherit;
+}
+
+/* ── الألوان السوداء أو الغامقة اللي محتاجة تفتح ── */
 body.dark-mode [style*="color: #1c1c2e"],
 body.dark-mode [style*="color:#1c1c2e"],
 body.dark-mode [style*="color: #475569"],
@@ -1791,9 +1811,17 @@ body.dark-mode [style*="color:#065f46"] {
   color: var(--text-primary) !important;
 }
 
-/* ── استثناء الشهادة والتقارير من الدارك مود ── */
+/* ── شريط التمرير ── */
+body.dark-mode::-webkit-scrollbar-track {
+  background: var(--bg-primary) !important;
+}
+body.dark-mode::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── منع الدارك مود من التقرير والشهادة ── */
 body.dark-mode .report-modal,
 body.dark-mode .royal-cert,
 body.dark-mode .cert-preview-container * {
-  /* ممنوع الدخول للدارك مود في التقارير والشهادات لضمان دقة الطباعة */
+  /* ممنوع التغيير هنا */
 }
