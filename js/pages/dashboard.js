@@ -1,5 +1,3 @@
-
-
 window.showSmartSecretaryPopup = function() {
   const alerts = getSmartAlerts();
   if (alerts.length === 0) return;
