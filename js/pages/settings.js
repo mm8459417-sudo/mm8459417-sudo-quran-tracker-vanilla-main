@@ -32,11 +32,18 @@
     applyTheme();
   };
 
-  window.toggleDarkMode = function (isDark) {
+ window.toggleDarkMode = function (isDark) {
     initThemeState();
     window.appState.settings.darkMode = isDark;
     if (typeof saveData === 'function') saveData();
+    
+    // تحديث فوري للكلاسات
     applyTheme();
+    
+    // حفظ التعديل في الداتابيز (عشان يفضل معاك لما تفتح من جهاز تاني)
+    if (window.dbModule && window.dbModule.saveSettings) {
+        window.dbModule.saveSettings(window.appState.settings).catch(e => console.error(e));
+    }
   };
 
   window.applyTheme = function () {
