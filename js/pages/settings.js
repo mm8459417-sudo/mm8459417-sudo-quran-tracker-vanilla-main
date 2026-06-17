@@ -52,6 +52,22 @@
     } else {
       document.body.classList.remove('dark-mode');
     }
+
+    // تظبيط ألوان الرسوم البيانية (Chart.js) عالمياً بناءً على المظهر الحالي
+    if (window.Chart) {
+      if (darkMode) {
+        Chart.defaults.color = '#CBD5E1'; 
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)'; 
+      } else {
+        Chart.defaults.color = '#475569'; 
+        Chart.defaults.borderColor = 'rgba(15, 23, 42, 0.06)'; 
+      }
+      
+      // لو المستخدم واقف في صفحة الإحصائيات حالياً، بنعمل إعادة رسم للشارت
+      if (window.router && typeof router.render === 'function' && appState.ui && appState.ui.page === 'analysis') {
+        router.render();
+      }
+    }
   };
 
   function adjustColorBrightness(col, amt) {
