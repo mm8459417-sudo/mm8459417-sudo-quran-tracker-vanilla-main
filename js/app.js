@@ -179,8 +179,6 @@ function attachSubscriptions() {
     scheduleRender();
     if (typeof applyTheme === 'function') applyTheme(); // عشان ينفذ الألوان فوراً
   });
-    scheduleRender();
-  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -241,4 +239,3 @@ window.scheduleRender = function() {
     });
   }, 50);
 };
-
