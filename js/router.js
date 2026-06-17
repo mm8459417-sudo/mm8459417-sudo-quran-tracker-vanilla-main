@@ -29,6 +29,12 @@
             <div class="app-user__label">المعلم</div>
             <div class="app-user__name">${teacherName}</div>
           </div>
+          
+          <button class="theme-toggle-btn" onclick="toggleDarkMode(!appState.settings.darkMode)" title="تبديل المظهر">
+            <i class="ph-fill ph-sun sun-icon"></i>
+            <i class="ph-fill ph-moon moon-icon"></i>
+          </button>
+          
           <button class="btn btn-outline btn-sm" onclick="handleLogout()">
             <i class="ph-bold ph-sign-out" style="font-size: 16px;"></i>
             خروج
