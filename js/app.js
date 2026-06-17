@@ -166,11 +166,19 @@ function attachSubscriptions() {
     const fallbackName = user
       ? user.displayName || user.email?.split("@")[0] || "المعلم"
       : "المعلم";
+      
+    // السر هنا: بنعمل دمج (Merge) عشان نحافظ على إعدادات الدارك مود والألوان ومتمسحش
     appState.settings = {
+      ...appState.settings, 
+      ...data,
       teacherName: data.teacherName || fallbackName,
       defaultLimit: data.defaultLimit || 12,
       accountingPhone: data.accountingPhone || "",
     };
+    
+    scheduleRender();
+    if (typeof applyTheme === 'function') applyTheme(); // عشان ينفذ الألوان فوراً
+  });
     scheduleRender();
   });
 }
