@@ -239,3 +239,100 @@ img { max-width: 100%; height: auto; }
   animation: fadeInUp var(--duration-slow) var(--ease-out) forwards;
 }
 .is-visible { opacity: 1; }
+/* ══════════════════════════════════════════
+   الوضع الليلي (Dark Mode) - رفيق القرآن
+   ══════════════════════════════════════════ */
+
+body.dark-mode {
+  /* ── الألوان الغامقة (Override) ── */
+  --bg-primary: #121212 !important;
+  --bg-secondary: #1A1A1A !important;
+  --bg-card: rgba(30, 30, 30, 0.8) !important;
+  --bg-card-solid: #1E1E1E !important;
+  --bg-sidebar: rgba(26, 26, 26, 0.95) !important;
+  --bg-glass: rgba(30, 30, 30, 0.6) !important;
+
+  /* تظبيط النصوص */
+  --text-primary: #F3F4F6 !important;
+  --text-secondary: #D1D5DB !important;
+  --text-muted: #9CA3AF !important;
+  --text-light: #6B7280 !important;
+
+  /* تظبيط الحدود والظلال */
+  --border: rgba(255, 255, 255, 0.08) !important;
+  --border-light: rgba(255, 255, 255, 0.04) !important;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  
+  /* تظبيط الألوان الأساسية عشان تنور على الغامق (لو حابب) */
+  --navy: #E2E8F0 !important; 
+  --navy-light: #CBD5E1 !important;
+  
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* تغميق الخلفيات الثابتة وتعديل الشفافية */
+body.dark-mode::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(15,157,122,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 60% at 80% 110%, rgba(212,175,55,0.02) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(0,0,0,0.5) 0%, transparent 80%) !important;
+}
+
+body.dark-mode::after {
+  opacity: 0.1 !important; /* تقليل سطوع الباترن في الدارك مود */
+}
+
+/* تظبيط حقول الإدخال بشكل عام */
+body.dark-mode input, 
+body.dark-mode select, 
+body.dark-mode textarea {
+  background-color: #121212 !important;
+  color: #F3F4F6 !important;
+  border-color: #333333 !important;
+}
+
+body.dark-mode input:focus, 
+body.dark-mode select:focus, 
+body.dark-mode textarea:focus {
+  border-color: var(--emerald) !important;
+  box-shadow: 0 0 0 2px rgba(15, 157, 122, 0.2) !important;
+}
+
+/* إلغاء أي خلفية بيضاء صريحة مكتوبة Inline جوه الـ JS */
+body.dark-mode [style*="background: #fff"], 
+body.dark-mode [style*="background: white"], 
+body.dark-mode [style*="background:#fff"], 
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: rgba(255,255,255"],
+body.dark-mode [style*="background:rgba(255,255,255"],
+body.dark-mode [style*="background: rgba(255, 255, 255"] {
+  background-color: var(--bg-card-solid) !important;
+}
+
+body.dark-mode [style*="background: #f8fafc"],
+body.dark-mode [style*="background: #f9fafb"],
+body.dark-mode [style*="background: #f3f4f6"],
+body.dark-mode [style*="background: #f0fdf4"],
+body.dark-mode [style*="background:#f0fdf4"],
+body.dark-mode [style*="background: #ecfdf5"] {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-light) !important;
+}
+
+body.dark-mode [style*="color: #1c1c2e"],
+body.dark-mode [style*="color:#1c1c2e"],
+body.dark-mode [style*="color: #475569"],
+body.dark-mode [style*="color:#475569"],
+body.dark-mode [style*="color: #065f46"],
+body.dark-mode [style*="color:#065f46"] {
+  color: var(--text-primary) !important;
+}
+
+/* حماية شاشة التقرير النهائي من الدارك مود */
+body.dark-mode .report-modal,
+body.dark-mode #session-report-box,
+body.dark-mode #session-report-box * {
+  /* التقرير هيفضل أبيض للطباعة */
+}
