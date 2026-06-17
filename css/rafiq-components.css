@@ -803,3 +803,69 @@ body.dark-mode [style*="background:#F0FDF4"] {
   background-color: rgba(15, 157, 122, 0.15) !important;
   border: 1px solid rgba(15, 157, 122, 0.2) !important;
 }
+/* ══════════════════════════════════════════
+   زرار الدارك مود (شمس وقمر) في الهيدر
+   ══════════════════════════════════════════ */
+.theme-toggle-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card-solid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  margin-left: 12px; /* مسافة بينه وبين زرار الخروج */
+  margin-right: 12px;
+}
+
+.theme-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--emerald);
+}
+
+.theme-toggle-btn i {
+  position: absolute;
+  font-size: 1.4rem;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- وضع النهار (إظهار الشمس وإخفاء القمر) --- */
+.theme-toggle-btn .sun-icon {
+  color: #F59E0B; /* برتقالي/أصفر للشمس */
+  transform: translateY(0) rotate(0deg);
+  opacity: 1;
+}
+
+.theme-toggle-btn .moon-icon {
+  color: #FBBF24;
+  transform: translateY(-30px) rotate(-90deg); /* القمر مستخبي فوق */
+  opacity: 0;
+}
+
+/* --- الوضع الليلي (إظهار القمر وإخفاء الشمس) --- */
+body.dark-mode .theme-toggle-btn {
+  background: #1E293B !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body.dark-mode .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #FBBF24 !important;
+}
+
+body.dark-mode .theme-toggle-btn .sun-icon {
+  transform: translateY(30px) rotate(90deg); /* الشمس بتنزل تحت وتختفي */
+  opacity: 0;
+}
+
+body.dark-mode .theme-toggle-btn .moon-icon {
+  transform: translateY(0) rotate(0deg); /* القمر بينزل في النص */
+  opacity: 1;
+}
