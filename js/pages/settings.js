@@ -9,6 +9,59 @@
     "السبت",
   ];
 
+  // ==========================================
+  // إعدادات المظهر والوضع الليلي (تمت الإضافة هنا)
+  // ==========================================
+  if (!appState.settings) appState.settings = {};
+  if (!appState.settings.teacherName) appState.settings.teacherName = "محمد محمود";
+  if (!appState.settings.centerName) appState.settings.centerName = "إدارة حلقات الصحبة";
+  if (!appState.settings.themeColor) appState.settings.themeColor = "#0F9D7A";
+  if (appState.settings.darkMode === undefined) appState.settings.darkMode = false;
+
+  window.updateSetting = function (key, value) {
+    appState.settings[key] = value;
+    if (typeof saveData === 'function') saveData();
+  };
+
+  window.updateThemeColor = function (color) {
+    appState.settings.themeColor = color;
+    if (typeof saveData === 'function') saveData();
+    applyTheme();
+  };
+
+  window.toggleDarkMode = function (isDark) {
+    appState.settings.darkMode = isDark;
+    if (typeof saveData === 'function') saveData();
+    applyTheme();
+  };
+
+  window.applyTheme = function () {
+    document.documentElement.style.setProperty('--emerald', appState.settings.themeColor);
+    document.documentElement.style.setProperty('--emerald-dark', adjustColorBrightness(appState.settings.themeColor, -20));
+    if (appState.settings.darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  };
+
+  function adjustColorBrightness(col, amt) {
+    let usePound = false;
+    if (col[0] == "#") { col = col.slice(1); usePound = true; }
+    let num = parseInt(col, 16);
+    let r = (num >> 16) + amt;
+    if (r > 255) r = 255; else if (r < 0) r = 0;
+    let b = ((num >> 8) & 0x00FF) + amt;
+    if (b > 255) b = 255; else if (b < 0) b = 0;
+    let g = (num & 0x0000FF) + amt;
+    if (g > 255) g = 255; else if (g < 0) g = 0;
+    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+  }
+
+  // ==========================================
+  // الدوال الأصلية للمنصة
+  // ==========================================
+
   // 🚀 حماية ثلاثية الأبعاد لضمان عدم اختفاء الباقات أبداً
   function ensurePackagesExist() {
     if (!appState.settings) appState.settings = {};
@@ -451,8 +504,14 @@
     const defaultLimit = parseInt(document.getElementById("settings-limit").value, 10);
     const accountingPhone = document.getElementById("settings-phone").value.trim();
 
+    // التقاط بيانات المظهر والاسم المضافين حديثاً
+    const teacherName = document.getElementById("settings-teacher-name") ? document.getElementById("settings-teacher-name").value.trim() : (appState.settings.teacherName || "");
+    const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (appState.settings.centerName || "");
+
     appState.settings.defaultLimit = isNaN(defaultLimit) ? 12 : defaultLimit;
     appState.settings.accountingPhone = accountingPhone;
+    appState.settings.teacherName = teacherName;
+    appState.settings.centerName = centerName;
     appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
     
     router.render(); 
@@ -466,7 +525,7 @@
   };
 
   // ==========================================
-  // Renders (✅ تم إضافة type="button" للجميع لمنع الـ Refresh)
+  // Renders
   // ==========================================
   function renderPackageForm(form) {
     return `
@@ -665,28 +724,61 @@
     const packages = ensurePackagesExist();
     
     return `
-      <!-- SYSTEM SETTINGS -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 1; padding: 32px !important;">
+        <h3 class="account-section-title"><i class="ph-duotone ph-palette" style="margin-left:8px;"></i>المظهر والألوان</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px;">
+            <div>
+              <div style="font-weight: bold; font-size: 14px; color: var(--text-primary);">الوضع الليلي (Dark Mode)</div>
+              <div style="font-size: 12px; color: var(--text-muted);">إراحة العين في الإضاءة المنخفضة</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" ${appState.settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px;">
+            <label style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted);">اللون الأساسي للمنصة</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="color" value="${appState.settings.themeColor}" onchange="updateThemeColor(this.value)" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0;">
+              <button class="btn btn-outline" onclick="updateThemeColor('#0F9D7A'); router.render();">استعادة الافتراضي</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 2; padding: 32px !important;">
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
-        <div class="form-group mb-4 exec-animate" style="--stagger: 2;">
+        <div class="form-group mb-4 exec-animate" style="--stagger: 2.1;">
+          <input id="settings-teacher-name" type="text" class="form-control account-custom-input" value="${appState.settings.teacherName || ''}" placeholder=" " />
+          <label class="form-label" for="settings-teacher-name">اسم المعلم (يظهر في التوقيع)</label>
+          <div class="account-input-line"></div>
+        </div>
+
+        <div class="form-group mb-4 exec-animate" style="--stagger: 2.2;">
+          <input id="settings-center-name" type="text" class="form-control account-custom-input" value="${appState.settings.centerName || ''}" placeholder=" " />
+          <label class="form-label" for="settings-center-name">اسم إدارة الحلقة</label>
+          <div class="account-input-line"></div>
+        </div>
+
+        <div class="form-group mb-4 exec-animate" style="--stagger: 2.3;">
           <input id="settings-limit" type="number" class="form-control account-custom-input" value="${appState.settings.defaultLimit !== undefined ? appState.settings.defaultLimit : 12}" placeholder=" " />
           <label class="form-label" for="settings-limit">الحد الافتراضي للباقة (عدد الحصص الكلي)</label>
           <div class="account-input-line"></div>
         </div>
         
-        <div class="form-group mb-4 exec-animate" style="--stagger: 3;">
+        <div class="form-group mb-4 exec-animate" style="--stagger: 2.4;">
           <input id="settings-phone" class="form-control account-custom-input" dir="ltr" style="text-align: right;" value="${appState.settings.accountingPhone || ''}" placeholder=" " />
           <label class="form-label" for="settings-phone">رقم المحاسب (واتساب)</label>
           <div class="account-input-line"></div>
         </div>
         
-        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 4; margin-top: 0;" onclick="saveSettings()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 2.5; margin-top: 0;" onclick="saveSettings()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>حفظ الإعدادات
         </button>
       </div>
 
-      <!-- PACKAGES (TIERS) MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 5; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:#065f46;margin:0;">
@@ -717,7 +809,6 @@
         </div>
       </div>
 
-      <!-- STUDENTS MANAGEMENT -->
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -759,7 +850,6 @@
         </div>
       </div>
 
-      <!-- GROUPS MANAGEMENT -->
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
@@ -814,6 +904,9 @@
   };
 
   window.initSettingsPage = function () {
+    if (typeof applyTheme === 'function') applyTheme();
     return;
   };
+
+  if (typeof applyTheme === 'function') applyTheme();
 })();
