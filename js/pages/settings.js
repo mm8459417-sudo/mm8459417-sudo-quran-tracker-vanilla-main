@@ -45,6 +45,28 @@
         window.dbModule.saveSettings(window.appState.settings).catch(e => console.error(e));
     }
   };
+  // دالة ذكية لزرار الشمس والقمر في الهيدر
+  window.toggleThemeSwitch = function() {
+    if (!window.appState || !window.appState.settings) return;
+    
+    // 1. قراءة الحالة الحالية وعكسها
+    const currentState = !!window.appState.settings.darkMode;
+    const newState = !currentState;
+    
+    // 2. تشغيل الوضع الجديد
+    window.toggleDarkMode(newState);
+    
+    // 3. حفظ الحالة في الذاكرة (عشان متضيعش لو عمل ريفرش)
+    try {
+      localStorage.setItem('appState', JSON.stringify(window.appState));
+    } catch(e) { console.error("Error saving theme to local storage"); }
+    
+    // 4. تحديث زرار (السويتش) اللي موجود جوه صفحة الإعدادات لو كانت مفتوحة
+    const settingsSwitch = document.querySelector('input[type="checkbox"][onchange*="toggleDarkMode"]');
+    if (settingsSwitch) {
+        settingsSwitch.checked = newState;
+    }
+  };
 
   window.applyTheme = function () {
     initThemeState();
