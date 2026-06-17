@@ -1669,3 +1669,131 @@
   color: var(--text-secondary);
   line-height: 1.7;
 }
+/* ══════════════════════════════════════════
+   الوضع الليلي (Dark Mode) - رفيق القرآن
+   ══════════════════════════════════════════ */
+
+body.dark-mode {
+  /* تعديل الألوان الأساسية للمنصة بالكامل */
+  --bg-primary: #0F172A !important;
+  --bg-secondary: #1E293B !important;
+  --bg-card: rgba(30, 41, 59, 0.85) !important;
+  --bg-card-solid: #1E293B !important;
+  --bg-sidebar: rgba(15, 23, 42, 0.95) !important;
+  --bg-glass: rgba(30, 41, 59, 0.6) !important;
+
+  /* تظبيط النصوص المريحة للعين */
+  --text-primary: #F8FAFC !important;
+  --text-secondary: #CBD5E1 !important;
+  --text-muted: #94A3B8 !important;
+  --text-light: #64748B !important;
+
+  /* تظبيط الحدود والظلال للوضع الليلي */
+  --border: rgba(255, 255, 255, 0.08) !important;
+  --border-light: rgba(255, 255, 255, 0.04) !important;
+  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+  
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── تظبيط شاشة الـ Login ── */
+body.dark-mode .login-page {
+  background: linear-gradient(160deg, #0F172A 0%, #1E293B 40%, #0B1320 100%) !important;
+}
+body.dark-mode .login-google {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+body.dark-mode .login-google:hover {
+  background: var(--bg-card-solid) !important;
+}
+
+/* ── تظبيط الكروت والمربعات (Overrides) ── */
+body.dark-mode .dash-stat,
+body.dark-mode .account-card,
+body.dark-mode .dash-form-card,
+body.dark-mode .dash-picker-col,
+body.dark-mode .premium-stat-card {
+  background-color: var(--bg-card-solid) !important;
+  border-color: var(--border) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── حقول الإدخال والبحث ── */
+body.dark-mode input.form-control, 
+body.dark-mode select.form-select, 
+body.dark-mode textarea.form-control,
+body.dark-mode .account-custom-input,
+body.dark-mode .dash-search,
+body.dark-mode .dash-date-input,
+body.dark-mode .royal-input {
+  background-color: #0F172A !important;
+  color: #F8FAFC !important;
+  border-color: var(--border) !important;
+}
+
+body.dark-mode input:focus, 
+body.dark-mode select:focus, 
+body.dark-mode textarea:focus,
+body.dark-mode .dash-search:focus-within {
+  border-color: var(--emerald) !important;
+  box-shadow: 0 0 0 2px rgba(15, 157, 122, 0.3) !important;
+}
+
+/* ── تظبيط الأزرار الفرعية والتبويبات ── */
+body.dark-mode .dash-tabs,
+body.dark-mode .dash-type-switch {
+  background: var(--bg-secondary) !important;
+}
+body.dark-mode .dash-tab.active,
+body.dark-mode .dash-type-btn.active {
+  background: var(--bg-card-solid) !important;
+  color: var(--emerald) !important;
+}
+body.dark-mode .dash-item:hover,
+body.dark-mode .dash-form-back:hover {
+  background: var(--bg-secondary) !important;
+}
+
+/* ── التغلب على أي خلفية بيضاء ثابتة بالـ JS ── */
+body.dark-mode [style*="background: #fff"], 
+body.dark-mode [style*="background: white"], 
+body.dark-mode [style*="background:#fff"], 
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: rgba(255,255,255"],
+body.dark-mode [style*="background:rgba(255,255,255"],
+body.dark-mode [style*="background: rgba(255, 255, 255"] {
+  background-color: var(--bg-card-solid) !important;
+}
+
+body.dark-mode [style*="background: #f8fafc"],
+body.dark-mode [style*="background: #f9fafb"],
+body.dark-mode [style*="background: #f3f4f6"],
+body.dark-mode [style*="background: #f0fdf4"],
+body.dark-mode [style*="background:#f0fdf4"],
+body.dark-mode [style*="background: #ecfdf5"] {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+/* ── تظبيط ألوان النصوص الثابتة ── */
+body.dark-mode [style*="color: #1c1c2e"],
+body.dark-mode [style*="color:#1c1c2e"],
+body.dark-mode [style*="color: #475569"],
+body.dark-mode [style*="color:#475569"],
+body.dark-mode [style*="color: #065f46"],
+body.dark-mode [style*="color:#065f46"] {
+  color: var(--text-primary) !important;
+}
+
+/* ── استثناء الشهادة والتقارير من الدارك مود ── */
+body.dark-mode .report-modal,
+body.dark-mode .royal-cert,
+body.dark-mode .cert-preview-container * {
+  /* ممنوع الدخول للدارك مود في التقارير والشهادات لضمان دقة الطباعة */
+}
