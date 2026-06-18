@@ -31,25 +31,29 @@
     });
   }
 
-  // دالة التصوير الاحترافية والآمنة (بدون تشويه للختم أو النصوص)
+  // الدالة المُعدلة: إجبار الظهور الكامل ومنع الشاشة البيضاء
   async function captureElement(el, scale = 2) {
     await loadDomToImage();
     
     const clone = el.cloneNode(true);
     
-    Object.assign(clone.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '800px',
-      height: 'auto',
-      direction: 'rtl',
-      zIndex: '-9999',
-      margin: '0',
-      boxSizing: 'border-box'
-    });
+    // الحل الجذري للشاشة البيضاء: إجبار العرض والارتفاع والظهور بـ !important
+    clone.style.cssText = `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 800px !important;
+      height: auto !important;
+      direction: rtl !important;
+      z-index: -9999 !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      background-color: #ffffff !important;
+    `;
     
-    // التعديل الآمن: حقن CSS مباشر يلغي الغشاوة والأنيميشن بدون المساس بألوان الختم
     const styleFix = document.createElement('style');
     styleFix.innerHTML = `
       * {
@@ -64,7 +68,8 @@
     document.body.appendChild(clone);
     
     await document.fonts.ready;
-    await new Promise((r) => setTimeout(r, 600)); 
+    // زيادة وقت الانتظار لثانية عشان نضمن إن الزخارف والصور حملت
+    await new Promise((r) => setTimeout(r, 1000)); 
 
     try {
       const width = 800;
@@ -89,25 +94,41 @@
   }
 
   window.exportElementAsImage = async function (el, filename) {
-    const canvas = await captureElement(el, 2);
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = filename;
-    link.click();
+    if(window.showToast) window.showToast("جاري التجهيز بجودة عالية... ⏳");
+    try {
+      const canvas = await captureElement(el, 2);
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = filename;
+      link.click();
+      if(window.showToast) window.showToast("تم التحميل بنجاح! 🎉");
+    } catch(err) {
+      console.error(err);
+      if(window.showToast) window.showToast("حدث خطأ أثناء التصوير.");
+    }
   };
 
   window.exportElementAsPdf = async function (el, filename) {
-    const canvas = await captureElement(el, 2);
-    const imgData = canvas.toDataURL("image/png");
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, "PNG", 0, 5, pdfWidth, pdfHeight);
-    pdf.save(filename);
+    if(window.showToast) window.showToast("جاري تجهيز הـ PDF... ⏳");
+    try {
+      const canvas = await captureElement(el, 2);
+      const imgData = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      // تعديل هنا: l تعني Landscape (بالعرض) عشان الشهادة تملى الصفحة
+      const pdf = new jsPDF("l", "mm", "a4"); 
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(filename);
+      if(window.showToast) window.showToast("تم تحميل הـ PDF! 🎉");
+    } catch(err) {
+      console.error(err);
+      if(window.showToast) window.showToast("حدث خطأ أثناء التصوير.");
+    }
   };
 
   window.exportElementAsGif = async function (el, filename) {
+    if(window.showToast) window.showToast("جاري استخراج الـ GIF... ⏳");
     await loadGifJs();
     const workerUrl = await loadGifWorker();
 
@@ -136,6 +157,7 @@
       link.download = filename;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
+      if(window.showToast) window.showToast("تم التحميل! 🎉");
     });
 
     gif.render();
