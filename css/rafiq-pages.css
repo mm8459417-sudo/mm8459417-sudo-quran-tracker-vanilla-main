@@ -1919,3 +1919,89 @@ body.dark-mode .account-card .card-soft:hover {
     padding: 1rem !important;
   }
 }
+/* ==========================================
+   إصلاحات الـ Header والـ Hero للموبايل
+   ========================================== */
+
+/* تظبيط الـ Header عشان الكلام ميتداخلش */
+@media (max-width: 576px) {
+  .app-header__inner {
+    padding: 0.5rem 1rem !important;
+    gap: 0.5rem !important;
+  }
+  
+  .app-header__meta {
+    gap: 0.5rem !important; /* تقليل المسافة بين الأزرار */
+  }
+
+  /* تصغير زرار الدارك مود وزرار الخروج في الموبايل */
+  .theme-toggle-btn {
+    width: 36px !important;
+    height: 36px !important;
+    margin: 0 4px !important;
+  }
+  
+  .theme-toggle-btn i {
+    font-size: 1.2rem !important;
+  }
+  
+  .app-header__meta .btn-outline {
+    padding: 0.4rem 0.6rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* إخفاء كلمة "المعلم" في الموبايل لتوفير مساحة */
+  .app-user__label {
+    display: none !important;
+  }
+  .app-user__name {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* إصلاح مشكلة اهتزاز الأبعاد عند تغيير الدارك مود في الرئيسية */
+/* المشكلة إن الدارك مود كان بيضيف border أو margin بيغير الأبعاد */
+body.dark-mode .premium-hero,
+.premium-hero {
+  border: 1px solid transparent; /* توحيد الـ border في الحالتين عشان ميحصلش نط */
+  box-sizing: border-box !important;
+  margin-bottom: 1.5rem !important; /* توحيد المسافة السفلية */
+}
+
+/* تظبيط الأزرار في البانر */
+@media (max-width: 576px) {
+  .premium-hero__actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important; /* زرارين جنب بعض بالظبط */
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .premium-hero__actions .btn {
+    width: 100% !important;
+    padding: 0.6rem 0.5rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+/* ==========================================
+   تسريع الـ Sidebar والـ Overlay
+   ========================================== */
+.sidebar-overlay {
+  /* نستخدم opacity و visibility بدل display: none لسرعة الأداء */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-out, visibility 0s linear 0.2s !important;
+  will-change: opacity;
+  background-color: rgba(0, 0, 0, 0.5) !important; /* لون ثابت ميتأثرش بالدارك مود */
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease-out, visibility 0s linear 0s !important;
+}
+
+.app-sidebar {
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  will-change: transform;
+}
