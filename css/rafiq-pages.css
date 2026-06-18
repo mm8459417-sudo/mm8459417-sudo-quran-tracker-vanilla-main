@@ -1842,3 +1842,80 @@ body.dark-mode .account-card .card-soft:hover {
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
+/* ==========================================
+   تظبيط أداء القائمة الجانبية على الموبايل
+   ========================================== */
+
+/* تسريع الأنيميشن ومنع التهنيج */
+.app-sidebar {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  will-change: transform; /* دي بتخلي الموبايل يركز على الأنيميشن بس */
+}
+
+.sidebar-overlay {
+  transition: opacity 0.3s ease !important;
+  will-change: opacity;
+}
+
+/* حل مشكلة القائمة الجانبية في الشاشات الصغيرة */
+@media (max-width: 991px) {
+  .app-sidebar {
+    width: 280px; /* تصغير عرض القائمة شوية عشان تناسب الموبايل */
+    transform: translateX(100%); /* إخفاءها لليمين (لأن المنصة RTL) */
+  }
+
+  .app-sidebar.show {
+    transform: translateX(0); /* إظهارها */
+  }
+
+  .sidebar-overlay {
+    display: none;
+    opacity: 0;
+    z-index: 999;
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+    opacity: 1;
+  }
+}
+/* ==========================================
+   تظبيط أبعاد البانر والأزرار على الموبايل
+   ========================================== */
+@media (max-width: 576px) {
+  .premium-hero {
+    padding: 1.5rem !important; /* تقليل المسافات الداخلية */
+  }
+
+  /* تصغير الخطوط شوية عشان تناسب الشاشة */
+  .premium-hero__title {
+    font-size: 1.8rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .premium-hero__subtitle {
+    font-size: 0.9rem !important;
+  }
+
+  /* تظبيط الأزرار عشان تيجي تحت بعض لو الشاشة صغيرة جداً، أو جنب بعض بشكل متناسق */
+  .premium-hero__actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    justify-content: center !important;
+  }
+
+  /* الأزرار تاخد عرض الشاشة لو الشاشة صغيرة */
+  .premium-hero__actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+    padding: 0.6rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* تظبيط كروت الإحصائيات (إجمالي الطلاب والجلسات) عشان ما تطلعش بره */
+  .stat-card {
+    padding: 1rem !important;
+  }
+}
