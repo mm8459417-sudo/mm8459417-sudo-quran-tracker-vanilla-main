@@ -1842,22 +1842,10 @@ body.dark-mode .account-card .card-soft:hover {
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
-/* ==========================================
-   تظبيط أداء وأبعاد المنصة للموبايل (Mobile Fixes)
-   ========================================== */
-
-@media (max-width: 991px) {
-  /* 1. تسريع القائمة الجانبية (إلغاء الضباب في الموبايل فقط) */
-  .sidebar-overlay {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    transition: opacity 0.2s ease !important;
-  }
-}
-
 @media (max-width: 576px) {
-  /* 2. إصلاحات صارمة للهيدر (الشريط العلوي) */
+  /* ==========================================
+     إصلاحات صارمة للهيدر (الشريط العلوي)
+     ========================================== */
   .app-header {
     padding: 0.5rem !important;
   }
@@ -1871,18 +1859,22 @@ body.dark-mode .account-card .card-soft:hover {
     padding: 0 !important;
   }
 
-  /* تصغير منطقة اسم المعلم وإخفاء المسمى */
-  .app-user {
-    max-width: 110px !important;
+  /* إخفاء بلوك المعلم بالكامل من الهيدر في الموبايل لتوفير مساحة */
+  .app-header .app-user {
+    display: none !important;
   }
-  .app-user__label { 
-    display: none !important; 
+
+  /* تصغير اللوجو وإخفاء الشعار (مسار حفظ هادئ...) في الموبايل */
+  .app-brand p, 
+  .app-brand span,
+  .brand-slogan {
+    display: none !important;
   }
-  .app-user__name { 
-    font-size: 0.85rem !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+  
+  .app-brand img,
+  .app-brand svg {
+    max-width: 100px !important;
+    height: auto !important;
   }
 
   /* تصغير أزرار الهيدر (المظهر والخروج) */
@@ -1906,7 +1898,9 @@ body.dark-mode .account-card .card-soft:hover {
     font-size: 0.75rem !important;
   }
 
-  /* 3. إصلاحات صارمة للبانر الرئيسي (السلام عليكم) والأبعاد */
+  /* ==========================================
+     إصلاحات صارمة للبانر الرئيسي والأبعاد
+     ========================================== */
   .premium-hero {
     padding: 1.2rem 1rem !important;
     margin: 0.5rem !important;
@@ -1950,11 +1944,4 @@ body.dark-mode .account-card .card-soft:hover {
   .stat-card__value {
     font-size: 1.5rem !important;
   }
-}
-
-/* 4. إصلاح مشكلة اهتزاز الأبعاد عند تغيير الدارك مود (يُطبق على كل الشاشات) */
-body.dark-mode .premium-hero,
-.premium-hero {
-  border: 1px solid transparent; 
-  box-sizing: border-box !important;
 }
