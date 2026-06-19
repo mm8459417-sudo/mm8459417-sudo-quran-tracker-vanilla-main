@@ -1811,13 +1811,7 @@ body.dark-mode [style*="color:#065f46"] {
   color: var(--text-primary) !important;
 }
 
-/* ── شريط التمرير ── */
-body.dark-mode::-webkit-scrollbar-track {
-  background: var(--bg-primary) !important;
-}
-body.dark-mode::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15) !important;
-}
+
 
 /* ── منع الدارك مود من التقرير والشهادة ── */
 body.dark-mode .report-modal,
@@ -1994,5 +1988,21 @@ html, body {
     flex-direction: column !important;
     width: 100% !important;
     overflow: hidden !important;
+  
+  /* إصلاح شريط البحث وزرار التصفية (الكل) */
+  .dash-search {
+    padding: 0.5rem !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
-}
+  
+  .dash-search__filter {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.8rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .dash-search__input {
+    min-width: 0 !important;
+  }
