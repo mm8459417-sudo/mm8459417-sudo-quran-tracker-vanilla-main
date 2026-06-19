@@ -255,13 +255,21 @@
 
   function renderStars(path, value) {
     return `
-      <div class="rating-stars">
+      <div class="rating-stars" style="display: flex; gap: 4px; direction: ltr; justify-content: flex-end;">
         ${[1, 2, 3, 4, 5]
           .map(
-            (i) => `<span class="star ${i <= value ? "" : "inactive"}" onclick="setStar('${path}', ${i})">⭐</span>`
+            (i) => `<button type="button" class="star ${i <= value ? "" : "inactive"}" 
+                            onclick="setStar('${path}', ${i})" 
+                            style="background: none; border: none; cursor: pointer; padding: 0; font-size: 24px; transition: 0.2s;">
+                      ⭐
+                    </button>`
           )
           .join("")}
-        <span class="star inactive" onclick="setStar('${path}', 0)">✖</span>
+        <button type="button" class="star inactive" 
+                onclick="setStar('${path}', 0)" 
+                style="background: none; border: none; cursor: pointer; padding: 0; font-size: 20px; color: #cbd5e1; margin-right: 8px;">
+          ✖
+        </button>
       </div>
     `;
   }
@@ -1289,8 +1297,7 @@ window.sendReportWhatsApp = async function () {
           ` : ""}
         `}
 
-        <button class="dash-save-btn" onclick="saveSession()"><i class="ph-duotone ph-floppy-disk" style="margin-left: 8px;"></i>حفظ وتسجيل الجلسة</button>
-      </div>
+<button type="button" class="dash-save-btn" onclick="saveSession()"><i class="ph-duotone ph-floppy-disk" style="margin-left: 8px;"></i>حفظ وتسجيل الجلسة</button>      </div>
 
       <datalist id="surah-list">
         ${SURAH_LIST.map((s) => `<option value="${s.name}"></option>`).join("")}
