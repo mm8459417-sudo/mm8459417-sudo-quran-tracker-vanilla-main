@@ -583,32 +583,7 @@ textarea.form-control {
    الوضع الليلي (Dark Mode) - رفيق القرآن
    ══════════════════════════════════════════ */
 
-body.dark-mode {
-  /* تعديل الألوان الأساسية للمنصة بالكامل */
-  --bg-primary: #0F172A !important;
-  --bg-secondary: #1E293B !important;
-  --bg-card: rgba(30, 41, 59, 0.85) !important;
-  --bg-card-solid: #1E293B !important;
-  --bg-sidebar: rgba(15, 23, 42, 0.95) !important;
-  --bg-glass: rgba(30, 41, 59, 0.6) !important;
 
-  /* تظبيط النصوص المريحة للعين */
-  --text-primary: #F8FAFC !important;
-  --text-secondary: #CBD5E1 !important;
-  --text-muted: #94A3B8 !important;
-  --text-light: #64748B !important;
-
-  /* تظبيط الحدود والظلال للوضع الليلي */
-  --border: rgba(255, 255, 255, 0.08) !important;
-  --border-light: rgba(255, 255, 255, 0.04) !important;
-  --shadow-xs: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
-  
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-}
 
 /* ── تظبيط الهيدر والنافبار ── */
 body.dark-mode .app-header {
@@ -639,17 +614,7 @@ body.dark-mode .dash-search:focus-within {
   box-shadow: 0 0 0 2px rgba(15, 157, 122, 0.3) !important;
 }
 
-/* ── تظبيط الكروت والأزرار ── */
-body.dark-mode .card-soft,
-body.dark-mode .account-card,
-body.dark-mode .dash-form-card,
-body.dark-mode .dash-picker-col,
-body.dark-mode .premium-stat-card {
-  background-color: var(--bg-card-solid) !important;
-  border-color: var(--border) !important;
-  box-shadow: var(--shadow-md) !important;
-  color: var(--text-primary) !important;
-}
+
 
 body.dark-mode .btn-outline {
   background: transparent !important;
@@ -661,20 +626,8 @@ body.dark-mode .btn-outline:hover {
   color: var(--text-primary) !important;
 }
 
-/* ── استثناءات حيوية (التقرير والشهادة) ── */
-body.dark-mode .report-modal,
-body.dark-mode .report-overlay *,
-body.dark-mode .royal-cert,
-body.dark-mode .cert-preview-container * {
-  /* ممنوع الدخول للدارك مود هنا للحفاظ على جودة الطباعة */
-}
-/* ── حل مشكلة الأيقونات (Phosphor Icons) ── */
-/* إجبار الأيقونات إنها تاخد لون النص الفاتح في الدارك مود لو كانت واخده لون غامق ثابت */
-body.dark-mode i[class^="ph-"],
-body.dark-mode .bottom-nav-item__icon,
-body.dark-mode .nav-item__icon {
-  color: inherit !important;
-}
+
+
 
 /* لو في أيقونات واخده لون "زمردي غامق" ثابت، نقلبها للزمردي الفاتح عشان تنور */
 body.dark-mode [style*="color: var(--emerald-dark)"],
