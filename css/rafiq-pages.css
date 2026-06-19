@@ -1943,23 +1943,18 @@ body.dark-mode .account-card .card-soft:hover {
    حل جذري لمشكلة الأبعاد وتجاوز المحتوى (Overflow) في جميع الشاشات
    ========================================== */
 
-/* منع أي خروج عن الشاشة يميناً أو يساراً */
-html, body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-*, *::before, *::after {
-  box-sizing: inherit !important;
-}
-
-/* التأكد إن منطقة المحتوى الرئيسية مش بتزق الشاشة */
-.app-main {
-  width: 100% !important;
-  max-width: 100vw !important;
-  overflow-x: hidden !important;
+/* 1. قفل الشاشة ومنع الـ Overflow (Scroll أفقي) للموبايل فقط */
+@media (max-width: 991px) {
+  html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+  .app-main {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
 }
 
 /* تظبيط القائمة الجانبية (Sidebar) عشان تلزق في اليمين صح لما تفتح */
