@@ -1,6 +1,7 @@
 (function () {
   let gifWorkerUrl = null;
 
+  // 1. نظام التحميل الذكي (Lazy Loading) للمكتبات
   async function loadGifJs() {
     if (window.GIF) return;
     await new Promise((resolve, reject) => {
@@ -31,18 +32,32 @@
     });
   }
 
-  // الدالة المُعدلة: إجبار الظهور الكامل ومنع الشاشة البيضاء
+  async function loadJsPdf() {
+    if (window.jspdf) return;
+    await new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("فشل تحميل مكتبة الـ PDF"));
+      document.head.appendChild(s);
+    });
+  }
+
+  // 2. إصلاح تقطيع الشهادة أثناء التصوير
   async function captureElement(el, scale = 2) {
     await loadDomToImage();
     
     const clone = el.cloneNode(true);
     
-    // الحل الجذري للشاشة البيضاء: إجبار العرض والارتفاع والظهور بـ !important
+    // الحل الجذري للتقطيع: نأخذ العرض الحقيقي للعنصر بدلاً من تثبيته بـ 800px
+    const rect = el.getBoundingClientRect();
+    const actualWidth = rect.width > 800 ? rect.width : 800; // لو الشهادة أعرض من 800، ياخد عرضها
+    
     clone.style.cssText = `
       position: fixed !important;
       top: 0 !important;
       left: 0 !important;
-      width: 800px !important;
+      width: ${actualWidth}px !important; 
       height: auto !important;
       direction: rtl !important;
       z-index: -9999 !important;
@@ -51,7 +66,8 @@
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
-      background-color: #ffffff !important;
+      background-color: transparent !important;
+      overflow: visible !important; /* مهم جداً لمنع قص الأطراف */
     `;
     
     const styleFix = document.createElement('style');
@@ -61,6 +77,11 @@
         transition: none !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
+        max-width: none !important; /* يمنع العناصر الداخلية من الانكماش */
+      }
+      .royal-certificate-wrapper {
+         overflow: visible !important; 
+         background-color: transparent !important;
       }
     `;
     clone.appendChild(styleFix);
@@ -68,21 +89,19 @@
     document.body.appendChild(clone);
     
     await document.fonts.ready;
-    // زيادة وقت الانتظار لثانية عشان نضمن إن الزخارف والصور حملت
     await new Promise((r) => setTimeout(r, 1000)); 
 
     try {
-      const width = 800;
       const height = clone.offsetHeight;
 
       const canvas = await domtoimage.toCanvas(clone, {
-        width: width * scale,
+        width: actualWidth * scale,
         height: height * scale,
-        bgcolor: '#ffffff',
+        bgcolor: '#ffffff', // الحفاظ على خلفية بيضاء لو فيه فراغات
         style: {
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
-          width: `${width}px`,
+          width: `${actualWidth}px`,
           height: `${height}px`,
           margin: '0'
         }
@@ -111,10 +130,12 @@
   window.exportElementAsPdf = async function (el, filename) {
     if(window.showToast) window.showToast("جاري تجهيز הـ PDF... ⏳");
     try {
+      await loadJsPdf(); // تحميل المكتبة فقط عند ضغط الزر
+      
       const canvas = await captureElement(el, 2);
       const imgData = canvas.toDataURL("image/png");
       const { jsPDF } = window.jspdf;
-      // تعديل هنا: l تعني Landscape (بالعرض) عشان الشهادة تملى الصفحة
+      
       const pdf = new jsPDF("l", "mm", "a4"); 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
@@ -129,37 +150,42 @@
 
   window.exportElementAsGif = async function (el, filename) {
     if(window.showToast) window.showToast("جاري استخراج الـ GIF... ⏳");
-    await loadGifJs();
-    const workerUrl = await loadGifWorker();
+    try {
+      await loadGifJs();
+      const workerUrl = await loadGifWorker();
 
-    const SCALE = 1.5;
-    const canvas = await captureElement(el, SCALE);
-    const gif = new window.GIF({
-      workers: 2,
-      quality: 10,
-      width: canvas.width,
-      height: canvas.height,
-      workerScript: workerUrl,
-      background: "#ffffff",
-    });
+      const SCALE = 1.5;
+      const canvas = await captureElement(el, SCALE);
+      const gif = new window.GIF({
+        workers: 2,
+        quality: 10,
+        width: canvas.width,
+        height: canvas.height,
+        workerScript: workerUrl,
+        background: "#ffffff",
+      });
 
-    const frameCount = 12;
-    const delay = 120;
-    for (let i = 0; i < frameCount; i++) {
-      const frameCanvas = await captureElement(el, SCALE);
-      gif.addFrame(frameCanvas, { delay, copy: true });
+      const frameCount = 12;
+      const delay = 120;
+      for (let i = 0; i < frameCount; i++) {
+        const frameCanvas = await captureElement(el, SCALE);
+        gif.addFrame(frameCanvas, { delay, copy: true });
+      }
+
+      gif.on("finished", (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        if(window.showToast) window.showToast("تم التحميل! 🎉");
+      });
+
+      gif.render();
+    } catch (err) {
+      console.error(err);
+      if(window.showToast) window.showToast("حدث خطأ أثناء إنشاء الـ GIF.");
     }
-
-    gif.on("finished", (blob) => {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      if(window.showToast) window.showToast("تم التحميل! 🎉");
-    });
-
-    gif.render();
   };
 })();
