@@ -1945,3 +1945,54 @@ body.dark-mode .account-card .card-soft:hover {
     font-size: 1.5rem !important;
   }
 }
+/* ==========================================
+   حل جذري لمشكلة الأبعاد وتجاوز المحتوى (Overflow) في جميع الشاشات
+   ========================================== */
+
+/* منع أي خروج عن الشاشة يميناً أو يساراً */
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+*, *::before, *::after {
+  box-sizing: inherit !important;
+}
+
+/* التأكد إن منطقة المحتوى الرئيسية مش بتزق الشاشة */
+.app-main {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+/* تظبيط القائمة الجانبية (Sidebar) عشان تلزق في اليمين صح لما تفتح */
+@media (max-width: 991px) {
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important; /* تثبيت في اليمين عشان متطفوش */
+    left: auto !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+  }
+}
+
+/* إصلاح إضافي لجريد الطلاب عشان ميكسرش الشاشة الموبايل */
+@media (max-width: 576px) {
+  .dash-shell {
+    padding-left: 0.8rem !important;
+    padding-right: 0.8rem !important;
+    width: 100% !important;
+  }
+
+  .dash-picker-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+}
