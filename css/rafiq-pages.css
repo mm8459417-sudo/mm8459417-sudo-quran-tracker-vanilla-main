@@ -1984,29 +1984,32 @@ body.dark-mode .account-card .card-soft:hover {
     width: 100% !important;
     overflow: hidden !important;
   
-  /* ==========================================
-     إصلاح مشكلة التابات (الكل، شهر، أسبوع) وشريط البحث
+ /* ==========================================
+     حل جذري لـ (التابات + شريط البحث) عشان ينزلوا تحت بعض
      ========================================== */
      
-  /* إجبار الحاوية اللي شايلة التابات والبحث إنها تفصلهم في سطرين */
-  div:has(> .dash-search),
-  div:has(> .dash-tabs) {
-    flex-wrap: wrap !important;
-    gap: 10px !important;
+  /* الكود ده بيصطاد العلبة الأب اللي شايلة البحث والتابات مع بعض، وبيجبرها تكسر السطر */
+  *:has(> .dash-type-switch):has(> .dash-search),
+  *:has(> .dash-tabs):has(> .dash-search) {
+    display: flex !important;
+    flex-wrap: wrap !important; /* ده السر اللي بينزلهم سطر جديد */
+    gap: 12px !important;
   }
   
-  /* التابات (أسبوع، شهر، الكل) تاخد عرض الشاشة في سطر لوحدها */
+  /* التابات (أسبوع، شهر، الكل) تاخد عرض الشاشة بالكامل فوق */
+  .dash-type-switch, 
   .dash-tabs {
-    width: 100% !important;
     flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
     margin: 0 !important;
-    justify-content: flex-start !important; /* عشان الزراير تبدأ من اليمين */
   }
   
-  /* شريط البحث ياخد عرض الشاشة في سطر لوحده تحت التابات */
+  /* شريط البحث ياخد عرض الشاشة بالكامل تحتها */
   .dash-search {
-    width: 100% !important;
     flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
     margin: 0 !important;
     box-sizing: border-box !important;
     padding: 0.5rem 0.8rem !important;
