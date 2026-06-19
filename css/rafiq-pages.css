@@ -1985,34 +1985,29 @@ body.dark-mode .account-card .card-soft:hover {
     overflow: hidden !important;
   
   /* ==========================================
-     إصلاح شريط البحث وزرار (الكل) النهائي
+     إصلاح مشكلة التابات (الكل، شهر، أسبوع) وشريط البحث
      ========================================== */
+     
+  /* إجبار الحاوية اللي شايلة التابات والبحث إنها تفصلهم في سطرين */
+  div:has(> .dash-search),
+  div:has(> .dash-tabs) {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  /* التابات (أسبوع، شهر، الكل) تاخد عرض الشاشة في سطر لوحدها */
+  .dash-tabs {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    margin: 0 !important;
+    justify-content: flex-start !important; /* عشان الزراير تبدأ من اليمين */
+  }
+  
+  /* شريط البحث ياخد عرض الشاشة في سطر لوحده تحت التابات */
   .dash-search {
-    display: flex !important;
-    align-items: center !important;
     width: 100% !important;
-    max-width: 100% !important;
+    flex: 1 1 100% !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    padding: 0.5rem !important;
-    gap: 8px !important;
-    overflow: hidden !important;
-  }
-  
-  .dash-search__icon {
-    flex-shrink: 0 !important; /* نمنع أيقونة البحث إنها تنضغط */
-  }
-  
-  .dash-search__input {
-    flex: 1 1 50px !important; /* السر هنا: يجبر حقل البحث يصغر لو الشاشة ضيقة */
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-  
-  .dash-search__filter {
-    flex: 0 0 70px !important; /* عرض ثابت للزرار 70 بيكسل ميتغيرش */
-    max-width: 70px !important;
-    padding: 0.3rem 0 !important;
-    text-align: center !important;
-    font-size: 0.8rem !important;
-    white-space: nowrap !important; /* يمنع الكلمة تنزل سطرين */
+    padding: 0.5rem 0.8rem !important;
   }
