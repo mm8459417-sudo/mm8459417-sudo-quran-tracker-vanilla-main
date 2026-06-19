@@ -1985,35 +1985,34 @@ body.dark-mode .account-card .card-soft:hover {
     overflow: hidden !important;
   
   /* ==========================================
-     إصلاح شريط البحث وزرار (الكل) بشكل نهائي
+     إصلاح شريط البحث وزرار (الكل) النهائي
      ========================================== */
   .dash-search {
     display: flex !important;
+    align-items: center !important;
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    padding: 0.4rem 0.6rem !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    padding: 0.5rem !important;
     gap: 8px !important;
-    overflow: hidden !important; /* لمنع أي طرد لبره الشاشة */
+    overflow: hidden !important;
+  }
+  
+  .dash-search__icon {
+    flex-shrink: 0 !important; /* نمنع أيقونة البحث إنها تنضغط */
   }
   
   .dash-search__input {
-    flex: 1 1 0% !important; /* السطر ده بيجبر حقل البحث إنه يصغر وميزقش الزرار */
+    flex: 1 1 50px !important; /* السر هنا: يجبر حقل البحث يصغر لو الشاشة ضيقة */
     min-width: 0 !important;
     width: 100% !important;
-    font-size: 0.85rem !important;
   }
   
   .dash-search__filter {
-    flex: 0 0 auto !important;
-    width: 75px !important; /* حجم ثابت للزرار عشان ميطلعش بره */
-    max-width: 75px !important;
-    padding: 0.3rem !important;
-    font-size: 0.8rem !important;
+    flex: 0 0 70px !important; /* عرض ثابت للزرار 70 بيكسل ميتغيرش */
+    max-width: 70px !important;
+    padding: 0.3rem 0 !important;
     text-align: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important; /* يمنع الكلمة تنزل سطرين */
   }
