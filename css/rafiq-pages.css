@@ -1984,20 +1984,36 @@ body.dark-mode .account-card .card-soft:hover {
     width: 100% !important;
     overflow: hidden !important;
   
-  /* إصلاح شريط البحث وزرار التصفية (الكل) */
+  /* ==========================================
+     إصلاح شريط البحث وزرار (الكل) بشكل نهائي
+     ========================================== */
   .dash-search {
-    padding: 0.5rem !important;
-    gap: 0.5rem !important;
+    display: flex !important;
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    padding: 0.4rem 0.6rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    gap: 8px !important;
+    overflow: hidden !important; /* لمنع أي طرد لبره الشاشة */
+  }
+  
+  .dash-search__input {
+    flex: 1 1 0% !important; /* السطر ده بيجبر حقل البحث إنه يصغر وميزقش الزرار */
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: 0.85rem !important;
   }
   
   .dash-search__filter {
-    padding: 0.3rem 0.5rem !important;
+    flex: 0 0 auto !important;
+    width: 75px !important; /* حجم ثابت للزرار عشان ميطلعش بره */
+    max-width: 75px !important;
+    padding: 0.3rem !important;
     font-size: 0.8rem !important;
-    flex-shrink: 0 !important;
-  }
-
-  .dash-search__input {
-    min-width: 0 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
