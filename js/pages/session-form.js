@@ -254,19 +254,22 @@
   }
 
   function renderStars(path, value) {
+    // هنعمل id مميز لكل مجموعة نجوم عشان نقدر نحدثها لوحدها
+    const containerId = "stars-" + path.replace(/\./g, "-");
+    
     return `
-      <div class="rating-stars" style="display: flex; gap: 4px; direction: ltr; justify-content: flex-end;">
+      <div id="${containerId}" class="rating-stars" style="display: flex; gap: 4px; direction: ltr; justify-content: flex-end;">
         ${[1, 2, 3, 4, 5]
           .map(
             (i) => `<button type="button" class="star ${i <= value ? "" : "inactive"}" 
-                            onclick="setStar('${path}', ${i})" 
+                            onclick="updateStarsUI('${path}', ${i}, '${containerId}')" 
                             style="background: none; border: none; cursor: pointer; padding: 0; font-size: 24px; transition: 0.2s;">
                       ⭐
                     </button>`
           )
           .join("")}
         <button type="button" class="star inactive" 
-                onclick="setStar('${path}', 0)" 
+                onclick="updateStarsUI('${path}', 0, '${containerId}')" 
                 style="background: none; border: none; cursor: pointer; padding: 0; font-size: 20px; color: #cbd5e1; margin-right: 8px;">
           ✖
         </button>
@@ -305,11 +308,28 @@
     form.islamic.homework = updated;
   }
 
-  window.setStar = function (path, value) {
-    updateFormPath(path, value);
-    router.render();
-  };
 
+
+  // الدالة دي بتحدث قيمة النجوم في البيانات، وبتلون النجوم في الشاشة بدون Re-render!
+  window.updateStarsUI = function(path, value, containerId) {
+    // 1. تحديث القيمة في الـ State
+    updateFormPath(path, value);
+    
+    // 2. تلوين النجوم في الشاشة مباشرة (DOM Manipulation)
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // هنجيب كل زراير النجوم (أول 5 زراير هما النجوم)
+    const buttons = container.querySelectorAll("button");
+    for (let i = 0; i < 5; i++) {
+      if (i < value) {
+        buttons[i].classList.remove("inactive"); // تلوين النجمة
+      } else {
+        buttons[i].classList.add("inactive");    // إخفاء النجمة
+      }
+    }
+  };
+  
   window.updateFormPath = function (path, value) {
     updateFormPath(path, value);
   };
