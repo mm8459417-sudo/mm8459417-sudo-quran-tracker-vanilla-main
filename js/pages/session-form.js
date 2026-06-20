@@ -501,6 +501,18 @@ window.sendReportWhatsApp = async function () {
     showToast("⏳ جاري تجهيز الصورة...");
 
     try {
+      // السطور دي هي اللي بتحل المشكلة: بتجيب المكتبة من النت لو مش موجودة
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+          s.onload = resolve;
+          s.onerror = () => reject(new Error("فشل تحميل مكتبة التصوير"));
+          document.head.appendChild(s);
+        });
+      }
+
+      // دلوقتي نقدر نصور بأمان لأن المكتبة بقت موجودة
       const canvas = await html2canvas(el, { scale: 2, useCORS: true });
       
       canvas.toBlob(async (blob) => {
@@ -518,6 +530,30 @@ window.sendReportWhatsApp = async function () {
             console.log("تم إلغاء المشاركة:", shareErr);
           }
         } 
+        
+        // 2. الخطة البديلة للكمبيوتر
+        try {
+           const item = new ClipboardItem({ "image/png": blob });
+           await navigator.clipboard.write([item]);
+           
+           showToast("✅ تم نسخ الصورة! (افتح الشات واضغط Paste أو Ctrl+V)");
+           
+           setTimeout(() => {
+              window.open(`https://wa.me/`, "_blank");
+           }, 800);
+
+        } catch (clipErr) {
+           console.error("المتصفح يمنع النسخ التلقائي:", clipErr);
+           showToast("❌ جهازك يمنع النسخ المباشر، استخدم زر 'حفظ صورة'.");
+        }
+
+      }, "image/png");
+
+    } catch (err) {
+      console.error("خطأ في توليد الصورة:", err);
+      showToast("❌ فشل تجهيز الصورة.");
+    }
+};
         
         // 2. الخطة البديلة للكمبيوتر (لو المتصفح رفض المشاركة المباشرة للملفات)
         try {
