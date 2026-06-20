@@ -1297,7 +1297,8 @@ window.sendReportWhatsApp = async function () {
           ` : ""}
         `}
 
-<button type="button" class="dash-save-btn" onclick="saveSession()"><i class="ph-duotone ph-floppy-disk" style="margin-left: 8px;"></i>حفظ وتسجيل الجلسة</button>      </div>
+<button class="dash-save-btn" onclick="saveSession()"><i class="ph-duotone ph-floppy-disk" style="margin-left: 8px;"></i>حفظ وتسجيل الجلسة</button>
+</div>
 
       <datalist id="surah-list">
         ${SURAH_LIST.map((s) => `<option value="${s.name}"></option>`).join("")}
