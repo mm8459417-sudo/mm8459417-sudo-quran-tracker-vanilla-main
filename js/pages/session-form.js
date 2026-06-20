@@ -555,30 +555,7 @@ window.sendReportWhatsApp = async function () {
     }
 };
         
-        // 2. الخطة البديلة للكمبيوتر (لو المتصفح رفض المشاركة المباشرة للملفات)
-        try {
-           const item = new ClipboardItem({ "image/png": blob });
-           await navigator.clipboard.write([item]);
-           
-           showToast("✅ تم نسخ الصورة! (افتح الشات واضغط Paste أو Ctrl+V)");
-           
-           // هيفتحلك شاشة الواتساب اللي إنت متعود عليها عشان تختار الشخص وتعمل لصق
-           setTimeout(() => {
-              window.open(`https://wa.me/`, "_blank");
-           }, 800);
-
-        } catch (clipErr) {
-           console.error("المتصفح يمنع النسخ التلقائي:", clipErr);
-           showToast("❌ جهازك يمنع النسخ المباشر، استخدم زر 'حفظ صورة'.");
-        }
-
-      }, "image/png");
-
-    } catch (err) {
-      console.error("خطأ في توليد الصورة:", err);
-      showToast("❌ فشل تجهيز الصورة.");
-    }
-  };
+    
 
   window.closeReport = function () {
     appState.ui.report = null;
