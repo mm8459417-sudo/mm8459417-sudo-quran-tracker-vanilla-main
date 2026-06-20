@@ -663,7 +663,7 @@
           <div class="account-input-line"></div>
         </div>
 
-        <div class="card-soft mb-4 exec-animate" style="--stagger: 6; background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2);">
+       <div class="card-soft mb-4" style="background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2);">
           <div style="font-weight:var(--fw-bold);color:#065f46;margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px;"></i>النظام المالي والمسارات</div>
           
           <div class="mb-3">
