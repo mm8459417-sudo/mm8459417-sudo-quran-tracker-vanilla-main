@@ -552,18 +552,22 @@
   // ==========================================
   // Settings Main
   // ==========================================
-  window.saveSettings = async function () {
-    const defaultLimit = parseInt(document.getElementById("settings-limit").value, 10);
+ window.saveSettings = async function () {
     const accountingPhone = document.getElementById("settings-phone").value.trim();
-
     const teacherName = document.getElementById("settings-teacher-name") ? document.getElementById("settings-teacher-name").value.trim() : (window.appState.settings.teacherName || "");
     const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (window.appState.settings.centerName || "");
+    
+    // قراءة قيمة زرار التشغيل للغياب
+    const enableUnexcusedAbsence = document.getElementById("settings-unexcused-absence") ? document.getElementById("settings-unexcused-absence").checked : false;
 
-    window.appState.settings.defaultLimit = isNaN(defaultLimit) ? 12 : defaultLimit;
     window.appState.settings.accountingPhone = accountingPhone;
     window.appState.settings.teacherName = teacherName;
     window.appState.settings.centerName = centerName;
+    window.appState.settings.enableUnexcusedAbsence = enableUnexcusedAbsence; // حفظ التفعيل
     window.appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
+    
+    // مسح الـ defaultLimit القديم
+    delete window.appState.settings.defaultLimit;
     
     router.render(); 
     showToast("تم حفظ الإعدادات الأساسية");
@@ -655,13 +659,7 @@
 
         <div class="form-group mb-4 exec-animate" style="--stagger: 4;">
           <input class="form-control account-custom-input" value="${form.phone}" oninput="updateStudentFormField('phone', this.value)" dir="ltr" style="text-align: right;" placeholder=" " />
-          <label class="form-label">واتساب ولي الأمر</label>
-          <div class="account-input-line"></div>
-        </div>
-
-        <div class="form-group mb-4 exec-animate" style="--stagger: 5;">
-          <input class="form-control account-custom-input" value="${form.groupLink}" oninput="updateStudentFormField('groupLink', this.value)" dir="ltr" style="text-align: right;" placeholder=" " />
-          <label class="form-label">رابط الجروب (اختياري)</label>
+          <label class="form-label">واتساب ولي الأمر (اختياري)</label>
           <div class="account-input-line"></div>
         </div>
 
@@ -812,17 +810,22 @@
           <label class="form-label" for="settings-center-name">اسم إدارة الحلقة</label>
           <div class="account-input-line"></div>
         </div>
-
-        <div class="form-group mb-4 exec-animate" style="--stagger: 2.3;">
-          <input id="settings-limit" type="number" class="form-control account-custom-input" value="${window.appState.settings && window.appState.settings.defaultLimit !== undefined ? window.appState.settings.defaultLimit : 12}" placeholder=" " />
-          <label class="form-label" for="settings-limit">الحد الافتراضي للباقة (عدد الحصص الكلي)</label>
-          <div class="account-input-line"></div>
-        </div>
         
-        <div class="form-group mb-4 exec-animate" style="--stagger: 2.4;">
+        <div class="form-group mb-4 exec-animate" style="--stagger: 2.3;">
           <input id="settings-phone" class="form-control account-custom-input" dir="ltr" style="text-align: right;" value="${window.appState.settings && window.appState.settings.accountingPhone ? window.appState.settings.accountingPhone : ''}" placeholder=" " />
           <label class="form-label" for="settings-phone">رقم المحاسب (واتساب)</label>
           <div class="account-input-line"></div>
+        </div>
+
+        <div class="exec-animate" style="--stagger: 2.4; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px; margin-bottom: 24px;">
+          <div>
+            <div style="font-weight: bold; font-size: 14px; color: var(--text-primary);">تفعيل الغياب بدون عذر</div>
+            <div style="font-size: 12px; color: var(--text-muted);">إذا تم التفعيل، سيتم إدراج الغياب في الحسابات والشيت الشهري.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="settings-unexcused-absence" ${window.appState.settings && window.appState.settings.enableUnexcusedAbsence ? 'checked' : ''}>
+            <span class="slider round"></span>
+          </label>
         </div>
         
         <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 2.5; margin-top: 0;" onclick="saveSettings()">
