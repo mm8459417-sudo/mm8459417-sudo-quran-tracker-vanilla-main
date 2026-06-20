@@ -342,16 +342,33 @@
     router.render();
   };
 
+  // نظام Debounce لمنع الريفريش المزعج مع كل حرف
+  let searchTimeout;
   window.updateSearchQuery = function (value) {
     appState.ui.searchQuery = value;
-    router.render();
+    
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      router.render();
+      
+      // الكود ده عشان المؤشر (Cursor) يفضل جوه مربع البحث بعد الفلترة وميفصلش منك
+      setTimeout(() => {
+        const searchInput = document.querySelector('.dash-search__input');
+        if (searchInput) {
+          searchInput.focus();
+          const val = searchInput.value;
+          searchInput.value = '';
+          searchInput.value = val;
+        }
+      }, 10);
+      
+    }, 400); // المنصة هتستنى 400 ملي ثانية بعد ما تبطل كتابة عشان تفلتر
   };
 
   window.updateSearchGender = function (value) {
     appState.ui.searchGender = value;
     router.render();
   };
-
   window.selectStudent = function (id) {
     const form = ensureSessionForm();
     appState.ui.sessionScope = "individual";
