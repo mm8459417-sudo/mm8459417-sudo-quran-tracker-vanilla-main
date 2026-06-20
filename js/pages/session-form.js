@@ -342,27 +342,100 @@
     router.render();
   };
 
-  // نظام Debounce لمنع الريفريش المزعج مع كل حرف
   let searchTimeout;
   window.updateSearchQuery = function (value) {
     appState.ui.searchQuery = value;
     
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-      router.render();
-      
-      // الكود ده عشان المؤشر (Cursor) يفضل جوه مربع البحث بعد الفلترة وميفصلش منك
-      setTimeout(() => {
-        const searchInput = document.querySelector('.dash-search__input');
-        if (searchInput) {
-          searchInput.focus();
-          const val = searchInput.value;
-          searchInput.value = '';
-          searchInput.value = val;
-        }
-      }, 10);
-      
-    }, 400); // المنصة هتستنى 400 ملي ثانية بعد ما تبطل كتابة عشان تفلتر
+      // بدل ما نعمل ريفريش للصفحة كلها، هنحدث القائمة بس
+      updatePickerList();
+    }, 300); 
+  };
+
+  window.updateSearchGender = function (value) {
+    appState.ui.searchGender = value;
+    updatePickerList();
+  };
+
+  // الدالة دي بتفلتر الطلاب والمجموعات وترسمهم في مكانهم بدون ما تهز الصفحة
+  window.updatePickerList = function() {
+    const pickerGrid = document.querySelector('.dash-picker-grid');
+    if (!pickerGrid) return; // لو مش موجودة (يعني فاتحين فورم جلسة)، مانعملش حاجة
+
+    const query = appState.ui.searchQuery.toLowerCase();
+    const gender = appState.ui.searchGender;
+
+    const students = appState.students.filter((s) => {
+      const matchesName = s.name.toLowerCase().includes(query);
+      const matchesGender = gender === "all" ? true : s.gender === gender;
+      return matchesName && matchesGender;
+    });
+
+    const groups = appState.groups.filter((g) => {
+      const groupName = (g.name || "").toLowerCase();
+      const matchesGroup = groupName.includes(query);
+      const memberNames = appState.students
+        .filter((s) => g.studentIds?.includes(s.id))
+        .map((s) => s.name.toLowerCase())
+        .join(" ");
+      return matchesGroup || memberNames.includes(query);
+    });
+
+    // هنرسم القائمة الجديدة (من غير البطاقة الترحيبية ولا شريط البحث)
+    pickerGrid.innerHTML = `
+      <div class="dash-picker-col">
+        <div class="dash-picker-header">
+          <div class="dash-picker-header__icon individual"><i class="ph-duotone ph-user"></i></div>
+          <div class="dash-picker-header__text">
+            <div class="dash-picker-header__title">حلقات فردية</div>
+            <div class="dash-picker-header__count">${students.length} طالب</div>
+          </div>
+        </div>
+        <div class="dash-picker-list">
+          ${students.length === 0 ? `
+            <div class="elite-empty-state">
+              <div class="elite-empty-icon"><i class="ph-duotone ph-user"></i></div>
+              <div class="elite-empty-title">لا يوجد طلاب</div>
+            </div>
+          ` : students.map(s => `
+            <button type="button" class="dash-item" onclick="selectStudent('${s.id}')">
+              <div class="dash-item__avatar"><i class="ph-duotone ph-user"></i></div>
+              <div class="dash-item__name">${s.name}</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="dash-picker-col">
+        <div class="dash-picker-header">
+          <div class="dash-picker-header__icon group"><i class="ph-duotone ph-users"></i></div>
+          <div class="dash-picker-header__text">
+            <div class="dash-picker-header__title">حلقات جماعية</div>
+            <div class="dash-picker-header__count">${groups.length} مجموعة</div>
+          </div>
+        </div>
+        <div class="dash-picker-list">
+          ${groups.length === 0 ? `
+            <div class="elite-empty-state">
+              <div class="elite-empty-icon"><i class="ph-duotone ph-users"></i></div>
+              <div class="elite-empty-title">لا توجد مجموعات</div>
+            </div>
+          ` : groups.map(g => {
+            const names = appState.students
+              .filter(s => g.studentIds?.includes(s.id))
+              .map(s => s.name).join("، ");
+            return `
+              <button type="button" class="dash-item" onclick="selectGroup('${g.id}')">
+                <div class="dash-item__avatar"><i class="ph-duotone ph-users"></i></div>
+                <div class="dash-item__name">${g.name}</div>
+                <div class="dash-item__meta">${names || "—"}</div>
+              </button>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
   };
 
   window.updateSearchGender = function (value) {
