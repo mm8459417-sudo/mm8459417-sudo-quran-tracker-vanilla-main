@@ -187,9 +187,27 @@
     return window.appState.ui.packageForm;
   }
 
-  // ==========================================
-  // Student Functions
-  // ==========================================
+  function ensureStudentForm() {
+    const packages = ensurePackagesExist();
+    if (!window.appState.ui.studentForm) {
+      window.appState.ui.studentForm = {
+        open: false,
+        editId: null,
+        name: "",
+        phone: "",
+        gender: "boy",
+        packageId: packages.length > 0 ? packages[0].id : "",
+        quranLimit: 8,
+        islamicLimit: 4,
+        maxAbsenceAllowed: 1, 
+        enableUnexcusedAbsence: true, // الحقل الجديد (مفعل افتراضياً)
+        groupLink: "",
+        schedule: [],
+      };
+    }
+    return window.appState.ui.studentForm;
+  }
+
   window.openStudentForm = function (studentId) {
     const form = ensureStudentForm();
     const packages = ensurePackagesExist();
@@ -204,6 +222,7 @@
         form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : 8;
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
         form.maxAbsenceAllowed = stu.maxAbsenceAllowed !== undefined ? stu.maxAbsenceAllowed : 1;
+        form.enableUnexcusedAbsence = stu.enableUnexcusedAbsence !== undefined ? stu.enableUnexcusedAbsence : true;
         form.groupLink = stu.groupLink || "";
         form.schedule = Array.isArray(stu.schedule) ? stu.schedule : [];
       }
@@ -216,6 +235,7 @@
       form.quranLimit = 8;
       form.islamicLimit = 4;
       form.maxAbsenceAllowed = 1;
+      form.enableUnexcusedAbsence = true;
       form.groupLink = "";
       form.schedule = [];
     }
@@ -223,37 +243,13 @@
     router.render();
   };
 
-  window.closeStudentForm = function () {
-    ensureStudentForm().open = false;
-    router.render();
-  };
-
   window.updateStudentFormField = function (field, value) {
     const form = ensureStudentForm();
     form[field] = value;
-    if (field === "gender" || field === "packageId") {
+    // لو غيرنا زرار الغياب أو الباقة، نعمل ريفريش عشان الواجهة تتحدث في نفس اللحظة
+    if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence") {
       router.render();
     }
-  };
-
-  window.addScheduleSlot = function () {
-    const form = ensureStudentForm();
-    const used = form.schedule.map((s) => s.day);
-    const freeDay = ARABIC_DAYS.find((d) => !used.includes(d)) || "السبت";
-    form.schedule.push({ day: freeDay, time: "17:00" });
-    router.render();
-  };
-
-  window.updateScheduleSlot = function (idx, field, value) {
-    const form = ensureStudentForm();
-    if (!form.schedule[idx]) return;
-    form.schedule[idx][field] = value;
-  };
-
-  window.removeScheduleSlot = function (idx) {
-    const form = ensureStudentForm();
-    form.schedule.splice(idx, 1);
-    router.render();
   };
 
   window.saveStudentForm = async function () {
@@ -280,6 +276,7 @@
       quranLimit: isNaN(quranNum) ? 0 : quranNum,
       islamicLimit: isNaN(islamicNum) ? 0 : islamicNum,
       maxAbsenceAllowed: isNaN(absNum) ? 0 : absNum,
+      enableUnexcusedAbsence: form.enableUnexcusedAbsence, // الحفظ في قاعدة البيانات
       sessionLimit: (isNaN(quranNum) ? 0 : quranNum) + (isNaN(islamicNum) ? 0 : islamicNum),
       groupLink: form.groupLink.trim(),
       schedule: form.schedule,
@@ -558,12 +555,10 @@
     const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (window.appState.settings.centerName || "");
     
     // قراءة قيمة زرار التشغيل للغياب
-    const enableUnexcusedAbsence = document.getElementById("settings-unexcused-absence") ? document.getElementById("settings-unexcused-absence").checked : false;
 
     window.appState.settings.accountingPhone = accountingPhone;
     window.appState.settings.teacherName = teacherName;
     window.appState.settings.centerName = centerName;
-    window.appState.settings.enableUnexcusedAbsence = enableUnexcusedAbsence; // حفظ التفعيل
     window.appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
     
     // مسح الـ defaultLimit القديم
@@ -663,7 +658,8 @@
           <div class="account-input-line"></div>
         </div>
 
-       <div class="card-soft mb-4" style="background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2);">
+<!-- قسم النظام المالي (بدون card-soft لمنع الهزة في الكمبيوتر) -->
+        <div style="background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
           <div style="font-weight:var(--fw-bold);color:#065f46;margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px;"></i>النظام المالي والمسارات</div>
           
           <div class="mb-3">
@@ -685,10 +681,24 @@
             </div>
           </div>
           
-          <div>
-            <label class="form-label" style="font-size: 12px; color: #b45309;">الغياب بدون عذر المسموح (شهرياً)</label>
+          <hr style="opacity: 0.1; margin: 16px 0;">
+
+          <!-- زرار تفعيل الغياب -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${form.enableUnexcusedAbsence ? '12px' : '0'};">
+            <div>
+              <div style="font-weight: bold; font-size: 13px; color: var(--text-primary);">تفعيل الغياب بدون عذر</div>
+              <div style="font-size: 11px; color: var(--text-muted);">احتساب غياب الطالب في الشيت المالي.</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" ${form.enableUnexcusedAbsence ? 'checked' : ''} onchange="updateStudentFormField('enableUnexcusedAbsence', this.checked)">
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- الحقل ده هيظهر بس لو الزرار فوق متفعل -->
+          <div style="${form.enableUnexcusedAbsence ? 'display:block;' : 'display:none;'}">
+            <label class="form-label" style="font-size: 12px; color: #b45309;">الغياب الذي يتخطى هذا الرقم سيتم احتسابه مالياً على الطالب</label>
             <input type="number" class="form-control" value="${form.maxAbsenceAllowed}" oninput="updateStudentFormField('maxAbsenceAllowed', this.value)" placeholder="مثال: 1 حلقة" />
-            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">الغياب الذي يتخطى هذا الرقم سيتم احتسابه مالياً على الطالب.</div>
           </div>
         </div>
 
@@ -816,19 +826,8 @@
           <label class="form-label" for="settings-phone">رقم المحاسب (واتساب)</label>
           <div class="account-input-line"></div>
         </div>
-
-        <div class="exec-animate" style="--stagger: 2.4; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px; margin-bottom: 24px;">
-          <div>
-            <div style="font-weight: bold; font-size: 14px; color: var(--text-primary);">تفعيل الغياب بدون عذر</div>
-            <div style="font-size: 12px; color: var(--text-muted);">إذا تم التفعيل، سيتم إدراج الغياب في الحسابات والشيت الشهري.</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="settings-unexcused-absence" ${window.appState.settings && window.appState.settings.enableUnexcusedAbsence ? 'checked' : ''}>
-            <span class="slider round"></span>
-          </label>
-        </div>
         
-        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 2.5; margin-top: 0;" onclick="saveSettings()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 2.4; margin-top: 0;" onclick="saveSettings()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>حفظ الإعدادات
         </button>
       </div>
