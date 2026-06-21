@@ -37,31 +37,25 @@
     window.appState.settings.darkMode = isDark;
     if (typeof saveData === 'function') saveData();
     
-    // تحديث فوري للكلاسات
     applyTheme();
     
-    // حفظ التعديل في الداتابيز (عشان يفضل معاك لما تفتح من جهاز تاني)
     if (window.dbModule && window.dbModule.saveSettings) {
         window.dbModule.saveSettings(window.appState.settings).catch(e => console.error(e));
     }
   };
-  // دالة ذكية لزرار الشمس والقمر في الهيدر
+
   window.toggleThemeSwitch = function() {
     if (!window.appState || !window.appState.settings) return;
     
-    // 1. قراءة الحالة الحالية وعكسها
     const currentState = !!window.appState.settings.darkMode;
     const newState = !currentState;
     
-    // 2. تشغيل الوضع الجديد
     window.toggleDarkMode(newState);
     
-    // 3. حفظ الحالة في الذاكرة (عشان متضيعش لو عمل ريفرش)
     try {
       localStorage.setItem('appState', JSON.stringify(window.appState));
     } catch(e) { console.error("Error saving theme to local storage"); }
     
-    // 4. تحديث زرار (السويتش) اللي موجود جوه صفحة الإعدادات لو كانت مفتوحة
     const settingsSwitch = document.querySelector('input[type="checkbox"][onchange*="toggleDarkMode"]');
     if (settingsSwitch) {
         settingsSwitch.checked = newState;
@@ -82,7 +76,6 @@
       document.body.classList.remove('dark-mode');
     }
 
-    // تظبيط ألوان الرسوم البيانية (Chart.js) عالمياً بناءً على المظهر الحالي
     if (window.Chart) {
       if (darkMode) {
         Chart.defaults.color = '#CBD5E1'; 
@@ -92,7 +85,6 @@
         Chart.defaults.borderColor = 'rgba(15, 23, 42, 0.06)'; 
       }
       
-      // لو المستخدم واقف في صفحة الإحصائيات حالياً، بنعمل إعادة رسم للشارت
       if (window.router && typeof router.render === 'function' && appState.ui && appState.ui.page === 'analysis') {
         router.render();
       }
@@ -116,15 +108,12 @@
   // الدوال الأصلية للمنصة (إدارة الطلاب والباقات والمجموعات)
   // ==========================================
 
-  // 🚀 حماية ثلاثية الأبعاد لضمان عدم اختفاء الباقات أبداً
   function ensurePackagesExist() {
     initThemeState();
     
-    // 1. الاسترجاع من الذاكرة المحلية (عشان لو الداتابيز مسحتها متختفيش من قدامك)
     if (window.__LOCAL_PACKAGES__) {
         window.appState.settings.packages = window.__LOCAL_PACKAGES__;
     } 
-    // 2. الاسترجاع من النص (عشان لو السيرفر بيرفض الـ Arrays)
     else if (window.appState.settings.packagesJSON && typeof window.appState.settings.packagesJSON === 'string') {
         try {
             window.appState.settings.packages = JSON.parse(window.appState.settings.packagesJSON);
@@ -133,7 +122,6 @@
             window.appState.settings.packages = [];
         }
     } 
-    // 3. الوضع الافتراضي
     else if (!window.appState.settings.packages || !Array.isArray(window.appState.settings.packages)) {
         window.appState.settings.packages = [];
     }
@@ -154,7 +142,7 @@
         quranLimit: 8,
         islamicLimit: 4,
         maxAbsenceAllowed: 1, 
-        enableUnexcusedAbsence: true, // الحقل الجديد (مفعل افتراضياً)
+        enableUnexcusedAbsence: true,
         groupLink: "",
         schedule: [],
       };
@@ -226,7 +214,6 @@
     router.render();
   };
 
-  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت الطالب
   window.closeStudentForm = function () {
     const form = ensureStudentForm();
     form.open = false;
@@ -239,7 +226,6 @@
   window.updateStudentFormField = function (field, value) {
     const form = ensureStudentForm();
     form[field] = value;
-    // لو غيرنا زرار الغياب أو الباقة، نعمل ريفريش عشان الواجهة تتحدث في نفس اللحظة
     if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence") {
       router.render();
     }
@@ -289,7 +275,7 @@
       quranLimit: isNaN(quranNum) ? 0 : quranNum,
       islamicLimit: isNaN(islamicNum) ? 0 : islamicNum,
       maxAbsenceAllowed: isNaN(absNum) ? 0 : absNum,
-      enableUnexcusedAbsence: form.enableUnexcusedAbsence, // الحفظ في قاعدة البيانات
+      enableUnexcusedAbsence: form.enableUnexcusedAbsence,
       sessionLimit: (isNaN(quranNum) ? 0 : quranNum) + (isNaN(islamicNum) ? 0 : islamicNum),
       groupLink: form.groupLink.trim(),
       schedule: form.schedule,
@@ -324,18 +310,21 @@
     }
   };
 
+  // ✅ 1. دالة حذف الطالب (الآمنة)
   window.deleteStudent = async function (id) {
-    if (!window.confirm("هل تريد حذف الطالب وكل بياناته؟")) return;
-    
-    window.appState.students = window.appState.students.filter(s => s.id !== id);
-    router.render();
-    showToast("تم حذف الطالب");
+    const student = window.appState.students.find(s => s.id === id);
+    const stuName = student ? student.name : "هذا الطالب";
 
-    try {
-      await dbModule.deleteStudent(id);
-    } catch (err) {
-      console.error(err);
-    }
+    window.showSafeDeleteModal(`الطالب (${stuName})`, async () => {
+      window.appState.students = window.appState.students.filter(s => s.id !== id);
+      router.render();
+      showToast("تم حذف الطالب بنجاح");
+      try {
+        await dbModule.deleteStudent(id);
+      } catch (err) {
+        console.error(err);
+      }
+    });
   };
 
   // ==========================================
@@ -361,7 +350,6 @@
     router.render();
   };
 
-  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت المجموعة
   window.closeGroupForm = function () {
     const form = ensureGroupForm();
     form.open = false;
@@ -433,22 +421,25 @@
     }
   };
 
+  // ✅ 2. دالة حذف المجموعة (الآمنة)
   window.deleteGroup = async function (id) {
-    if (!window.confirm("هل تريد حذف المجموعة؟")) return;
-    
-    window.appState.groups = window.appState.groups.filter(g => g.id !== id);
-    router.render();
-    showToast("تم حذف المجموعة");
+    const group = window.appState.groups.find(g => g.id === id);
+    const groupName = group ? group.name : "هذه المجموعة";
 
-    try {
-      await dbModule.deleteGroup(id);
-    } catch (err) {
-      console.error(err);
-    }
+    window.showSafeDeleteModal(`المجموعة (${groupName})`, async () => {
+      window.appState.groups = window.appState.groups.filter(g => g.id !== id);
+      router.render();
+      showToast("تم حذف المجموعة بنجاح");
+      try {
+        await dbModule.deleteGroup(id);
+      } catch (err) {
+        console.error(err);
+      }
+    });
   };
 
   // ==========================================
-  // Package (Tiers) Functions
+  // Package Functions
   // ==========================================
   window.openPackageForm = function (pkgId) {
     const form = ensurePackageForm();
@@ -471,7 +462,6 @@
     router.render();
   };
 
-  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت الباقات
   window.closePackageForm = function () {
     const form = ensurePackageForm();
     form.open = false;
@@ -551,22 +541,25 @@
     }
   };
 
+  // ✅ 3. دالة حذف الباقة (الآمنة)
   window.deletePackage = async function (id) {
-    if (!window.confirm("هل تريد حذف هذه الباقة؟")) return;
-    
-    let packages = ensurePackagesExist().filter(p => p.id !== id);
-    window.appState.settings.packages = packages;
-    window.appState.settings.packagesJSON = JSON.stringify(packages);
-    window.__LOCAL_PACKAGES__ = packages;
-    
-    router.render();
-    showToast("تم حذف الباقة");
+    const pkg = ensurePackagesExist().find(p => p.id === id);
+    const pkgName = pkg ? pkg.name : "هذه الباقة";
 
-    try {
-      await dbModule.saveSettings(window.appState.settings); 
-    } catch (err) {
-      console.error(err);
-    }
+    window.showSafeDeleteModal(`الباقة (${pkgName})`, async () => {
+      let packages = ensurePackagesExist().filter(p => p.id !== id);
+      window.appState.settings.packages = packages;
+      window.appState.settings.packagesJSON = JSON.stringify(packages);
+      window.__LOCAL_PACKAGES__ = packages;
+      
+      router.render();
+      showToast("تم حذف الباقة بنجاح");
+      try {
+        await dbModule.saveSettings(window.appState.settings); 
+      } catch (err) {
+        console.error(err);
+      }
+    });
   };
 
   // ==========================================
@@ -582,7 +575,6 @@
     window.appState.settings.centerName = centerName;
     window.appState.settings.packagesJSON = JSON.stringify(ensurePackagesExist());
     
-    // مسح الـ defaultLimit القديم
     delete window.appState.settings.defaultLimit;
     
     router.render(); 
@@ -593,6 +585,80 @@
     } catch (err) {
       console.error(err);
     }
+  };
+
+  // ==========================================
+  // نظام الحذف الآمن الموحد (Safe Delete Modal)
+  // ==========================================
+  window.showSafeDeleteModal = function(itemName, confirmCallback) {
+    const overlay = document.createElement('div');
+    overlay.id = 'safe-delete-modal';
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
+    `;
+
+    const box = document.createElement('div');
+    box.style.cssText = `
+      background: var(--card-bg, #fff); padding: 24px; border-radius: 16px;
+      width: 90%; max-width: 380px; text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      transform: translateY(20px); transition: transform 0.3s ease;
+      border: 1px solid var(--border-color, #e2e8f0);
+    `;
+
+    box.innerHTML = `
+      <div style="width: 64px; height: 64px; background: #fee2e2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">
+        <i class="ph-duotone ph-warning-circle"></i>
+      </div>
+      <h3 style="margin: 0 0 8px; color: var(--text-primary, #1e293b); font-weight: 800; font-size: 18px;">تأكيد الحذف</h3>
+      <p style="margin: 0 0 24px; color: var(--text-muted, #64748b); font-size: 14px; line-height: 1.6;">
+        هل أنت متأكد من حذف <strong style="color:var(--text-primary);">${itemName}</strong> وكل البيانات المرتبطة؟ لا يمكن التراجع عن هذا الإجراء.
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="sd-cancel-btn" class="btn btn-light flex-fill" style="padding: 10px; font-weight: bold;">إلغاء</button>
+        <button id="sd-confirm-btn" class="btn btn-danger flex-fill" style="padding: 10px; font-weight: bold; transition: all 0.3s;" disabled>حذف (3)</button>
+      </div>
+    `;
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      box.style.transform = 'translateY(0)';
+    }, 10);
+
+    const cancelBtn = box.querySelector('#sd-cancel-btn');
+    const confirmBtn = box.querySelector('#sd-confirm-btn');
+
+    const closeModal = () => {
+      overlay.style.opacity = '0';
+      box.style.transform = 'translateY(20px)';
+      setTimeout(() => overlay.remove(), 300);
+    };
+
+    cancelBtn.onclick = closeModal;
+
+    let counter = 3;
+    const interval = setInterval(() => {
+      counter--;
+      if (counter > 0) {
+        confirmBtn.innerText = `حذف (${counter})`;
+      } else {
+        clearInterval(interval);
+        confirmBtn.innerText = "نعم، متأكد";
+        confirmBtn.disabled = false;
+        confirmBtn.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.3)";
+      }
+    }, 1000);
+
+    confirmBtn.onclick = () => {
+      closeModal();
+      confirmCallback();
+    };
   };
 
   // ==========================================
@@ -993,7 +1059,6 @@
     return;
   };
 
-  // تشغيل آمن عند التحميل لا يسبب انهيار السكريبت
   try {
     if (typeof applyTheme === 'function') applyTheme();
   } catch (e) {
