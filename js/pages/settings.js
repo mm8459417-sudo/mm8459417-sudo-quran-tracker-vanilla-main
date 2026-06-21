@@ -590,7 +590,22 @@
   // ==========================================
   // نظام الحذف الآمن الموحد (Safe Delete Modal)
   // ==========================================
+// ==========================================
+  // نظام الحذف الآمن الموحد (Safe Delete Modal)
+  // ==========================================
   window.showSafeDeleteModal = function(itemName, confirmCallback) {
+    // 💡 التحقق الذكي من حالة الدارك مود
+    const isDark = window.appState && window.appState.settings && window.appState.settings.darkMode;
+
+    // تحديد الألوان بناءً على الوضع الحالي
+    const bgColor = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#1e293b';
+    const mutedColor = isDark ? '#94a3b8' : '#64748b';
+    const borderColor = isDark ? '#334155' : '#e2e8f0';
+    const iconBg = isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2';
+    const cancelBg = isDark ? '#334155' : '#f1f5f9';
+    const cancelText = isDark ? '#f8fafc' : '#1e293b';
+
     const overlay = document.createElement('div');
     overlay.id = 'safe-delete-modal';
     overlay.style.cssText = `
@@ -602,24 +617,24 @@
 
     const box = document.createElement('div');
     box.style.cssText = `
-      background: var(--card-bg, #fff); padding: 24px; border-radius: 16px;
+      background: ${bgColor}; padding: 24px; border-radius: 16px;
       width: 90%; max-width: 380px; text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
       transform: translateY(20px); transition: transform 0.3s ease;
-      border: 1px solid var(--border-color, #e2e8f0);
+      border: 1px solid ${borderColor};
     `;
 
     box.innerHTML = `
-      <div style="width: 64px; height: 64px; background: #fee2e2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">
+      <div style="width: 64px; height: 64px; background: ${iconBg}; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 32px;">
         <i class="ph-duotone ph-warning-circle"></i>
       </div>
-      <h3 style="margin: 0 0 8px; color: var(--text-primary, #1e293b); font-weight: 800; font-size: 18px;">تأكيد الحذف</h3>
-      <p style="margin: 0 0 24px; color: var(--text-muted, #64748b); font-size: 14px; line-height: 1.6;">
-        هل أنت متأكد من حذف <strong style="color:var(--text-primary);">${itemName}</strong> وكل البيانات المرتبطة؟ لا يمكن التراجع عن هذا الإجراء.
+      <h3 style="margin: 0 0 8px; color: ${textColor}; font-weight: 800; font-size: 18px;">تأكيد الحذف</h3>
+      <p style="margin: 0 0 24px; color: ${mutedColor}; font-size: 14px; line-height: 1.6;">
+        هل أنت متأكد من حذف <strong style="color:${textColor};">${itemName}</strong> وكل البيانات المرتبطة؟ لا يمكن التراجع عن هذا الإجراء.
       </p>
       <div style="display: flex; gap: 12px; justify-content: center;">
-        <button id="sd-cancel-btn" class="btn btn-light flex-fill" style="padding: 10px; font-weight: bold;">إلغاء</button>
-        <button id="sd-confirm-btn" class="btn btn-danger flex-fill" style="padding: 10px; font-weight: bold; transition: all 0.3s;" disabled>حذف (3)</button>
+        <button id="sd-cancel-btn" class="btn flex-fill" style="padding: 10px; font-weight: bold; background: ${cancelBg}; color: ${cancelText}; border: none; border-radius: 8px;">إلغاء</button>
+        <button id="sd-confirm-btn" class="btn flex-fill" style="padding: 10px; font-weight: bold; transition: all 0.3s; background: #ef4444; color: white; border: none; border-radius: 8px; opacity: 0.5; cursor: not-allowed;" disabled>حذف (3)</button>
       </div>
     `;
 
@@ -639,6 +654,29 @@
       box.style.transform = 'translateY(20px)';
       setTimeout(() => overlay.remove(), 300);
     };
+
+    cancelBtn.onclick = closeModal;
+
+    let counter = 3;
+    const interval = setInterval(() => {
+      counter--;
+      if (counter > 0) {
+        confirmBtn.innerText = `حذف (${counter})`;
+      } else {
+        clearInterval(interval);
+        confirmBtn.innerText = "نعم، متأكد";
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '1';
+        confirmBtn.style.cursor = 'pointer';
+        confirmBtn.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.4)";
+      }
+    }, 1000);
+
+    confirmBtn.onclick = () => {
+      closeModal();
+      confirmCallback();
+    };
+  };
 
     cancelBtn.onclick = closeModal;
 
