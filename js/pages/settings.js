@@ -645,10 +645,24 @@
         </div>
 
         <div class="mb-4 exec-animate" style="--stagger: 3;">
-          <label style="font-size:15px;color:#94A3B8;font-weight:600;margin-bottom:12px;display:block;">النوع</label>
+          <label style="font-size:15px;color:var(--text-muted);font-weight:600;margin-bottom:12px;display:block;">النوع</label>
           <div class="d-flex gap-3">
-            <button type="button" class="btn ${form.gender === "boy" ? "btn-primary" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','boy')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>ولد</button>
-            <button type="button" class="btn ${form.gender === "girl" ? "btn-gold" : "btn-outline"} flex-fill" onclick="updateStudentFormField('gender','girl')"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>بنت</button>
+            <button type="button" 
+                    class="btn flex-fill" 
+                    style="${form.gender === 'boy' 
+                      ? 'background: #0ea5e9; color: white; border: 1px solid #0284c7; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);' 
+                      : 'background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);'}" 
+                    onclick="updateStudentFormField('gender','boy')">
+              <i class="ph-duotone ph-gender-male" style="margin-left:4px;"></i>ولد
+            </button>
+            <button type="button" 
+                    class="btn flex-fill" 
+                    style="${form.gender === 'girl' 
+                      ? 'background: #ec4899; color: white; border: 1px solid #be185d; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);' 
+                      : 'background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);'}" 
+                    onclick="updateStudentFormField('gender','girl')">
+              <i class="ph-duotone ph-gender-female" style="margin-left:4px;"></i>بنت
+            </button>
           </div>
         </div>
 
@@ -658,13 +672,12 @@
           <div class="account-input-line"></div>
         </div>
 
-<!-- قسم النظام المالي (بدون card-soft لمنع الهزة في الكمبيوتر) -->
-        <div style="background: rgba(240,253,244,0.5); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-          <div style="font-weight:var(--fw-bold);color:#065f46;margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px;"></i>النظام المالي والمسارات</div>
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+          <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px; color: var(--emerald);"></i>النظام المالي والمسارات</div>
           
           <div class="mb-3">
             <label class="form-label" style="font-size: 13px;">تحديد الباقة المالية</label>
-            <select class="form-select" onchange="updateStudentFormField('packageId', this.value)" style="border-color: #cbd5e1;">
+            <select class="form-select account-custom-input" onchange="updateStudentFormField('packageId', this.value)">
               <option value="">-- بدون باقة --</option>
               ${packages.map(p => `<option value="${p.id}" ${form.packageId === p.id ? 'selected' : ''}>${p.name} (${p.price} ج.م/الحلقة)</option>`).join("")}
             </select>
@@ -673,17 +686,16 @@
           <div class="row g-2 mb-3">
             <div class="col-6">
               <label class="form-label" style="font-size: 12px;">حد حصص القرآن (شهرياً)</label>
-              <input type="number" class="form-control" value="${form.quranLimit}" oninput="updateStudentFormField('quranLimit', this.value)" />
+              <input type="number" class="form-control account-custom-input" value="${form.quranLimit}" oninput="updateStudentFormField('quranLimit', this.value)" />
             </div>
             <div class="col-6">
               <label class="form-label" style="font-size: 12px;">حد التربية (شهرياً)</label>
-              <input type="number" class="form-control" value="${form.islamicLimit}" oninput="updateStudentFormField('islamicLimit', this.value)" />
+              <input type="number" class="form-control account-custom-input" value="${form.islamicLimit}" oninput="updateStudentFormField('islamicLimit', this.value)" />
             </div>
           </div>
           
-          <hr style="opacity: 0.1; margin: 16px 0;">
+          <hr style="border-color: var(--border-color); margin: 16px 0;">
 
-          <!-- زرار تفعيل الغياب -->
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${form.enableUnexcusedAbsence ? '12px' : '0'};">
             <div>
               <div style="font-weight: bold; font-size: 13px; color: var(--text-primary);">تفعيل الغياب بدون عذر</div>
@@ -695,10 +707,9 @@
             </label>
           </div>
 
-          <!-- الحقل ده هيظهر بس لو الزرار فوق متفعل -->
           <div style="${form.enableUnexcusedAbsence ? 'display:block;' : 'display:none;'}">
             <label class="form-label" style="font-size: 12px; color: #b45309;">الغياب الذي يتخطى هذا الرقم سيتم احتسابه مالياً على الطالب</label>
-            <input type="number" class="form-control" value="${form.maxAbsenceAllowed}" oninput="updateStudentFormField('maxAbsenceAllowed', this.value)" placeholder="مثال: 1 حلقة" />
+            <input type="number" class="form-control account-custom-input" value="${form.maxAbsenceAllowed}" oninput="updateStudentFormField('maxAbsenceAllowed', this.value)" placeholder="مثال: 1 حلقة" />
           </div>
         </div>
 
