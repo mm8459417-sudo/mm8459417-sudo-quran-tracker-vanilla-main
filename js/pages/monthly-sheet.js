@@ -243,15 +243,23 @@
 
         quranCount += adjQuran;
 
-        const totalAttended = quranCount + islamicCount;
+       const totalAttended = quranCount + islamicCount;
         const sessionPrice = student.sessionPrice || 70;
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
         const groupName = student.group || "فردي (بدون مجموعة)";
+        
+        // 🔴 التعديل السحري: قراءة زر تفعيل الغياب الخاص بالطالب
+        const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
 
-        const payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
+        // 🔴 حساب الغياب المحاسب عليه بناءً على التفعيل
+        let payableAbsences = 0;
+        if (enableUnexcusedAbsence) {
+            payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
+        }
+
         let totalCalculatedSessions = totalAttended + payableAbsences;
         
-        totalCalculatedSessions += adjCalc; 
+        totalCalculatedSessions += adjCalc;
 
         const totalAmount = totalCalculatedSessions * sessionPrice;
 
@@ -260,7 +268,7 @@
         grandTotalQuran += quranCount;
         grandTotalIslamic += islamicCount;
 
-        return {
+       return {
           ...student,
           groupName,
           quranCount,
@@ -271,9 +279,9 @@
           payableAbsences,
           totalCalculatedSessions,
           totalAmount,
-          sessionPrice
+          sessionPrice,
+          enableUnexcusedAbsence // 🔴 تم تمرير الحالة هنا للجدول
         };
-      });
 
       // 3. ترتيب الطلاب
       tableData.sort((a, b) => {
@@ -317,8 +325,14 @@
 
             <td style="padding: 16px; text-align: center;">${row.islamicCount}</td>
             <td style="padding: 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
-            <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
-              ${row.unexcusedAbsenceCount} <br><span style="font-size:10px; color:#94a3b8; font-weight:normal;">(مُحاسب على ${row.payableAbsences})</span>
+           <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
+              ${row.unexcusedAbsenceCount} 
+              <br>
+              <span style="font-size:10px; color:${row.enableUnexcusedAbsence !== false ? '#94a3b8' : '#cbd5e1'}; font-weight:normal;">
+                 ${row.enableUnexcusedAbsence !== false 
+                    ? `(مُحاسب على ${row.payableAbsences})` 
+                    : '<del>(غير مُفعل)</del>'}
+              </span>
             </td>
 
             <td style="padding: 16px; text-align: center;">
