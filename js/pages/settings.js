@@ -310,7 +310,7 @@
     }
   };
 
-  // ✅ 1. دالة حذف الطالب (الآمنة)
+  // ✅ دالة حذف الطالب
   window.deleteStudent = async function (id) {
     const student = window.appState.students.find(s => s.id === id);
     const stuName = student ? student.name : "هذا الطالب";
@@ -421,7 +421,7 @@
     }
   };
 
-  // ✅ 2. دالة حذف المجموعة (الآمنة)
+  // ✅ دالة حذف المجموعة
   window.deleteGroup = async function (id) {
     const group = window.appState.groups.find(g => g.id === id);
     const groupName = group ? group.name : "هذه المجموعة";
@@ -541,7 +541,7 @@
     }
   };
 
-  // ✅ 3. دالة حذف الباقة (الآمنة)
+  // ✅ دالة حذف الباقة
   window.deletePackage = async function (id) {
     const pkg = ensurePackagesExist().find(p => p.id === id);
     const pkgName = pkg ? pkg.name : "هذه الباقة";
@@ -590,11 +590,8 @@
   // ==========================================
   // نظام الحذف الآمن الموحد (Safe Delete Modal)
   // ==========================================
-// ==========================================
-  // نظام الحذف الآمن الموحد (Safe Delete Modal)
-  // ==========================================
   window.showSafeDeleteModal = function(itemName, confirmCallback) {
-    // 💡 التحقق الذكي من حالة الدارك مود
+    // التحقق الذكي من حالة الدارك مود
     const isDark = window.appState && window.appState.settings && window.appState.settings.darkMode;
 
     // تحديد الألوان بناءً على الوضع الحالي
@@ -669,27 +666,6 @@
         confirmBtn.style.opacity = '1';
         confirmBtn.style.cursor = 'pointer';
         confirmBtn.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.4)";
-      }
-    }, 1000);
-
-    confirmBtn.onclick = () => {
-      closeModal();
-      confirmCallback();
-    };
-  };
-
-    cancelBtn.onclick = closeModal;
-
-    let counter = 3;
-    const interval = setInterval(() => {
-      counter--;
-      if (counter > 0) {
-        confirmBtn.innerText = `حذف (${counter})`;
-      } else {
-        clearInterval(interval);
-        confirmBtn.innerText = "نعم، متأكد";
-        confirmBtn.disabled = false;
-        confirmBtn.style.boxShadow = "0 4px 12px rgba(239, 68, 68, 0.3)";
       }
     }, 1000);
 
