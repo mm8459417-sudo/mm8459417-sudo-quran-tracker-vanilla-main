@@ -92,7 +92,6 @@
     }
   };
 
-  // ✅ [إضافة مؤقتة] دالة لتعديل الأرقام يدوياً بالزيادة أو النقصان
   window.adjustTempCount = function(studentId, field, amount) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
@@ -129,7 +128,6 @@
                 .group-label { font-size: 11px; color: #0284c7; display: block; margin-top: 4px; }
                 tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 16px; }
                 .price-col { color: #0f9d7a; font-weight: bold; }
-                /* إخفاء الأزرار المؤقتة عند الطباعة */
                 .no-print { display: none !important; }
             </style>
         </head>
@@ -235,7 +233,6 @@
           }
         });
 
-        // ✅ استدعاء التعديلات اليدوية بأمان تام
         if (!appState.tempAdjustments) appState.tempAdjustments = {};
         const adj = appState.tempAdjustments[student.id] || {};
         const adjQuran = typeof adj.quran === 'number' ? adj.quran : 0;
@@ -243,12 +240,12 @@
 
         quranCount += adjQuran;
 
-       const totalAttended = quranCount + islamicCount;
+        const totalAttended = quranCount + islamicCount;
         const sessionPrice = student.sessionPrice || 70;
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
         const groupName = student.group || "فردي (بدون مجموعة)";
-        
-        // 🔴 التعديل السحري: قراءة زر تفعيل الغياب الخاص بالطالب
+
+        // 🔴 التعديل السحري: قراءة زر تفعيل الغياب الخاص بالطالب (أو تفعيله افتراضياً)
         const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
 
         // 🔴 حساب الغياب المحاسب عليه بناءً على التفعيل
@@ -259,7 +256,7 @@
 
         let totalCalculatedSessions = totalAttended + payableAbsences;
         
-        totalCalculatedSessions += adjCalc;
+        totalCalculatedSessions += adjCalc; 
 
         const totalAmount = totalCalculatedSessions * sessionPrice;
 
@@ -268,7 +265,7 @@
         grandTotalQuran += quranCount;
         grandTotalIslamic += islamicCount;
 
-       return {
+        return {
           ...student,
           groupName,
           quranCount,
@@ -280,8 +277,9 @@
           totalCalculatedSessions,
           totalAmount,
           sessionPrice,
-          enableUnexcusedAbsence // 🔴 تم تمرير الحالة هنا للجدول
+          enableUnexcusedAbsence // تمرير حالة الزرار عشان نظهرها في الجدول
         };
+      });
 
       // 3. ترتيب الطلاب
       tableData.sort((a, b) => {
@@ -325,7 +323,8 @@
 
             <td style="padding: 16px; text-align: center;">${row.islamicCount}</td>
             <td style="padding: 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
-           <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
+            
+            <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
               ${row.unexcusedAbsenceCount} 
               <br>
               <span style="font-size:10px; color:${row.enableUnexcusedAbsence !== false ? '#94a3b8' : '#cbd5e1'}; font-weight:normal;">
