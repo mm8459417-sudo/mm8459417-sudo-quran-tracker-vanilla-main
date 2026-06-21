@@ -154,6 +154,7 @@
         quranLimit: 8,
         islamicLimit: 4,
         maxAbsenceAllowed: 1, 
+        enableUnexcusedAbsence: true, // الحقل الجديد (مفعل افتراضياً)
         groupLink: "",
         schedule: [],
       };
@@ -187,27 +188,9 @@
     return window.appState.ui.packageForm;
   }
 
-  function ensureStudentForm() {
-    const packages = ensurePackagesExist();
-    if (!window.appState.ui.studentForm) {
-      window.appState.ui.studentForm = {
-        open: false,
-        editId: null,
-        name: "",
-        phone: "",
-        gender: "boy",
-        packageId: packages.length > 0 ? packages[0].id : "",
-        quranLimit: 8,
-        islamicLimit: 4,
-        maxAbsenceAllowed: 1, 
-        enableUnexcusedAbsence: true, // الحقل الجديد (مفعل افتراضياً)
-        groupLink: "",
-        schedule: [],
-      };
-    }
-    return window.appState.ui.studentForm;
-  }
-
+  // ==========================================
+  // Student Functions
+  // ==========================================
   window.openStudentForm = function (studentId) {
     const form = ensureStudentForm();
     const packages = ensurePackagesExist();
@@ -243,6 +226,16 @@
     router.render();
   };
 
+  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت الطالب
+  window.closeStudentForm = function () {
+    const form = ensureStudentForm();
+    form.open = false;
+    if (window.appState) {
+        window.appState.activeTab = "settings"; 
+    }
+    router.render();
+  };
+
   window.updateStudentFormField = function (field, value) {
     const form = ensureStudentForm();
     form[field] = value;
@@ -250,6 +243,26 @@
     if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence") {
       router.render();
     }
+  };
+
+  window.addScheduleSlot = function () {
+    const form = ensureStudentForm();
+    const used = form.schedule.map((s) => s.day);
+    const freeDay = ARABIC_DAYS.find((d) => !used.includes(d)) || "السبت";
+    form.schedule.push({ day: freeDay, time: "17:00" });
+    router.render();
+  };
+
+  window.updateScheduleSlot = function (idx, field, value) {
+    const form = ensureStudentForm();
+    if (!form.schedule[idx]) return;
+    form.schedule[idx][field] = value;
+  };
+
+  window.removeScheduleSlot = function (idx) {
+    const form = ensureStudentForm();
+    form.schedule.splice(idx, 1);
+    router.render();
   };
 
   window.saveStudentForm = async function () {
@@ -348,8 +361,13 @@
     router.render();
   };
 
+  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت المجموعة
   window.closeGroupForm = function () {
-    ensureGroupForm().open = false;
+    const form = ensureGroupForm();
+    form.open = false;
+    if (window.appState) {
+        window.appState.activeTab = "settings";
+    }
     router.render();
   };
 
@@ -453,8 +471,13 @@
     router.render();
   };
 
+  // 🔴 الدالة اللي بتصلح الـ (X) للفورم بتاعت الباقات
   window.closePackageForm = function () {
-    ensurePackageForm().open = false;
+    const form = ensurePackageForm();
+    form.open = false;
+    if (window.appState) {
+        window.appState.activeTab = "settings";
+    }
     router.render();
   };
 
@@ -554,8 +577,6 @@
     const teacherName = document.getElementById("settings-teacher-name") ? document.getElementById("settings-teacher-name").value.trim() : (window.appState.settings.teacherName || "");
     const centerName = document.getElementById("settings-center-name") ? document.getElementById("settings-center-name").value.trim() : (window.appState.settings.centerName || "");
     
-    // قراءة قيمة زرار التشغيل للغياب
-
     window.appState.settings.accountingPhone = accountingPhone;
     window.appState.settings.teacherName = teacherName;
     window.appState.settings.centerName = centerName;
