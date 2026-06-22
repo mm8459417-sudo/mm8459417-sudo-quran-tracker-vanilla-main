@@ -1030,6 +1030,135 @@
     `;
   }
 
+// ==========================================
+  // شاشة عرض تفاصيل الطالب (Student Details Modal)
+  // ==========================================
+  window.showStudentDetails = function(studentId) {
+    const student = window.appState.students.find(s => s.id === studentId);
+    if (!student) return;
+
+    const packages = ensurePackagesExist();
+    const pkg = packages.find(p => p.id === student.packageId);
+    const pkgName = pkg ? pkg.name : "بدون باقة";
+    const sessionPrice = pkg ? pkg.price : 70;
+
+    const isDark = window.appState && window.appState.settings && window.appState.settings.darkMode;
+    const bgColor = isDark ? '#1e293b' : '#ffffff';
+    const textColor = isDark ? '#f8fafc' : '#1e293b';
+    const mutedColor = isDark ? '#94a3b8' : '#64748b';
+    const borderColor = isDark ? '#334155' : '#e2e8f0';
+    const cardBg = isDark ? '#0f172a' : '#f8fafc';
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99999; opacity: 0; transition: opacity 0.3s ease;
+    `;
+
+    const box = document.createElement('div');
+    box.style.cssText = `
+      background: ${bgColor}; padding: 0; border-radius: 16px;
+      width: 90%; max-width: 450px; overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      transform: translateY(20px); transition: transform 0.3s ease;
+      border: 1px solid ${borderColor};
+      direction: rtl; text-align: right;
+    `;
+
+    // رأس النافذة (Header)
+    let headerHtml = `
+      <div style="background: ${cardBg}; padding: 20px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: ${student.gender === 'girl' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(14, 165, 233, 0.1)'}; display: flex; align-items: center; justify-content: center;">
+             <i class="ph-duotone ${student.gender === 'girl' ? 'ph-gender-female' : 'ph-gender-male'}" style="font-size: 24px; color: ${student.gender === 'girl' ? '#ec4899' : '#0ea5e9'};"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0 0 4px; color: ${textColor}; font-weight: 800; font-size: 18px;">${student.name}</h3>
+            <span style="color: ${mutedColor}; font-size: 13px;">${student.gender === 'girl' ? 'طالبة' : 'طالب'}</span>
+          </div>
+        </div>
+        <button id="close-details-btn" style="background: transparent; border: none; color: ${mutedColor}; cursor: pointer; font-size: 20px; padding: 4px;"><i class="ph-bold ph-x"></i></button>
+      </div>
+    `;
+
+    // محتوى البيانات (Body)
+    let bodyHtml = `
+      <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+           <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
+              <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">الباقة الحالية</div>
+              <div style="color: ${textColor}; font-weight: bold; font-size: 14px;">${pkgName} <span style="font-size: 11px; font-weight: normal;">(${sessionPrice} ج)</span></div>
+           </div>
+           <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
+              <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">ولي الأمر (واتساب)</div>
+              <div style="color: ${textColor}; font-weight: bold; font-size: 14px; direction: ltr; text-align: right;">${student.phone || 'غير مسجل'}</div>
+           </div>
+        </div>
+
+        <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-book-open" style="margin-left: 6px; color: var(--emerald);"></i>نظام الحصص الشهري</h4>
+        <div style="background: ${cardBg}; border-radius: 12px; border: 1px solid ${borderColor}; margin-bottom: 20px;">
+           <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
+             <span style="color: ${mutedColor}; font-size: 13px;">حصص القرآن</span>
+             <span style="color: ${textColor}; font-weight: bold;">${student.quranLimit !== undefined ? student.quranLimit : 8}</span>
+           </div>
+           <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
+             <span style="color: ${mutedColor}; font-size: 13px;">حصص التربية</span>
+             <span style="color: ${textColor}; font-weight: bold;">${student.islamicLimit !== undefined ? student.islamicLimit : 4}</span>
+           </div>
+           <div style="padding: 12px; display: flex; justify-content: space-between;">
+             <span style="color: ${mutedColor}; font-size: 13px;">الغياب المُحاسب (تجاوز)</span>
+             <span style="color: ${student.enableUnexcusedAbsence ? '#ef4444' : mutedColor}; font-weight: bold;">
+                ${student.enableUnexcusedAbsence ? (student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1) : 'غير مفعل'}
+             </span>
+           </div>
+        </div>
+
+        <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-calendar" style="margin-left: 6px; color: var(--emerald);"></i>مواعيد الحلقة</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+           ${(student.schedule && student.schedule.length > 0) 
+              ? student.schedule.map(s => `<span style="background: var(--emerald); color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px;">${s.day} - ${s.time}</span>`).join('') 
+              : `<span style="color: ${mutedColor}; font-size: 13px;">لا توجد مواعيد مسجلة</span>`}
+        </div>
+
+      </div>
+    `;
+
+    // أزرار التحكم السفلى
+    let footerHtml = `
+      <div style="padding: 16px 20px; border-top: 1px solid ${borderColor}; background: ${bgColor}; display: flex; gap: 12px;">
+         <button onclick="closeStudentDetailsAndEdit('${student.id}')" class="btn flex-fill" style="background: var(--emerald); color: white; border: none; font-weight: bold; padding: 10px;">
+           <i class="ph-bold ph-pencil-simple" style="margin-left: 6px;"></i>تعديل البيانات
+         </button>
+      </div>
+    `;
+
+    box.innerHTML = headerHtml + bodyHtml + footerHtml;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      box.style.transform = 'translateY(0)';
+    }, 10);
+
+    const closeModal = () => {
+      overlay.style.opacity = '0';
+      box.style.transform = 'translateY(20px)';
+      setTimeout(() => overlay.remove(), 300);
+    };
+
+    box.querySelector('#close-details-btn').onclick = closeModal;
+    
+    // دالة للزرار بتاع التعديل (يقفل الـ Modal ويفتح فورم التعديل)
+    window.closeStudentDetailsAndEdit = function(id) {
+       closeModal();
+       setTimeout(() => { openStudentForm(id); }, 300);
+    };
+  };
+  
   window.renderSettingsPage = function () {
     ensurePackagesExist();
 
