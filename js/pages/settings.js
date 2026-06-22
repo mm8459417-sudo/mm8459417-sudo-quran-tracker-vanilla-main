@@ -970,7 +970,7 @@
                 const pkg = packages.find(p => p.id === s.packageId);
                 const pkgName = pkg ? pkg.name : "غير محدد";
                 return `
-            <div class="card-soft exec-animate" style="--stagger: ${7 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease;">
+           <div class="card-soft exec-animate" style="--stagger: ${7 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease; cursor: pointer;" onclick="showStudentDetails('${s.id}')">
               <div class="d-flex justify-content-between align-items-center">
                 <div style="flex:1;">
                   <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</div>
@@ -980,17 +980,12 @@
                     <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${s.islamicLimit !== undefined ? s.islamicLimit : 4}</strong></span>
                   </div>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2" onclick="event.stopPropagation()">
                   <button type="button" class="btn btn-outline icon-btn" onclick="openStudentForm('${s.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
                   <button type="button" class="btn btn-danger icon-btn" onclick="deleteStudent('${s.id}')"><i class="ph-duotone ph-trash"></i></button>
                 </div>
               </div>
             </div>
-          `;}
-            )
-            .join("")}
-        </div>
-      </div>
 
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
