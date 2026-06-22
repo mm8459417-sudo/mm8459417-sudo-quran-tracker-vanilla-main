@@ -69,7 +69,6 @@
     const reasonText = appState.ui.certReasonText !== undefined ? appState.ui.certReasonText : defaultReason;
     const rewardAmount = appState.ui.certRewardAmount || "";
 
-    // مسار مباشر جداً للصورة بدون أي تعقيدات
     const imgPath = "./js/pages/cert_bg.png";
 
     return `
@@ -122,13 +121,12 @@
     `;
   }
 
-  // إضافة (تأخير زمني بسيط جداً) لإعطاء فرصة لأداة التحميل ترسم الصورة صح بدون استعجال
   window.exportCertificateImage = async function () {
     const el = document.getElementById("certificate-box");
     if (!el) return;
     setTimeout(async () => {
         await exportElementAsImage(el, "certificate.png");
-    }, 400); // تأخير 400 ملي ثانية
+    }, 400); 
   };
 
   window.exportCertificatePdf = async function () {
@@ -188,7 +186,78 @@
 
     const showReward = student && (weeklyAvg >= 4 || monthlyAvg >= 4.5);
     const totalSessions = targetSessions.length;
-    const avgRating = totalSessions ? (targetSessions.reduce((s, t) => s + (t.overall || 0), 0) / totalSessions).toFixed(1) : "0";
+    
+    // ==========================================
+    // حالة عدم وجود بيانات (Empty State)
+    // ==========================================
+    if (totalSessions === 0) {
+      return `
+        <div>
+          <div class="d-flex align-items-center gap-3 mb-5">
+            <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--emerald-bg);display:flex;align-items:center;justify-content:center;">
+              <i class="ph-duotone ph-chart-line-up" style="font-size: 20px; color: var(--emerald)"></i>
+            </div>
+            <div>
+              <div style="font-weight:var(--fw-bold);font-size:var(--fs-lg);color:var(--text-primary);">تحليل الأداء</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);">تتبع التقدم وقياس الإنجاز</div>
+            </div>
+          </div>
+
+          <div class="card-soft mb-4">
+            <div class="d-flex gap-3 mb-3" style="flex-wrap:wrap;">
+              <select class="form-select" style="flex:1;min-width:180px;" onchange="setAnalysisStudent(this.value)">
+                <option value="all" ${selectedId === "all" ? "selected" : ""}>جميع الطلاب</option>
+                ${appState.students.map((s) => `<option value="${s.id}" ${s.id === selectedId ? "selected" : ""}>${s.name}</option>`).join("")}
+              </select>
+              <div class="d-flex gap-2">
+                <button class="btn ${appState.ui.analysisRange === "week" ? "btn-primary" : "btn-outline"}" onclick="setAnalysisRange('week')">أسبوع</button>
+                <button class="btn ${appState.ui.analysisRange === "month" ? "btn-primary" : "btn-outline"}" onclick="setAnalysisRange('month')">شهر</button>
+                <button class="btn ${appState.ui.analysisRange === "all" ? "btn-primary" : "btn-outline"}" onclick="setAnalysisRange('all')">الكل</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="alert alert-info d-flex align-items-center mb-4" style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.2); color: var(--text-primary); border-radius: 12px; padding: 16px;">
+            <i class="ph-duotone ph-info" style="font-size: 24px; color: #0ea5e9; margin-left: 12px;"></i>
+            <div>
+              <h6 style="margin: 0 0 4px; font-weight: bold; font-size: 15px;">لا توجد بيانات متاحة حالياً</h6>
+              <p style="margin: 0; font-size: 13px; color: var(--text-muted);">قم بإضافة طلاب وتسجيل جلسات جديدة لتبدأ المنصة في رسم الرسوم البيانية وتحليل الأداء هنا.</p>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-bottom:var(--sp-5);">
+            <div class="card-soft" style="text-align:center;padding:var(--sp-4); opacity: 0.6; pointer-events: none;">
+              <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--text-muted);">0</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);font-weight:600;">إجمالي الجلسات</div>
+            </div>
+            <div class="card-soft" style="text-align:center;padding:var(--sp-4); opacity: 0.6; pointer-events: none;">
+              <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--text-muted);">0.0</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);font-weight:600;">متوسط التقييم</div>
+            </div>
+            <div class="card-soft" style="text-align:center;padding:var(--sp-4); opacity: 0.6; pointer-events: none;">
+              <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--text-muted);">0</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);font-weight:600;">حلقات قرآن</div>
+            </div>
+            <div class="card-soft" style="text-align:center;padding:var(--sp-4); opacity: 0.6; pointer-events: none;">
+              <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--text-muted);">0</div>
+              <div style="font-size:var(--fs-xs);color:var(--text-muted);font-weight:600;">حلقات تربية</div>
+            </div>
+          </div>
+
+          <div class="card-soft mb-4 d-flex align-items-center justify-content-center" style="height:260px; border: 1px dashed var(--border-color); background: rgba(0,0,0,0.02);">
+            <div class="text-center" style="color: var(--text-muted);">
+               <i class="ph-duotone ph-chart-line-up" style="font-size: 48px; opacity: 0.5; margin-bottom: 12px; display: block;"></i>
+               <span style="font-size: 14px;">الرسم البياني سيظهر هنا بعد تسجيل الجلسات</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ==========================================
+    // حالة وجود بيانات
+    // ==========================================
+    const avgRating = (targetSessions.reduce((s, t) => s + (t.overall || 0), 0) / totalSessions).toFixed(1);
     const quranSessions = targetSessions.filter(s => s.sessionType !== "islamic").length;
     const islamicSessions = targetSessions.filter(s => s.sessionType === "islamic").length;
 
@@ -218,7 +287,6 @@
           </div>
         </div>
 
-        ${data.length > 0 ? `
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-4);margin-bottom:var(--sp-5);">
           <div class="card-soft hover-elevation" style="text-align:center;padding:var(--sp-4);">
             <div style="font-size:var(--fs-2xl);font-weight:var(--fw-black);color:var(--emerald-dark);">${totalSessions}</div>
@@ -244,7 +312,6 @@
             <canvas id="analysis-chart"></canvas>
           </div>
         </div>
-        ` : ""}
 
         ${showReward ? `
           <div class="card-soft mb-4" style="background:var(--emerald-bg);border-color:rgba(15,157,122,0.15);">
@@ -292,7 +359,7 @@
 
   window.initAnalysisPage = function () {
     const canvas = document.getElementById("analysis-chart");
-    if (!canvas) return;
+    if (!canvas) return; // تم حل المشكلة هنا: الدالة هتقف لو الشاشة فاضية ومفيش Canvas
 
     const selectedId = appState.ui.analysisStudentId;
     const baseSessions = selectedId === "all"
