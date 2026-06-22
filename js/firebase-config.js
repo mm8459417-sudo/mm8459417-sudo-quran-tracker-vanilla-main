@@ -18,6 +18,17 @@
   window.auth = firebase.auth();
   window.db = firebase.firestore();
 
+  // تفعيل نظام الكاش والأوفلاين في فايرستور
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn("Offline persistence can only be enabled in one tab at a time.");
+      } else if (err.code === 'unimplemented') {
+        console.warn("The current browser does not support all of the features required to enable persistence.");
+      }
+    });
+
+  // تفعيل حفظ تسجيل الدخول
   auth
     .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .catch((err) => console.error("Persistence error:", err));
