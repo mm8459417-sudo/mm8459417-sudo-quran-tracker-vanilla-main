@@ -891,33 +891,10 @@
     `;
   }
 
-  function renderSettingsMain() {
+ function renderSettingsMain() {
     const packages = ensurePackagesExist();
     
     return `
-      <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 1; padding: 32px !important;">
-        <h3 class="account-section-title"><i class="ph-duotone ph-palette" style="margin-left:8px;"></i>المظهر والألوان</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px;">
-            <div>
-              <div style="font-weight: bold; font-size: 14px; color: var(--text-primary);">الوضع الليلي (Dark Mode)</div>
-              <div style="font-size: 12px; color: var(--text-muted);">إراحة العين في الإضاءة المنخفضة</div>
-            </div>
-            <label class="switch">
-              <input type="checkbox" ${window.appState.settings && window.appState.settings.darkMode ? 'checked' : ''} onchange="toggleDarkMode(this.checked)">
-              <span class="slider round"></span>
-            </label>
-          </div>
-          <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 12px;">
-            <label style="display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-muted);">اللون الأساسي للمنصة</label>
-            <div style="display: flex; gap: 10px; align-items: center;">
-              <input type="color" value="${window.appState.settings && window.appState.settings.themeColor ? window.appState.settings.themeColor : '#0F9D7A'}" onchange="updateThemeColor(this.value)" style="width: 50px; height: 40px; border: none; border-radius: 8px; cursor: pointer; padding: 0;">
-              <button class="btn btn-outline" onclick="updateThemeColor('#0F9D7A'); router.render();">استعادة الافتراضي</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 2; padding: 32px !important;">
         <h3 class="account-section-title"><i class="ph-duotone ph-gear-six" style="margin-left:8px;"></i>إعدادات المنصة</h3>
         
