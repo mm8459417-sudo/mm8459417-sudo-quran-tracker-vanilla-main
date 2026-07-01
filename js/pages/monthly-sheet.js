@@ -32,6 +32,16 @@
     if (typeof router !== "undefined") router.render();
   };
 
+  // دالة جديدة للتحكم في استبعاد الطالب من الشيت والطباعة
+  window.toggleStudentPrint = function(studentId, isChecked) {
+    if (!appState.tempAdjustments) appState.tempAdjustments = {};
+    if (!appState.tempAdjustments[studentId]) {
+      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0, printExcluded: false };
+    }
+    appState.tempAdjustments[studentId].printExcluded = !isChecked; // إذا لم يكن محدداً، يتم استبعاده
+    if (typeof router !== "undefined") router.render();
+  };
+
   function buildCounts() {
     const map = {};
     const sessionsList = appState.sessions || [];
@@ -62,11 +72,14 @@
       `📅 ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} / ${appState.ui.year}`,
       `المعلم: ${teacherName}`,
       "─────────────────────────",
-      ...studentsList.map((s, i) => {
-        const c = counts[s.id] || 0;
-        const lim = s.sessionLimit || (appState.settings && appState.settings.defaultLimit) || 12;
-        return `${i + 1}. ${s.name}   ${c} / ${lim} حصة`;
-      }),
+      // فلترة الطلاب المستبعدين من النسخ
+      ...studentsList
+        .filter(s => !(appState.tempAdjustments[s.id] && appState.tempAdjustments[s.id].printExcluded))
+        .map((s, i) => {
+          const c = counts[s.id] || 0;
+          const lim = s.sessionLimit || (appState.settings && appState.settings.defaultLimit) || 12;
+          return `${i + 1}. ${s.name}   ${c} / ${lim} حصة`;
+        }),
     ];
     navigator.clipboard
       .writeText(lines.join("\n"))
@@ -100,7 +113,7 @@
   window.adjustTempCount = function(studentId, field, amount) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
-      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0 };
+      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0, printExcluded: false };
     }
     if (typeof appState.tempAdjustments[studentId][field] !== 'number') {
       appState.tempAdjustments[studentId][field] = 0;
@@ -132,6 +145,7 @@
                 tr { page-break-inside: avoid; }
                 tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
                 .price-col { color: #0f9d7a; font-weight: bold; }
+                /* إخفاء العناصر التي تحتوي على كلاس no-print أثناء الطباعة */
                 .no-print { display: none !important; }
             </style>
         </head>
@@ -172,7 +186,7 @@
       const sessionsList = appState.sessions || [];
       const studentsList = appState.students || [];
 
-      // 1. تصفية الجلسات بناءً على الفلتر المختار والشهر/السنة المحددين علوياً
+      // 1. تصفية الجلسات
       const filteredSessions = sessionsList.filter(s => {
         if (!s.date) return false;
         const d = new Date(s.date);
@@ -183,7 +197,6 @@
           oneWeekAgo.setDate(now.getDate() - 7);
           return d >= oneWeekAgo && d <= now;
         } else {
-          // جلب الحلقات الخاصة بالشهر والسنة المحددين في أزرار التنقل
           return (d.getMonth() + 1) === appState.ui.month && d.getFullYear() === appState.ui.year;
         }
       });
@@ -195,7 +208,7 @@
       let grandTotalIndividual = 0;
       let grandTotalGroup = 0;
 
-      // 2. معالجة وتجميع البيانات على مستوى أسماء الطلاب فقط
+      // 2. معالجة البيانات وإعداد الإجماليات
       let tableData = studentsList.map(student => {
         const stdSessions = filteredSessions.filter(s => {
           if (s.mode === "individual" || !s.mode) {
@@ -229,11 +242,9 @@
           }
 
           if (isPresent) {
-            // تصنيف نوع الحلقة
             if (s.sessionType === "quran" || s.sessionType === "review") quranCount++;
             if (s.sessionType === "islamic") islamicCount++;
             
-            // تصنيف فردي أو جماعي للمحتسب
             if (s.mode === "group") {
               groupCount++;
             } else {
@@ -248,19 +259,18 @@
           }
         });
 
-        // دمج التعديلات اليدوية المؤقتة إن وجدت
         if (!appState.tempAdjustments) appState.tempAdjustments = {};
         const adj = appState.tempAdjustments[student.id] || {};
         const adjQuran = typeof adj.quran === 'number' ? adj.quran : 0;
         const adjCalc = typeof adj.calc === 'number' ? adj.calc : 0;
         const adjInd = typeof adj.individual === 'number' ? adj.individual : 0;
         const adjGrp = typeof adj.group === 'number' ? adj.group : 0;
+        const printExcluded = adj.printExcluded || false; // قراءة حالة الاستبعاد
 
         quranCount += adjQuran;
         individualCount += adjInd;
         groupCount += adjGrp;
 
-        // الحسابات المالية (مستقبلاً سيدعم سعر خاص بالجماعي وسعر خاص بالفردي)
         const sessionPrice = student.sessionPrice || 70;
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
         const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
@@ -270,16 +280,18 @@
           payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
         }
 
-        // إجمالي الحلقات المحتسبة = فردي + جماعي + غياب محاسب + تعديل يدوي
         let totalCalculatedSessions = individualCount + groupCount + payableAbsences + adjCalc;
         const totalAmount = totalCalculatedSessions * sessionPrice;
 
-        grandTotalAmount += totalAmount;
-        grandTotalCalculatedSessions += totalCalculatedSessions;
-        grandTotalQuran += quranCount;
-        grandTotalIslamic += islamicCount;
-        grandTotalIndividual += individualCount;
-        grandTotalGroup += groupCount;
+        // لا يتم إضافة الأرقام للإجمالي إذا كان الطالب مستبعداً (غير مفعل)
+        if (!printExcluded) {
+          grandTotalAmount += totalAmount;
+          grandTotalCalculatedSessions += totalCalculatedSessions;
+          grandTotalQuran += quranCount;
+          grandTotalIslamic += islamicCount;
+          grandTotalIndividual += individualCount;
+          grandTotalGroup += groupCount;
+        }
 
         return {
           ...student,
@@ -293,19 +305,27 @@
           totalCalculatedSessions,
           totalAmount,
           sessionPrice,
-          enableUnexcusedAbsence
+          enableUnexcusedAbsence,
+          printExcluded
         };
       });
 
-      // ترتيب الطلاب أبجدياً بالاسم
+      // ترتيب الطلاب أبجدياً
       tableData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
-      // 3. بناء صفوف الجدول المطور (10 أعمدة)
+      // 3. بناء صفوف الجدول
       const tbodyHtml = tableData.length ? tableData.map(row => {
+        // إذا كان مستبعداً، يأخذ كلاس no-print للإخفاء في الطباعة، و opacity ليظهر باهتاً في الواجهة
         return `
-          <tr style="border-bottom: 1px solid var(--color-border); background: var(--card-bg);">
+          <tr class="${row.printExcluded ? 'no-print' : ''}" style="border-bottom: 1px solid var(--color-border); background: var(--card-bg); opacity: ${row.printExcluded ? '0.4' : '1'}; transition: opacity 0.3s ease;">
             <td style="padding: 14px 16px; font-weight: bold; color: var(--color-slate-800); text-align: right;">
-              <i class="ph-bold ph-user" style="margin-left:6px; color:${row.gender === 'girl' ? '#ec4899' : '#10b981'};"></i>${row.name}
+              <div class="d-flex align-items-center gap-2">
+                <!-- زر تفعيل وإلغاء تفعيل الطالب للطباعة -->
+                <input type="checkbox" class="form-check-input no-print" style="width:18px;height:18px;cursor:pointer;margin:0;flex-shrink:0;" ${!row.printExcluded ? 'checked' : ''} onchange="toggleStudentPrint('${row.id}', this.checked)" title="تضمين في الطباعة والحسابات الإجمالية">
+                <div>
+                  <i class="ph-bold ph-user" style="margin-left:4px; color:${row.gender === 'girl' ? '#ec4899' : '#10b981'};"></i>${row.name}
+                </div>
+              </div>
             </td>
             <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
                ${row.sessionPrice} <span style="font-size:11px; font-weight:normal;">ج.م</span>
@@ -327,7 +347,6 @@
             </td>
             <td style="padding: 14px 16px; text-align: center; color: #0ea5e9; font-weight: 600;">${row.individualCount}</td>
             <td style="padding: 14px 16px; text-align: center; color: #8b5cf6; font-weight: 600;">${row.groupCount}</td>
-            
             <td style="padding: 14px 16px; text-align: center;">
               <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: bold;">
                 ${row.totalCalculatedSessions}
@@ -340,7 +359,7 @@
         `;
       }).join("") : `<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">لا توجد بيانات متاحة لهذا الشهر حتى الآن.</td></tr>`;
 
-      // 4. تجميع الواجهة الكاملة للشيت مع شريط التحكم بالشهور والأرشيف
+      // 4. تجميع الواجهة الكاملة للشيت
       return `
         <div style="font-family: 'Cairo', sans-serif;">
           <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
@@ -352,12 +371,13 @@
               <div>
                 <div style="font-weight:800; font-size:18px; color:var(--text-primary);">الشيت المالي والحسابات</div>
                 
+                <!-- أزرار الأرشيف - تم عكسها كما طلبت -->
                 <div class="d-flex align-items-center gap-2 mt-1 no-print">
-                  <button type="button" onclick="prevMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;">◀</button>
+                  <button type="button" onclick="nextMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;" title="الشهر التالي">◀</button>
                   <span style="font-size:13px; font-weight:bold; color: #475569; min-width: 90px; text-align:center; background:#f1f5f9; padding:2px 8px; border-radius:6px;">
                     ${monthNames[appState.ui.month - 1]} ${appState.ui.year}
                   </span>
-                  <button type="button" onclick="nextMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;">▶</button>
+                  <button type="button" onclick="prevMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;" title="الشهر السابق">▶</button>
                 </div>
               </div>
             </div>
@@ -391,7 +411,6 @@
                   <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب (بدون عذر)</th>
                   <th style="padding: 16px; text-align: center; color: #0284c7; font-size: 13px; font-weight: bold;">حلقات فردية</th>
                   <th style="padding: 16px; text-align: center; color: #6d28d9; font-size: 13px; font-weight: bold;">حلقات جماعية</th>
-                  
                   <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الحلقات المُحاسبة</th>
                   <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الإجمالي المالي</th>
                 </tr>
@@ -402,7 +421,7 @@
               ${tableData.length > 0 ? `
                 <tfoot style="background: #065f46; color: white;">
                   <tr style="font-weight: bold;">
-                    <td colspan="2" style="padding: 16px; text-align: right; font-size: 14px;">الإجمالي الكلي للشهر:</td>
+                    <td colspan="2" style="padding: 16px; text-align: right; font-size: 14px;">الإجمالي الكلي (للمفعلين فقط):</td>
                     <td style="padding: 16px; text-align: center;">${grandTotalQuran}</td>
                     <td style="padding: 16px; text-align: center;">${grandTotalIslamic}</td>
                     <td style="padding: 16px; text-align: center;">-</td>
