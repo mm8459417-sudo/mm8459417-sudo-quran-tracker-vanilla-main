@@ -131,12 +131,14 @@
         phone: "",
         gender: "boy",
         packageId: packages.length > 0 ? packages[0].id : "",
+        quranEnabled: true,
         quranLimit: 8,
+        quranSchedule: [],
+        islamicEnabled: false,
         islamicLimit: 4,
+        islamicSchedule: [],
         maxAbsenceAllowed: 1, 
         enableUnexcusedAbsence: true,
-        groupLink: "",
-        schedule: [],
       };
     }
     return window.appState.ui.studentForm;
@@ -182,12 +184,19 @@
         form.phone = stu.phone || "";
         form.gender = stu.gender || "boy";
         form.packageId = stu.packageId || (packages.length > 0 ? packages[0].id : "");
+        
         form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : 8;
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
+        form.quranEnabled = stu.quranEnabled !== undefined ? stu.quranEnabled : (form.quranLimit > 0);
+        form.islamicEnabled = stu.islamicEnabled !== undefined ? stu.islamicEnabled : (form.islamicLimit > 0);
+
+        if (stu.quranSchedule) form.quranSchedule = [...stu.quranSchedule];
+        else form.quranSchedule = Array.isArray(stu.schedule) ? [...stu.schedule] : []; 
+
+        form.islamicSchedule = Array.isArray(stu.islamicSchedule) ? [...stu.islamicSchedule] : [];
+
         form.maxAbsenceAllowed = stu.maxAbsenceAllowed !== undefined ? stu.maxAbsenceAllowed : 1;
         form.enableUnexcusedAbsence = stu.enableUnexcusedAbsence !== undefined ? stu.enableUnexcusedAbsence : true;
-        form.groupLink = stu.groupLink || "";
-        form.schedule = Array.isArray(stu.schedule) ? stu.schedule : [];
       }
     } else {
       form.editId = null;
@@ -195,12 +204,14 @@
       form.phone = "";
       form.gender = "boy";
       form.packageId = packages.length > 0 ? packages[0].id : "";
+      form.quranEnabled = true;
       form.quranLimit = 8;
+      form.quranSchedule = [];
+      form.islamicEnabled = false;
       form.islamicLimit = 4;
+      form.islamicSchedule = [];
       form.maxAbsenceAllowed = 1;
       form.enableUnexcusedAbsence = true;
-      form.groupLink = "";
-      form.schedule = [];
     }
     form.open = true;
     router.render();
@@ -218,44 +229,82 @@
   window.updateStudentFormField = function (field, value) {
     const form = ensureStudentForm();
     form[field] = value;
-    if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence") {
+    if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence" || field === "quranEnabled" || field === "islamicEnabled") {
       router.render();
     }
   };
 
-  window.addScheduleSlot = function () {
+  window.addScheduleSlot = function (type) {
     const form = ensureStudentForm();
-    const used = form.schedule.map((s) => s.day);
+    const targetSchedule = type === 'quran' ? form.quranSchedule : form.islamicSchedule;
+    const used = targetSchedule.map((s) => s.day);
     const freeDay = ARABIC_DAYS.find((d) => !used.includes(d)) || "السبت";
-    form.schedule.push({ day: freeDay, time: "17:00" });
+    targetSchedule.push({ day: freeDay, time: "17:00" });
     router.render();
   };
 
-  window.updateScheduleSlot = function (idx, field, value) {
+  window.updateScheduleSlot = function (type, idx, field, value) {
     const form = ensureStudentForm();
-    if (!form.schedule[idx]) return;
-    form.schedule[idx][field] = value;
+    const targetSchedule = type === 'quran' ? form.quranSchedule : form.islamicSchedule;
+    if (!targetSchedule[idx]) return;
+    targetSchedule[idx][field] = value;
   };
 
-  window.removeScheduleSlot = function (idx) {
+  window.removeScheduleSlot = function (type, idx) {
     const form = ensureStudentForm();
-    form.schedule.splice(idx, 1);
+    const targetSchedule = type === 'quran' ? form.quranSchedule : form.islamicSchedule;
+    targetSchedule.splice(idx, 1);
     router.render();
   };
 
   window.saveStudentForm = async function () {
     const form = ensureStudentForm();
     if (!form.name.trim()) {
-      showToast("اكتب اسم الطالب أولاً");
-      return;
+      showToast("اكتب اسم الطالب أولاً"); return;
+    }
+
+    if (form.quranEnabled && (!form.quranLimit || form.quranLimit <= 0)) {
+      showToast("يجب إدخال عدد حصص القرآن"); return;
+    }
+    if (form.islamicEnabled && (!form.islamicLimit || form.islamicLimit <= 0)) {
+      showToast("يجب إدخال عدد حصص التربية"); return;
+    }
+
+    const checkConflict = (scheduleArray, typeLabel) => {
+      for (let slot of scheduleArray) {
+        if (!slot.day || !slot.time) continue;
+        for (let student of window.appState.students) {
+          if (student.id === form.editId) continue; 
+          const qSched = student.quranSchedule || [];
+          const iSched = student.islamicSchedule || [];
+          const oldSched = student.schedule || []; 
+          const allSchedules = [...qSched, ...iSched, ...oldSched];
+          
+          for (let s of allSchedules) {
+            if (s.day === slot.day && s.time === slot.time) {
+              return `هذا الموعد (${slot.day} الساعة ${slot.time}) مستخدم بالفعل مع الطالب: ${student.name}`;
+            }
+          }
+        }
+      }
+      return null;
+    };
+
+    if (form.quranEnabled) {
+      let conflict = checkConflict(form.quranSchedule, 'القرآن');
+      if (conflict) { showToast(conflict); return; }
+    }
+    if (form.islamicEnabled) {
+      let conflict = checkConflict(form.islamicSchedule, 'التربية');
+      if (conflict) { showToast(conflict); return; }
     }
 
     const packages = ensurePackagesExist();
     const selectedPackage = packages.find(p => p.id === form.packageId);
     const sessionPrice = selectedPackage ? selectedPackage.price : 70;
 
-    const quranNum = parseInt(form.quranLimit, 10);
-    const islamicNum = parseInt(form.islamicLimit, 10);
+    const quranNum = form.quranEnabled ? parseInt(form.quranLimit, 10) : 0;
+    const islamicNum = form.islamicEnabled ? parseInt(form.islamicLimit, 10) : 0;
     const absNum = parseInt(form.maxAbsenceAllowed, 10);
 
     const payload = {
@@ -264,13 +313,16 @@
       gender: form.gender,
       packageId: form.packageId,
       sessionPrice: sessionPrice,
+      quranEnabled: form.quranEnabled,
+      islamicEnabled: form.islamicEnabled,
       quranLimit: isNaN(quranNum) ? 0 : quranNum,
       islamicLimit: isNaN(islamicNum) ? 0 : islamicNum,
+      quranSchedule: form.quranEnabled ? form.quranSchedule : [],
+      islamicSchedule: form.islamicEnabled ? form.islamicSchedule : [],
       maxAbsenceAllowed: isNaN(absNum) ? 0 : absNum,
       enableUnexcusedAbsence: form.enableUnexcusedAbsence,
       sessionLimit: (isNaN(quranNum) ? 0 : quranNum) + (isNaN(islamicNum) ? 0 : islamicNum),
-      groupLink: form.groupLink.trim(),
-      schedule: form.schedule,
+      groupLink: "", 
     };
 
     let isEdit = !!form.editId;
@@ -714,6 +766,14 @@
       </div>
     `;
 
+    const quranSchedHtml = (student.quranSchedule && student.quranSchedule.length > 0) 
+      ? student.quranSchedule.map(s => `<span style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight:bold;">${s.day} - ${s.time}</span>`).join('') 
+      : `<span style="color: ${mutedColor}; font-size: 12px;">لا توجد مواعيد</span>`;
+
+    const islamicSchedHtml = (student.islamicSchedule && student.islamicSchedule.length > 0) 
+      ? student.islamicSchedule.map(s => `<span style="background: rgba(14,165,233,0.1); color: #0ea5e9; border: 1px solid rgba(14,165,233,0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight:bold;">${s.day} - ${s.time}</span>`).join('') 
+      : `<span style="color: ${mutedColor}; font-size: 12px;">لا توجد مواعيد</span>`;
+
     let bodyHtml = `
       <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
@@ -731,11 +791,15 @@
         <div style="background: ${cardBg}; border-radius: 12px; border: 1px solid ${borderColor}; margin-bottom: 20px;">
            <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">حصص القرآن</span>
-             <span style="color: ${textColor}; font-weight: bold;">${student.quranLimit !== undefined ? student.quranLimit : 8}</span>
+             <span style="color: ${student.quranEnabled ? textColor : mutedColor}; font-weight: bold;">
+                ${student.quranEnabled ? student.quranLimit : 'موقف'}
+             </span>
            </div>
            <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">حصص التربية</span>
-             <span style="color: ${textColor}; font-weight: bold;">${student.islamicLimit !== undefined ? student.islamicLimit : 4}</span>
+             <span style="color: ${student.islamicEnabled ? textColor : mutedColor}; font-weight: bold;">
+                ${student.islamicEnabled ? student.islamicLimit : 'موقف'}
+             </span>
            </div>
            <div style="padding: 12px; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">الغياب المُحاسب (تجاوز)</span>
@@ -745,12 +809,17 @@
            </div>
         </div>
 
-        <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-calendar" style="margin-left: 6px; color: var(--emerald);"></i>مواعيد الحلقة</h4>
+        ${student.quranEnabled ? `
+        <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-clock" style="margin-left: 6px; color: #10b981;"></i>مواعيد القرآن</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+           ${quranSchedHtml}
+        </div>` : ''}
+
+        ${student.islamicEnabled ? `
+        <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-clock" style="margin-left: 6px; color: #0ea5e9;"></i>مواعيد التربية</h4>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-           ${(student.schedule && student.schedule.length > 0) 
-              ? student.schedule.map(s => `<span style="background: var(--emerald); color: white; padding: 4px 10px; border-radius: 8px; font-size: 12px;">${s.day} - ${s.time}</span>`).join('') 
-              : `<span style="color: ${mutedColor}; font-size: 13px;">لا توجد مواعيد مسجلة</span>`}
-        </div>
+           ${islamicSchedHtml}
+        </div>` : ''}
 
       </div>
     `;
@@ -841,7 +910,36 @@
 
   function renderStudentForm(form) {
     const packages = ensurePackagesExist();
+    
+    const claudeStyles = `
+      <style>
+        .settings-wrapper { width: 100%; display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; direction: rtl; }
+        .section-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: 0.3s ease; }
+        .section-card.quran-card.active { border-color: rgba(16,185,129,0.4); box-shadow: 0 4px 15px rgba(16,185,129,0.1); }
+        .section-card.islamic-card.active { border-color: rgba(14,165,233,0.4); box-shadow: 0 4px 15px rgba(14,165,233,0.1); }
+        .section-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; cursor: pointer; user-select: none; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--color-slate-100); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--color-slate-400); transition: 0.3s; }
+        .section-card.quran-card.active .header-icon { background: rgba(16,185,129,0.1); color: #10b981; border-color: rgba(16,185,129,0.2); }
+        .section-card.islamic-card.active .header-icon { background: rgba(14,165,233,0.1); color: #0ea5e9; border-color: rgba(14,165,233,0.2); }
+        .header-text h3 { font-size: 15px; font-weight: bold; color: var(--text-primary); margin: 0 0 2px; }
+        .header-text p { font-size: 12px; color: var(--text-muted); margin: 0; }
+        .toggle-track { position: relative; width: 48px; height: 26px; flex-shrink: 0; cursor: pointer; margin: 0; direction: ltr; }
+        .toggle-track input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 999px; transition: 0.3s ease; }
+        .toggle-slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #ffffff; border-radius: 50%; transition: 0.3s cubic-bezier(.4,0,.2,1); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle-track.quran-toggle input:checked + .toggle-slider { background: #10b981; }
+        .toggle-track.islamic-toggle input:checked + .toggle-slider { background: #0ea5e9; }
+        .toggle-track input:checked + .toggle-slider::before { transform: translateX(22px); }
+        .section-body { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.4s ease, opacity 0.3s ease; }
+        .section-card.active .section-body { max-height: 800px; opacity: 1; overflow: visible; }
+        .section-body-inner { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
+        .sched-btn { border-radius: 8px; font-weight: bold; padding: 6px 12px; font-size: 12px; border: 1px dashed; display: flex; align-items: center; gap: 6px; }
+      </style>
+    `;
+
     return `
+      ${claudeStyles}
       <div class="card-soft account-card exec-animate" style="--stagger: 1; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:20px;font-weight:800;color:var(--gold);font-family: var(--font-display);">
@@ -885,7 +983,7 @@
         </div>
 
         <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-          <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px; color: var(--emerald);"></i>النظام المالي والمسارات</div>
+          <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px; color: var(--emerald);"></i>النظام المالي</div>
           
           <div class="mb-3">
             <label class="form-label" style="font-size: 13px;">تحديد الباقة المالية</label>
@@ -895,60 +993,109 @@
             </select>
           </div>
 
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <label class="form-label" style="font-size: 12px;">حد حصص القرآن (شهرياً)</label>
-              <input type="number" class="form-control account-custom-input" value="${form.quranLimit}" oninput="updateStudentFormField('quranLimit', this.value)" />
-            </div>
-            <div class="col-6">
-              <label class="form-label" style="font-size: 12px;">حد التربية (شهرياً)</label>
-              <input type="number" class="form-control account-custom-input" value="${form.islamicLimit}" oninput="updateStudentFormField('islamicLimit', this.value)" />
-            </div>
-          </div>
-          
-          <hr style="border-color: var(--border-color); margin: 16px 0;">
-
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${form.enableUnexcusedAbsence ? '12px' : '0'};">
             <div>
               <div style="font-weight: bold; font-size: 13px; color: var(--text-primary);">تفعيل الغياب بدون عذر</div>
               <div style="font-size: 11px; color: var(--text-muted);">احتساب غياب الطالب في الشيت المالي.</div>
             </div>
-            <label class="switch">
+            <label class="switch" style="margin:0;">
               <input type="checkbox" ${form.enableUnexcusedAbsence ? 'checked' : ''} onchange="updateStudentFormField('enableUnexcusedAbsence', this.checked)">
               <span class="slider round"></span>
             </label>
           </div>
-
           <div style="${form.enableUnexcusedAbsence ? 'display:block;' : 'display:none;'}">
             <label class="form-label" style="font-size: 12px; color: #b45309;">الغياب الذي يتخطى هذا الرقم سيتم احتسابه مالياً على الطالب</label>
             <input type="number" class="form-control account-custom-input" value="${form.maxAbsenceAllowed}" oninput="updateStudentFormField('maxAbsenceAllowed', this.value)" placeholder="مثال: 1 حلقة" />
           </div>
         </div>
 
-        <div class="card-soft mb-4 exec-animate" style="--stagger: 7; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212,175,55,0.4);">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <span style="font-weight:var(--fw-bold);color:var(--text-primary);"><i class="ph-duotone ph-calendar-blank" style="margin-left:8px;"></i>مواعيد الحلقة الأسبوعية</span>
-            <button type="button" class="btn btn-outline btn-sm" onclick="addScheduleSlot()"><i class="ph-bold ph-plus" style="margin-left:4px;"></i>إضافة موعد</button>
-          </div>
-          ${form.schedule.length === 0 ? `<div style="color:#9ca3af;font-size:13px;text-align:center;padding:10px;">لا توجد مواعيد حتى الآن</div>` : ""}
-          ${form.schedule
-            .map(
-              (slot, idx) => `
-            <div class="d-flex gap-2 align-items-center mb-3">
-              <select class="form-select" style="background: rgba(255,255,255,0.7) !important; border-color: rgba(0,0,0,0.05);" onchange="updateScheduleSlot(${idx}, 'day', this.value)">
-                ${ARABIC_DAYS.map(
-                  (d) => `<option value="${d}" ${d === slot.day ? "selected" : ""}>${d}</option>`
-                ).join("")}
-              </select>
-              <input type="time" class="form-control" style="background: rgba(255,255,255,0.7) !important; border-color: rgba(0,0,0,0.05);" value="${slot.time}" oninput="updateScheduleSlot(${idx}, 'time', this.value)" />
-              <button type="button" class="btn btn-danger" style="border-radius:var(--r-md);width:46px;height:46px;display:flex;align-items:center;justify-content:center;" onclick="removeScheduleSlot(${idx})">×</button>
+        <div class="settings-wrapper exec-animate" style="--stagger: 5;">
+          
+          <div class="section-card quran-card ${form.quranEnabled ? 'active' : ''}">
+            <div class="section-header" onclick="updateStudentFormField('quranEnabled', ${!form.quranEnabled})">
+              <div class="header-left">
+                <div class="header-icon"><i class="ph-duotone ph-book-open-text"></i></div>
+                <div class="header-text">
+                  <h3>حصص القرآن الكريم</h3>
+                  <p>تفعيل التسميع والمراجعة والمواعيد</p>
+                </div>
+              </div>
+              <label class="toggle-track quran-toggle" onclick="event.stopPropagation()">
+                <input type="checkbox" ${form.quranEnabled ? 'checked' : ''} onchange="updateStudentFormField('quranEnabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
             </div>
-          `
-            )
-            .join("")}
+            <div class="section-body">
+              <div class="section-body-inner">
+                <div>
+                  <label class="form-label" style="font-size: 12px; font-weight:bold; color:var(--text-muted);">عدد الحصص (شهرياً)</label>
+                  <input type="number" class="form-control account-custom-input" style="width: 100px; text-align:center; font-weight:bold; font-size:16px;" value="${form.quranLimit}" oninput="updateStudentFormField('quranLimit', this.value)" />
+                </div>
+                
+                <div style="background: rgba(16,185,129,0.05); border-radius:12px; padding:12px;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span style="font-weight:bold; font-size:13px; color:#065f46;">مواعيد حلقات القرآن</span>
+                    <button type="button" class="btn sched-btn" style="color:#059669; border-color:#059669;" onclick="addScheduleSlot('quran')"><i class="ph-bold ph-plus"></i>إضافة موعد</button>
+                  </div>
+                  ${form.quranSchedule.length === 0 ? `<div style="color:#9ca3af;font-size:12px;text-align:center;padding:10px;">لا توجد مواعيد مضافة للقرآن</div>` : ""}
+                  ${form.quranSchedule.map((slot, idx) => `
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                      <select class="form-select" style="font-size:13px; border-color:rgba(0,0,0,0.05);" onchange="updateScheduleSlot('quran', ${idx}, 'day', this.value)">
+                        ${ARABIC_DAYS.map(d => `<option value="${d}" ${d === slot.day ? "selected" : ""}>${d}</option>`).join("")}
+                      </select>
+                      <input type="time" class="form-control" style="font-size:13px; border-color:rgba(0,0,0,0.05);" value="${slot.time}" oninput="updateScheduleSlot('quran', ${idx}, 'time', this.value)" />
+                      <button type="button" class="btn" style="background:#fee2e2; color:#ef4444; border-radius:8px; padding:6px 10px;" onclick="removeScheduleSlot('quran', ${idx})"><i class="ph-bold ph-trash"></i></button>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card islamic-card ${form.islamicEnabled ? 'active' : ''}">
+            <div class="section-header" onclick="updateStudentFormField('islamicEnabled', ${!form.islamicEnabled})">
+              <div class="header-left">
+                <div class="header-icon"><i class="ph-duotone ph-heart"></i></div>
+                <div class="header-text">
+                  <h3>حصص التربية الإسلامية</h3>
+                  <p>تفعيل متابعة السلوك والآداب والمواعيد</p>
+                </div>
+              </div>
+              <label class="toggle-track islamic-toggle" onclick="event.stopPropagation()">
+                <input type="checkbox" ${form.islamicEnabled ? 'checked' : ''} onchange="updateStudentFormField('islamicEnabled', this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="section-body">
+              <div class="section-body-inner">
+                <div>
+                  <label class="form-label" style="font-size: 12px; font-weight:bold; color:var(--text-muted);">عدد الحصص (شهرياً)</label>
+                  <input type="number" class="form-control account-custom-input" style="width: 100px; text-align:center; font-weight:bold; font-size:16px;" value="${form.islamicLimit}" oninput="updateStudentFormField('islamicLimit', this.value)" />
+                </div>
+                
+                <div style="background: rgba(14,165,233,0.05); border-radius:12px; padding:12px;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span style="font-weight:bold; font-size:13px; color:#0369a1;">مواعيد حلقات التربية</span>
+                    <button type="button" class="btn sched-btn" style="color:#0284c7; border-color:#0284c7;" onclick="addScheduleSlot('islamic')"><i class="ph-bold ph-plus"></i>إضافة موعد</button>
+                  </div>
+                  ${form.islamicSchedule.length === 0 ? `<div style="color:#9ca3af;font-size:12px;text-align:center;padding:10px;">لا توجد مواعيد مضافة للتربية</div>` : ""}
+                  ${form.islamicSchedule.map((slot, idx) => `
+                    <div class="d-flex gap-2 align-items-center mb-2">
+                      <select class="form-select" style="font-size:13px; border-color:rgba(0,0,0,0.05);" onchange="updateScheduleSlot('islamic', ${idx}, 'day', this.value)">
+                        ${ARABIC_DAYS.map(d => `<option value="${d}" ${d === slot.day ? "selected" : ""}>${d}</option>`).join("")}
+                      </select>
+                      <input type="time" class="form-control" style="font-size:13px; border-color:rgba(0,0,0,0.05);" value="${slot.time}" oninput="updateScheduleSlot('islamic', ${idx}, 'time', this.value)" />
+                      <button type="button" class="btn" style="background:#fee2e2; color:#ef4444; border-radius:8px; padding:6px 10px;" onclick="removeScheduleSlot('islamic', ${idx})"><i class="ph-bold ph-trash"></i></button>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 8;" onclick="saveStudentForm()">
+        <button type="button" class="btn account-save-btn exec-animate" style="--stagger: 6;" onclick="saveStudentForm()">
           <i class="ph-duotone ph-floppy-disk" style="margin-left:8px;"></i>${form.editId ? "حفظ التعديلات" : "إضافة الطالب"}
         </button>
       </div>
