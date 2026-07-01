@@ -122,7 +122,8 @@
         name: "",
         phone: "",
         gender: "boy",
-        packageId: packages.length > 0 ? packages[0].id : "",
+        individualPackageId: "",
+        groupPackageId: "",
         quranEnabled: true,
         quranLimit: 8,
         quranSchedule: [],
@@ -155,8 +156,8 @@
         open: false,
         editId: null,
         name: "",
+        type: "individual",
         price: 70,
-        groupPrice: 50,
         studentIds: [], 
       };
     }
@@ -176,7 +177,25 @@
         form.name = stu.name || "";
         form.phone = stu.phone || "";
         form.gender = stu.gender || "boy";
-        form.packageId = stu.packageId || (packages.length > 0 ? packages[0].id : "");
+
+        // توافق رجعي: الطلاب القدام كانت لديهم packageId واحد فقط.
+        // نحاول تخمين نوعه من قائمة الباقات الحالية، وإلا نعتبره باقة فردية بشكل افتراضي.
+        if (stu.individualPackageId !== undefined || stu.groupPackageId !== undefined) {
+          form.individualPackageId = stu.individualPackageId || "";
+          form.groupPackageId = stu.groupPackageId || "";
+        } else if (stu.packageId) {
+          const legacyPkg = packages.find((p) => p.id === stu.packageId);
+          if (legacyPkg && legacyPkg.type === "group") {
+            form.individualPackageId = "";
+            form.groupPackageId = stu.packageId;
+          } else {
+            form.individualPackageId = stu.packageId;
+            form.groupPackageId = "";
+          }
+        } else {
+          form.individualPackageId = "";
+          form.groupPackageId = "";
+        }
         
         form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : (stu.sessionLimit || 8);
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
@@ -196,7 +215,8 @@
       form.name = "";
       form.phone = "";
       form.gender = "boy";
-      form.packageId = packages.length > 0 ? packages[0].id : "";
+      form.individualPackageId = "";
+      form.groupPackageId = "";
       form.quranEnabled = true;
       form.quranLimit = 8;
       form.quranSchedule = [];
@@ -222,7 +242,7 @@
   window.updateStudentFormField = function (field, value) {
     const form = ensureStudentForm();
     form[field] = value;
-    if (field === "gender" || field === "packageId" || field === "enableUnexcusedAbsence" || field === "quranEnabled" || field === "islamicEnabled") {
+    if (field === "gender" || field === "individualPackageId" || field === "groupPackageId" || field === "enableUnexcusedAbsence" || field === "quranEnabled" || field === "islamicEnabled") {
       router.render();
     }
   };
@@ -293,10 +313,11 @@
     }
 
     const packages = ensurePackagesExist();
-    const selectedPackage = packages.find(p => p.id === form.packageId);
-    
-    const sessionPrice = selectedPackage ? selectedPackage.price : 70;
-    const groupSessionPrice = selectedPackage && selectedPackage.groupPrice !== undefined ? selectedPackage.groupPrice : sessionPrice;
+    const individualPackage = packages.find(p => p.id === form.individualPackageId);
+    const groupPackage = packages.find(p => p.id === form.groupPackageId);
+
+    const sessionPrice = individualPackage ? (parseFloat(individualPackage.price) || 0) : 70;
+    const groupSessionPrice = groupPackage ? (parseFloat(groupPackage.price) || 0) : 70;
 
     const quranNum = form.quranEnabled ? parseInt(form.quranLimit, 10) : 0;
     const islamicNum = form.islamicEnabled ? parseInt(form.islamicLimit, 10) : 0;
@@ -306,7 +327,10 @@
       name: form.name.trim(),
       phone: form.phone.trim(),
       gender: form.gender,
-      packageId: form.packageId,
+      individualPackageId: form.individualPackageId,
+      groupPackageId: form.groupPackageId,
+      // نُبقي packageId للتوافق الرجعي مع أي صفحات أخرى (مثل التقارير المالية) قد تقرأ هذا الحقل مباشرة
+      packageId: form.individualPackageId || form.groupPackageId || "",
       sessionPrice: sessionPrice,
       groupSessionPrice: groupSessionPrice,
       quranEnabled: form.quranEnabled,
@@ -487,15 +511,22 @@
       if (pkg) {
         form.editId = pkg.id;
         form.name = pkg.name || "";
-        form.price = pkg.price || 70;
-        form.groupPrice = pkg.groupPrice !== undefined ? pkg.groupPrice : (pkg.price || 70);
-        form.studentIds = (window.appState.students || []).filter(s => s.packageId === pkg.id).map(s => s.id);
+        form.type = pkg.type === "group" ? "group" : "individual";
+        form.price = pkg.price !== undefined ? pkg.price : 70;
+
+        form.studentIds = (window.appState.students || [])
+          .filter((s) => {
+            if (form.type === "group") return s.groupPackageId === pkg.id;
+            // توافق رجعي: طالب قديم لسه بيشاور على packageId فقط
+            return s.individualPackageId === pkg.id || (!s.individualPackageId && s.packageId === pkg.id);
+          })
+          .map((s) => s.id);
       }
     } else {
       form.editId = null;
       form.name = "";
+      form.type = "individual";
       form.price = 70;
-      form.groupPrice = 50; 
       form.studentIds = [];
     }
     form.open = true;
@@ -514,6 +545,9 @@
   window.updatePackageFormField = function (field, value) {
     const form = ensurePackageForm();
     form[field] = value;
+    if (field === "type") {
+      router.render();
+    }
   };
 
   window.togglePackageStudent = function (studentId, checked) {
@@ -534,11 +568,13 @@
       return;
     }
 
+    const pkgType = form.type === "group" ? "group" : "individual";
+
     const pkgData = {
       id: form.editId || `pkg-${Date.now()}`,
       name: form.name.trim(),
+      type: pkgType,
       price: parseFloat(form.price) || 0,
-      groupPrice: parseFloat(form.groupPrice) || 0,
     };
 
     let packages = [...ensurePackagesExist()];
@@ -555,16 +591,33 @@
     window.__LOCAL_PACKAGES__ = packages;
     
     const studentsToUpdate = form.studentIds || [];
+    const touchedStudentIds = new Set();
+
     (window.appState.students || []).forEach((stu) => {
-        if (studentsToUpdate.includes(stu.id)) {
-            stu.packageId = pkgData.id;
-            stu.sessionPrice = pkgData.price;
-            stu.groupSessionPrice = pkgData.groupPrice; 
-        } else if (stu.packageId === pkgData.id) {
-            stu.packageId = ""; 
-            stu.sessionPrice = 70; 
-            stu.groupSessionPrice = 70; 
+        const isLinked = studentsToUpdate.includes(stu.id);
+        if (pkgType === "individual") {
+            if (isLinked) {
+                stu.individualPackageId = pkgData.id;
+                stu.sessionPrice = pkgData.price;
+                touchedStudentIds.add(stu.id);
+            } else if (stu.individualPackageId === pkgData.id) {
+                stu.individualPackageId = "";
+                stu.sessionPrice = 70;
+                touchedStudentIds.add(stu.id);
+            }
+        } else {
+            if (isLinked) {
+                stu.groupPackageId = pkgData.id;
+                stu.groupSessionPrice = pkgData.price;
+                touchedStudentIds.add(stu.id);
+            } else if (stu.groupPackageId === pkgData.id) {
+                stu.groupPackageId = "";
+                stu.groupSessionPrice = 70;
+                touchedStudentIds.add(stu.id);
+            }
         }
+        // نُبقي packageId متزامناً للتوافق الرجعي مع أي صفحات أخرى تقرأه مباشرة
+        stu.packageId = stu.individualPackageId || stu.groupPackageId || "";
     });
 
     form.open = false;
@@ -574,14 +627,16 @@
     try {
       await dbModule.saveSettings(window.appState.settings);
       
-      (window.appState.students || []).forEach((stu) => {
-          if (studentsToUpdate.includes(stu.id) || stu.packageId === pkgData.id || stu.packageId === "") {
-              dbModule.updateStudent(stu.id, { 
-                packageId: stu.packageId, 
-                sessionPrice: stu.sessionPrice,
-                groupSessionPrice: stu.groupSessionPrice 
-              }).catch(e => console.error(e));
-          }
+      touchedStudentIds.forEach((id) => {
+        const stu = (window.appState.students || []).find(s => s.id === id);
+        if (!stu) return;
+        dbModule.updateStudent(id, {
+          packageId: stu.packageId,
+          individualPackageId: stu.individualPackageId,
+          groupPackageId: stu.groupPackageId,
+          sessionPrice: stu.sessionPrice,
+          groupSessionPrice: stu.groupSessionPrice
+        }).catch(e => console.error(e));
       });
     } catch (err) {
       console.error(err);
@@ -727,10 +782,10 @@
     if (!student) return;
 
     const packages = ensurePackagesExist();
-    const pkg = packages.find(p => p.id === student.packageId);
-    const pkgName = pkg ? pkg.name : "بدون باقة";
-    const sessionPrice = pkg ? pkg.price : 70;
-    const groupPrice = pkg && pkg.groupPrice !== undefined ? pkg.groupPrice : sessionPrice;
+    const individualPkg = packages.find(p => p.id === student.individualPackageId);
+    const groupPkg = packages.find(p => p.id === student.groupPackageId);
+    const sessionPrice = individualPkg ? individualPkg.price : (student.sessionPrice !== undefined ? student.sessionPrice : 70);
+    const groupPrice = groupPkg ? groupPkg.price : (student.groupSessionPrice !== undefined ? student.groupSessionPrice : 70);
 
     // 🔥 حساب المتغيرات بالتوافق الرجعي للطلاب القدام
     const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
@@ -794,9 +849,13 @@
       <div style="padding: 20px; max-height: 60vh; overflow-y: auto;">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
            <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
-              <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">الباقة الحالية</div>
-              <div style="color: ${textColor}; font-weight: bold; font-size: 14px;">${pkgName}</div>
-              <div style="font-size: 11px; color: #10b981; margin-top:4px;">فردي: ${sessionPrice} ج | جماعي: ${groupPrice} ج</div>
+              <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 6px;">الباقات المالية</div>
+              <div style="color: #059669; font-weight: bold; font-size: 12.5px; display:flex; align-items:center; gap:4px;">
+                <i class="ph-duotone ph-user"></i>فردي: ${individualPkg ? individualPkg.name : 'بدون باقة'} (${sessionPrice} ج)
+              </div>
+              <div style="color: #0369a1; font-weight: bold; font-size: 12.5px; margin-top:4px; display:flex; align-items:center; gap:4px;">
+                <i class="ph-duotone ph-users-three"></i>جماعي: ${groupPkg ? groupPkg.name : 'بدون باقة'} (${groupPrice} ج)
+              </div>
            </div>
            <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
               <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">ولي الأمر (واتساب)</div>
@@ -876,6 +935,12 @@
   // Renders
   // ==========================================
   function renderPackageForm(form) {
+    const isGroup = form.type === "group";
+    const priceLabel = isGroup ? "سعر الباقة الجماعية (ج)" : "سعر الباقة الفردية (ج)";
+    const priceColor = isGroup ? "#0369a1" : "#065f46";
+    const priceLineColor = isGroup ? "#0ea5e9" : "#10b981";
+    const priceIcon = isGroup ? "ph-users-three" : "ph-user";
+
     return `
       <div class="card-soft account-card exec-animate" style="--stagger: 1; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(16, 185, 129, 0.15); padding-bottom: 16px;">
@@ -891,24 +956,35 @@
           <div class="account-input-line"></div>
         </div>
 
-        <div class="row mb-4 exec-animate" style="--stagger: 3;">
-          <div class="col-6">
-            <div class="form-group">
-              <input type="number" class="form-control account-custom-input" value="${form.price}" oninput="updatePackageFormField('price', this.value)" placeholder=" " />
-              <label class="form-label" style="color: #065f46;"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>سعر الفردي (ج)</label>
-              <div class="account-input-line" style="background:#10b981;"></div>
-            </div>
-          </div>
-          <div class="col-6">
-            <div class="form-group">
-              <input type="number" class="form-control account-custom-input" value="${form.groupPrice}" oninput="updatePackageFormField('groupPrice', this.value)" placeholder=" " />
-              <label class="form-label" style="color: #0369a1;"><i class="ph-duotone ph-users-three" style="margin-left:4px;"></i>سعر الجماعي (ج)</label>
-              <div class="account-input-line" style="background:#0ea5e9;"></div>
-            </div>
+        <div class="mb-4 exec-animate" style="--stagger: 3;">
+          <label style="font-size:15px;color:var(--text-muted);font-weight:600;margin-bottom:12px;display:block;">نوع الباقة</label>
+          <div class="d-flex gap-3">
+            <button type="button"
+                    class="btn flex-fill"
+                    style="${!isGroup
+                      ? 'background: #059669; color: white; border: 1px solid #047857; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);'
+                      : 'background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);'}"
+                    onclick="updatePackageFormField('type','individual')">
+              <i class="ph-duotone ph-user" style="margin-left:4px;"></i>فردية
+            </button>
+            <button type="button"
+                    class="btn flex-fill"
+                    style="${isGroup
+                      ? 'background: #0ea5e9; color: white; border: 1px solid #0284c7; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);'
+                      : 'background: transparent; color: var(--text-primary); border: 1px solid var(--border-color);'}"
+                    onclick="updatePackageFormField('type','group')">
+              <i class="ph-duotone ph-users-three" style="margin-left:4px;"></i>جماعية
+            </button>
           </div>
         </div>
 
-        <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
+        <div class="form-group mb-4 exec-animate" style="--stagger: 4;">
+          <input type="number" class="form-control account-custom-input" value="${form.price}" oninput="updatePackageFormField('price', this.value)" placeholder=" " />
+          <label class="form-label" style="color: ${priceColor};"><i class="ph-duotone ${priceIcon}" style="margin-left:4px;"></i>${priceLabel}</label>
+          <div class="account-input-line" style="background:${priceLineColor};"></div>
+        </div>
+
+        <div class="card-soft mb-4 exec-animate" style="--stagger: 4.5; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:#065f46;"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>ربط الطلاب بهذه الباقة (اختياري)</div>
           
           ${(!window.appState.students || window.appState.students.length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
@@ -938,6 +1014,8 @@
 
   function renderStudentForm(form) {
     const packages = ensurePackagesExist();
+    const individualPackages = packages.filter(p => p.type !== "group");
+    const groupPackages = packages.filter(p => p.type === "group");
     
     const claudeStyles = `
       <style>
@@ -1014,10 +1092,18 @@
           <div style="font-weight:var(--fw-bold);color:var(--text-primary);margin-bottom:16px;"><i class="ph-duotone ph-wallet" style="margin-left:8px; color: var(--emerald);"></i>النظام المالي</div>
           
           <div class="mb-3">
-            <label class="form-label" style="font-size: 13px;">تحديد الباقة المالية</label>
-            <select class="form-select account-custom-input" onchange="updateStudentFormField('packageId', this.value)">
+            <label class="form-label" style="font-size: 13px; color:#065f46;"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>الباقة الفردية</label>
+            <select class="form-select account-custom-input" onchange="updateStudentFormField('individualPackageId', this.value)">
               <option value="">-- بدون باقة --</option>
-              ${packages.map(p => `<option value="${p.id}" ${form.packageId === p.id ? 'selected' : ''}>${p.name} (فردي: ${p.price}ج | جماعي: ${p.groupPrice !== undefined ? p.groupPrice : p.price}ج)</option>`).join("")}
+              ${individualPackages.map(p => `<option value="${p.id}" ${form.individualPackageId === p.id ? 'selected' : ''}>${p.name} (${p.price}ج)</option>`).join("")}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" style="font-size: 13px; color:#0369a1;"><i class="ph-duotone ph-users-three" style="margin-left:4px;"></i>الباقة الجماعية</label>
+            <select class="form-select account-custom-input" onchange="updateStudentFormField('groupPackageId', this.value)">
+              <option value="">-- بدون باقة --</option>
+              ${groupPackages.map(p => `<option value="${p.id}" ${form.groupPackageId === p.id ? 'selected' : ''}>${p.name} (${p.price}ج)</option>`).join("")}
             </select>
           </div>
 
@@ -1221,15 +1307,33 @@
         
         <div class="d-grid gap-3">
           ${packages.map((p, index) => {
-            const stuCount = (window.appState.students || []).filter(s => s.packageId === p.id).length;
+            const pkgType = p.type === "group" ? "group" : "individual";
+            const isGroupPkg = pkgType === "group";
+            const stuCount = (window.appState.students || []).filter(s => 
+              isGroupPkg ? s.groupPackageId === p.id : (s.individualPackageId === p.id || (!s.individualPackageId && s.packageId === p.id))
+            ).length;
+            const cardBg = isGroupPkg ? '#f0f9ff' : '#f0fdf4';
+            const cardBorder = isGroupPkg ? '#bae6fd' : '#a7f3d0';
+            const accent = isGroupPkg ? '#0369a1' : '#047857';
+            const badgeBg = isGroupPkg ? 'rgba(14,165,233,0.12)' : 'rgba(16,185,129,0.12)';
+            const badgeBorder = isGroupPkg ? 'rgba(14,165,233,0.3)' : 'rgba(16,185,129,0.3)';
+            const badgeIcon = isGroupPkg ? 'ph-users-three' : 'ph-user';
+            const badgeLabel = isGroupPkg ? 'جماعية' : 'فردية';
+            const editColor = isGroupPkg ? '#0ea5e9' : '#10b981';
+
             return `
-            <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: ${cardBg}; border: 1px solid ${cardBorder}; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
-                <div style="font-weight:bold; color:#065f46; font-size:15px;">${p.name}</div>
-                <div style="font-size:13px; color:#047857; margin-top:4px;">فردي: <strong>${p.price}ج</strong> | جماعي: <strong>${p.groupPrice !== undefined ? p.groupPrice : p.price}ج</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                  <span style="font-weight:bold; color:#065f46; font-size:15px;">${p.name}</span>
+                  <span style="background:${badgeBg}; color:${accent}; border:1px solid ${badgeBorder}; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:800; display:inline-flex; align-items:center; gap:4px;">
+                    <i class="ph-duotone ${badgeIcon}"></i>${badgeLabel}
+                  </span>
+                </div>
+                <div style="font-size:13px; color:${accent}; margin-top:4px;">السعر: <strong>${p.price}ج</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
               </div>
               <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
+                <button type="button" class="btn btn-outline icon-btn" style="border-color:${editColor}; color:${editColor};" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
                 <button type="button" class="btn btn-danger icon-btn" onclick="deletePackage('${p.id}')"><i class="ph-duotone ph-trash"></i></button>
               </div>
             </div>
@@ -1253,8 +1357,8 @@
           ${(window.appState.students || [])
             .map(
               (s, index) => {
-                const pkg = packages.find(p => p.id === s.packageId);
-                const pkgName = pkg ? pkg.name : "غير محدد";
+                const individualPkg = packages.find(p => p.id === s.individualPackageId);
+                const groupPkg = packages.find(p => p.id === s.groupPackageId);
 
                 // 🔥 توافق رجعي لعدادات الكارت الخارجي
                 const qEnabled = s.quranEnabled !== undefined ? s.quranEnabled : ((s.quranLimit || s.sessionLimit) > 0);
@@ -1268,7 +1372,8 @@
                 <div style="flex:1;">
                   <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</div>
                   <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
-                    <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">الباقة: <strong>${pkgName}</strong></span>
+                    <span style="background:#f0fdf4;color:#047857;padding:2px 8px;border-radius:4px;"><i class="ph-duotone ph-user" style="margin-left:2px;"></i>فردي: <strong>${individualPkg ? individualPkg.name : 'بدون باقة'}</strong></span>
+                    <span style="background:#f0f9ff;color:#0369a1;padding:2px 8px;border-radius:4px;"><i class="ph-duotone ph-users-three" style="margin-left:2px;"></i>جماعي: <strong>${groupPkg ? groupPkg.name : 'بدون باقة'}</strong></span>
                     <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${qEnabled ? qLimit : 'موقف'}</strong></span>
                     <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${iEnabled ? iLimit : 'موقف'}</strong></span>
                   </div>
