@@ -16,6 +16,7 @@
       case "schedule": return renderSchedulePage();
       case "settings": return renderSettingsPage();
       case "account": return renderAccountPage();
+      case "secretary": return typeof renderSecretaryPage === 'function' ? renderSecretaryPage() : '<div style="padding:40px; text-align:center;">جاري تحميل السكرتير الذكي...</div>';
       default: return renderSessionForm();
     }
   }
@@ -90,8 +91,8 @@
               <button type="button" class="btn btn-primary btn-lg" onclick="setActiveTab('form')">
                 <i class="ph-duotone ph-plus-circle"></i>تسجيل جلسة جديدة
               </button>
-              <button type="button" class="btn btn-glass btn-lg" onclick="setActiveTab('analysis')">
-                <i class="ph-duotone ph-chart-pie-slice"></i>التحليلات الذكية
+              <button type="button" class="btn btn-glass btn-lg" onclick="setActiveTab('secretary')">
+                <i class="ph-duotone ph-robot"></i>السكرتير الذكي
               </button>
             </div>
           </div>
@@ -140,6 +141,7 @@
       case "schedule": if (typeof initSchedulePage === "function") initSchedulePage(); break;
       case "settings": if (typeof initSettingsPage === "function") initSettingsPage(); break;
       case "account": if (typeof initAccountPage === "function") initAccountPage(); break;
+      case "secretary": if (typeof initSecretaryPage === "function") initSecretaryPage(); break;
       default: if (typeof initSessionForm === "function") initSessionForm(); break;
     }
   };
