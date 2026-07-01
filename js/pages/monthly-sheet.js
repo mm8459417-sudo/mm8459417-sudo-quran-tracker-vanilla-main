@@ -7,7 +7,6 @@
   if (!appState.ui.sheetFilter) appState.ui.sheetFilter = "month"; 
   if (!appState.tempAdjustments) appState.tempAdjustments = {};
 
-  // تأمين قراءة الشهر والسنة الحاليين إذا لم يكونوا محددين
   const currentDateObj = new Date();
   if (appState.ui.month === undefined) appState.ui.month = currentDateObj.getMonth() + 1;
   if (appState.ui.year === undefined) appState.ui.year = currentDateObj.getFullYear();
@@ -32,13 +31,12 @@
     if (typeof router !== "undefined") router.render();
   };
 
-  // دالة جديدة للتحكم في استبعاد الطالب من الشيت والطباعة
   window.toggleStudentPrint = function(studentId, isChecked) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
-      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0, printExcluded: false };
+      appState.tempAdjustments[studentId] = { quran: 0, islamic: 0, group: 0, individual: 0, printExcluded: false };
     }
-    appState.tempAdjustments[studentId].printExcluded = !isChecked; // إذا لم يكن محدداً، يتم استبعاده
+    appState.tempAdjustments[studentId].printExcluded = !isChecked; 
     if (typeof router !== "undefined") router.render();
   };
 
@@ -68,11 +66,10 @@
     const studentsList = appState.students || [];
     const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "غير محدد";
     const lines = [
-      "📋 شيت حضور حلقة القرآن الكريم",
+      "📋 شيت حضور الحلقات",
       `📅 ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} / ${appState.ui.year}`,
       `المعلم: ${teacherName}`,
       "─────────────────────────",
-      // فلترة الطلاب المستبعدين من النسخ
       ...studentsList
         .filter(s => !(appState.tempAdjustments[s.id] && appState.tempAdjustments[s.id].printExcluded))
         .map((s, i) => {
@@ -113,12 +110,17 @@
   window.adjustTempCount = function(studentId, field, amount) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
-      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0, printExcluded: false };
+      appState.tempAdjustments[studentId] = { quran: 0, islamic: 0, group: 0, individual: 0, printExcluded: false };
     }
     if (typeof appState.tempAdjustments[studentId][field] !== 'number') {
       appState.tempAdjustments[studentId][field] = 0;
     }
     appState.tempAdjustments[studentId][field] += amount;
+    
+    // منع القيم السلبية تماماً في الحسابات
+    const baseCount = field === 'quran' ? 0 : 0; // القيم تتجمع لاحقاً مع الحقيقي، بس نمنع التعديل ينزل عن رقم غير منطقي لو حبينا
+    if (appState.tempAdjustments[studentId][field] < -50) appState.tempAdjustments[studentId][field] = -50; 
+
     if (typeof router !== "undefined") router.render(); 
   };
 
@@ -145,7 +147,6 @@
                 tr { page-break-inside: avoid; }
                 tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
                 .price-col { color: #0f9d7a; font-weight: bold; }
-                /* إخفاء العناصر التي تحتوي على كلاس no-print أثناء الطباعة */
                 .no-print { display: none !important; }
             </style>
         </head>
@@ -186,11 +187,9 @@
       const sessionsList = appState.sessions || [];
       const studentsList = appState.students || [];
 
-      // 1. تصفية الجلسات
       const filteredSessions = sessionsList.filter(s => {
         if (!s.date) return false;
         const d = new Date(s.date);
-        
         if (appState.ui.sheetFilter === "week") {
           const now = new Date();
           const oneWeekAgo = new Date();
@@ -208,7 +207,6 @@
       let grandTotalIndividual = 0;
       let grandTotalGroup = 0;
 
-      // 2. معالجة البيانات وإعداد الإجماليات
       let tableData = studentsList.map(student => {
         const stdSessions = filteredSessions.filter(s => {
           if (s.mode === "individual" || !s.mode) {
@@ -259,17 +257,20 @@
           }
         });
 
+        // قراءة التعديلات اليدوية لكل الحقول
         if (!appState.tempAdjustments) appState.tempAdjustments = {};
         const adj = appState.tempAdjustments[student.id] || {};
         const adjQuran = typeof adj.quran === 'number' ? adj.quran : 0;
-        const adjCalc = typeof adj.calc === 'number' ? adj.calc : 0;
+        const adjIslamic = typeof adj.islamic === 'number' ? adj.islamic : 0;
         const adjInd = typeof adj.individual === 'number' ? adj.individual : 0;
         const adjGrp = typeof adj.group === 'number' ? adj.group : 0;
-        const printExcluded = adj.printExcluded || false; // قراءة حالة الاستبعاد
+        const printExcluded = adj.printExcluded || false; 
 
-        quranCount += adjQuran;
-        individualCount += adjInd;
-        groupCount += adjGrp;
+        // تطبيق الزيادات
+        quranCount = Math.max(0, quranCount + adjQuran);
+        islamicCount = Math.max(0, islamicCount + adjIslamic);
+        individualCount = Math.max(0, individualCount + adjInd);
+        groupCount = Math.max(0, groupCount + adjGrp);
 
         const sessionPrice = student.sessionPrice || 70;
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
@@ -280,10 +281,10 @@
           payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
         }
 
-        let totalCalculatedSessions = individualCount + groupCount + payableAbsences + adjCalc;
+        // 🔴 الحلقات المحتسبة = فردي + جماعي + غياب محاسب (قاعدة صارمة)
+        let totalCalculatedSessions = individualCount + groupCount + payableAbsences;
         const totalAmount = totalCalculatedSessions * sessionPrice;
 
-        // لا يتم إضافة الأرقام للإجمالي إذا كان الطالب مستبعداً (غير مفعل)
         if (!printExcluded) {
           grandTotalAmount += totalAmount;
           grandTotalCalculatedSessions += totalCalculatedSessions;
@@ -310,34 +311,41 @@
         };
       });
 
-      // ترتيب الطلاب أبجدياً
       tableData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
-      // 3. بناء صفوف الجدول
       const tbodyHtml = tableData.length ? tableData.map(row => {
-        // إذا كان مستبعداً، يأخذ كلاس no-print للإخفاء في الطباعة، و opacity ليظهر باهتاً في الواجهة
         return `
           <tr class="${row.printExcluded ? 'no-print' : ''}" style="border-bottom: 1px solid var(--color-border); background: var(--card-bg); opacity: ${row.printExcluded ? '0.4' : '1'}; transition: opacity 0.3s ease;">
+            
             <td style="padding: 14px 16px; font-weight: bold; color: var(--color-slate-800); text-align: right;">
               <div class="d-flex align-items-center gap-2">
-                <!-- زر تفعيل وإلغاء تفعيل الطالب للطباعة -->
-                <input type="checkbox" class="form-check-input no-print" style="width:18px;height:18px;cursor:pointer;margin:0;flex-shrink:0;" ${!row.printExcluded ? 'checked' : ''} onchange="toggleStudentPrint('${row.id}', this.checked)" title="تضمين في الطباعة والحسابات الإجمالية">
+                <input type="checkbox" class="form-check-input no-print" style="width:18px;height:18px;cursor:pointer;margin:0;flex-shrink:0;" ${!row.printExcluded ? 'checked' : ''} onchange="toggleStudentPrint('${row.id}', this.checked)" title="تضمين في الطباعة">
                 <div>
                   <i class="ph-bold ph-user" style="margin-left:4px; color:${row.gender === 'girl' ? '#ec4899' : '#10b981'};"></i>${row.name}
                 </div>
               </div>
             </td>
+            
             <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
                ${row.sessionPrice} <span style="font-size:11px; font-weight:normal;">ج.م</span>
             </td>
+            
             <td style="padding: 14px 16px; text-align: center; font-weight: 600;">
               <div>${row.quranCount}</div>
               <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 4px;">
-                <button type="button" onclick='adjustTempCount("${row.id}", "quran", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold;">+</button>
-                <button type="button" onclick='adjustTempCount("${row.id}", "quran", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold;">-</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "quran", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "quran", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">-</button>
               </div>
             </td>
-            <td style="padding: 14px 16px; text-align: center; font-weight: 600;">${row.islamicCount}</td>
+            
+            <td style="padding: 14px 16px; text-align: center; font-weight: 600;">
+              <div>${row.islamicCount}</div>
+              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 4px;">
+                <button type="button" onclick='adjustTempCount("${row.id}", "islamic", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "islamic", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">-</button>
+              </div>
+            </td>
+            
             <td style="padding: 14px 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
             <td style="padding: 14px 16px; text-align: center; color: #ef4444; font-weight: bold;">
               ${row.unexcusedAbsenceCount} 
@@ -345,13 +353,29 @@
                  ${row.enableUnexcusedAbsence ? `(مُحاسب على ${row.payableAbsences})` : '<del>(موقف)</del>'}
               </span>
             </td>
-            <td style="padding: 14px 16px; text-align: center; color: #0ea5e9; font-weight: 600;">${row.individualCount}</td>
-            <td style="padding: 14px 16px; text-align: center; color: #8b5cf6; font-weight: 600;">${row.groupCount}</td>
+            
+            <td style="padding: 14px 16px; text-align: center; color: #0ea5e9; font-weight: 600;">
+              <div>${row.individualCount}</div>
+              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 4px;">
+                <button type="button" onclick='adjustTempCount("${row.id}", "individual", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "individual", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: #e0f2fe; color: #0284c7; border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">-</button>
+              </div>
+            </td>
+            
+            <td style="padding: 14px 16px; text-align: center; color: #6d28d9; font-weight: 600;">
+              <div>${row.groupCount}</div>
+              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 4px;">
+                <button type="button" onclick='adjustTempCount("${row.id}", "group", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: #ede9fe; color: #6d28d9; border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">+</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "group", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: #ede9fe; color: #6d28d9; border-radius: 4px; font-weight:bold; font-size:14px; display:flex; align-items:center; justify-content:center; line-height:1;">-</button>
+              </div>
+            </td>
+            
             <td style="padding: 14px 16px; text-align: center;">
-              <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: bold;">
+              <span style="background: #f1f5f9; color: #334155; padding: 4px 10px; border-radius: 6px; font-weight: bold;">
                 ${row.totalCalculatedSessions}
               </span>
             </td>
+            
             <td class="price-col" style="padding: 14px 16px; text-align: center; font-weight: var(--fw-extrabold); font-size: 15px; color: #0f9d7a;">
               ${row.totalAmount} <span style="font-size: 11px; font-weight: normal; color: #64748b;">ج.م</span>
             </td>
@@ -359,7 +383,6 @@
         `;
       }).join("") : `<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">لا توجد بيانات متاحة لهذا الشهر حتى الآن.</td></tr>`;
 
-      // 4. تجميع الواجهة الكاملة للشيت
       return `
         <div style="font-family: 'Cairo', sans-serif;">
           <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
@@ -371,7 +394,6 @@
               <div>
                 <div style="font-weight:800; font-size:18px; color:var(--text-primary);">الشيت المالي والحسابات</div>
                 
-                <!-- أزرار الأرشيف - تم عكسها كما طلبت -->
                 <div class="d-flex align-items-center gap-2 mt-1 no-print">
                   <button type="button" onclick="nextMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;" title="الشهر التالي">◀</button>
                   <span style="font-size:13px; font-weight:bold; color: #475569; min-width: 90px; text-align:center; background:#f1f5f9; padding:2px 8px; border-radius:6px;">
