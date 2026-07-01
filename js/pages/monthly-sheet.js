@@ -84,17 +84,136 @@
       .catch(() => typeof showToast === 'function' && showToast("تعذر النسخ"));
   };
 
-  window.exportMonthlySheetPdf = async function () {
-    const el = document.getElementById("monthly-sheet-box");
-    if (!el) {
+ // ==============================================================
+  // دوال التصدير والطباعة (نسخة نظيفة خالية من الأزرار والمستبعدين)
+  // ==============================================================
+
+  // 1. الدالة المساعدة (الجديدة)
+  function createCleanTableClone() {
+    const originalEl = document.getElementById("monthly-sheet-box");
+    if (!originalEl) return null;
+
+    const clone = originalEl.cloneNode(true);
+    
+    const noPrintElements = clone.querySelectorAll('.no-print');
+    noPrintElements.forEach(el => el.remove());
+
+    const buttons = clone.querySelectorAll('button');
+    buttons.forEach(btn => btn.remove());
+
+    const inputs = clone.querySelectorAll('input[type="checkbox"]');
+    inputs.forEach(input => input.remove());
+
+    const rows = clone.querySelectorAll('tr');
+    rows.forEach(row => {
+        row.style.opacity = '1';
+    });
+
+    const container = document.createElement('div');
+    container.id = 'temp-export-container';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.background = 'white';
+    container.style.padding = '20px';
+    container.style.direction = 'rtl';
+    container.style.width = '1200px'; 
+    
+    const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "";
+    const title = appState.ui.sheetFilter === "month" 
+        ? `تقرير شهر ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} لسنة ${appState.ui.year}` 
+        : "تقرير آخر 7 أيام";
+        
+    container.innerHTML = `
+        <h2 style="text-align: center; color: #065f46; font-family: 'Cairo', sans-serif; margin-bottom: 5px;">الشيت المالي والحسابات</h2>
+        <h4 style="text-align: center; color: #64748b; font-family: 'Cairo', sans-serif; margin-top: 0; margin-bottom: 20px;">${title} | المعلم: ${teacherName}</h4>
+    `;
+    
+    clone.style.width = '100%';
+    clone.style.borderCollapse = 'collapse';
+    clone.style.fontFamily = "'Cairo', sans-serif";
+    
+    container.appendChild(clone);
+    document.body.appendChild(container);
+    
+    return container;
+  }
+
+  // 2. دالة الصورة (المحدثة)
+  window.exportMonthlySheetImage = async function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) {
       if (typeof showToast === 'function') showToast("الجدول غير موجود");
       return;
     }
-    if (typeof exportElementAsPdf === 'function') {
-      await exportElementAsPdf(el, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
-    } else {
-      if (typeof showToast === 'function') showToast("خاصية PDF غير متوفرة حالياً");
+
+    try {
+        if (typeof exportElementAsImage === 'function') {
+          await exportElementAsImage(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
+        } else {
+          if (typeof showToast === 'function') showToast("خاصية الصورة غير متوفرة حالياً");
+        }
+    } finally {
+        document.body.removeChild(cleanContainer);
     }
+  };
+
+  // 3. دالة الـ PDF (المحدثة)
+  window.exportMonthlySheetPdf = async function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) {
+      if (typeof showToast === 'function') showToast("الجدول غير موجود");
+      return;
+    }
+
+    try {
+        if (typeof exportElementAsPdf === 'function') {
+          await exportElementAsPdf(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
+        } else {
+          if (typeof showToast === 'function') showToast("خاصية PDF غير متوفرة حالياً");
+        }
+    } finally {
+        document.body.removeChild(cleanContainer);
+    }
+  };
+
+  // 4. دالة الطباعة الورقية (المحدثة)
+  window.printCustomSheet = function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) return;
+    
+    const tableHtml = cleanContainer.innerHTML;
+    document.body.removeChild(cleanContainer);
+        
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html dir="rtl">
+        <head>
+            <title>طباعة الشيت المالي</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+                body { font-family: 'Cairo', Tahoma, sans-serif; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }
+                th, td { border: 1px solid #cbd5e1; padding: 12px 8px; text-align: center; font-size: 13px; }
+                th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; color: #1e293b; font-weight: bold; }
+                tr { page-break-inside: avoid; }
+                tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
+                .price-col { color: #0f9d7a; font-weight: bold; }
+                .no-print, button, input[type="checkbox"] { display: none !important; }
+            </style>
+        </head>
+        <body>
+            ${tableHtml}
+            <script>
+                setTimeout(() => {
+                    window.print();
+                    window.close();
+                }, 500);
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
   };
 
   window.exportMonthlySheetImage = async function () {
@@ -124,13 +243,106 @@
     if (typeof router !== "undefined") router.render(); 
   };
 
-  window.printCustomSheet = function () {
-    const el = document.getElementById("monthly-sheet-box");
-    if (!el) return;
-    const tableHtml = el.outerHTML;
+  // ==============================================================
+  // دوال التصدير والطباعة (نسخة نظيفة خالية من الأزرار والمستبعدين)
+  // ==============================================================
+
+  // 1. الدالة المساعدة (الجديدة)
+  function createCleanTableClone() {
+    const originalEl = document.getElementById("monthly-sheet-box");
+    if (!originalEl) return null;
+
+    const clone = originalEl.cloneNode(true);
+    
+    const noPrintElements = clone.querySelectorAll('.no-print');
+    noPrintElements.forEach(el => el.remove());
+
+    const buttons = clone.querySelectorAll('button');
+    buttons.forEach(btn => btn.remove());
+
+    const inputs = clone.querySelectorAll('input[type="checkbox"]');
+    inputs.forEach(input => input.remove());
+
+    const rows = clone.querySelectorAll('tr');
+    rows.forEach(row => {
+        row.style.opacity = '1';
+    });
+
+    const container = document.createElement('div');
+    container.id = 'temp-export-container';
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.background = 'white';
+    container.style.padding = '20px';
+    container.style.direction = 'rtl';
+    container.style.width = '1200px'; 
+    
+    const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "";
     const title = appState.ui.sheetFilter === "month" 
         ? `تقرير شهر ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} لسنة ${appState.ui.year}` 
         : "تقرير آخر 7 أيام";
+        
+    container.innerHTML = `
+        <h2 style="text-align: center; color: #065f46; font-family: 'Cairo', sans-serif; margin-bottom: 5px;">الشيت المالي والحسابات</h2>
+        <h4 style="text-align: center; color: #64748b; font-family: 'Cairo', sans-serif; margin-top: 0; margin-bottom: 20px;">${title} | المعلم: ${teacherName}</h4>
+    `;
+    
+    clone.style.width = '100%';
+    clone.style.borderCollapse = 'collapse';
+    clone.style.fontFamily = "'Cairo', sans-serif";
+    
+    container.appendChild(clone);
+    document.body.appendChild(container);
+    
+    return container;
+  }
+
+  // 2. دالة الصورة (المحدثة)
+  window.exportMonthlySheetImage = async function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) {
+      if (typeof showToast === 'function') showToast("الجدول غير موجود");
+      return;
+    }
+
+    try {
+        if (typeof exportElementAsImage === 'function') {
+          await exportElementAsImage(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
+        } else {
+          if (typeof showToast === 'function') showToast("خاصية الصورة غير متوفرة حالياً");
+        }
+    } finally {
+        document.body.removeChild(cleanContainer);
+    }
+  };
+
+  // 3. دالة الـ PDF (المحدثة)
+  window.exportMonthlySheetPdf = async function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) {
+      if (typeof showToast === 'function') showToast("الجدول غير موجود");
+      return;
+    }
+
+    try {
+        if (typeof exportElementAsPdf === 'function') {
+          await exportElementAsPdf(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
+        } else {
+          if (typeof showToast === 'function') showToast("خاصية PDF غير متوفرة حالياً");
+        }
+    } finally {
+        document.body.removeChild(cleanContainer);
+    }
+  };
+
+  // 4. دالة الطباعة الورقية (المحدثة)
+  window.printCustomSheet = function () {
+    const cleanContainer = createCleanTableClone();
+    if (!cleanContainer) return;
+    
+    const tableHtml = cleanContainer.innerHTML;
+    document.body.removeChild(cleanContainer);
         
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -138,21 +350,18 @@
         <head>
             <title>طباعة الشيت المالي</title>
             <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
-                h2 { text-align: center; color: #065f46; margin-bottom: 5px; }
-                h4 { text-align: center; color: #64748b; margin-top: 0; margin-bottom: 20px; }
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+                body { font-family: 'Cairo', Tahoma, sans-serif; padding: 20px; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }
-                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 13px; }
+                th, td { border: 1px solid #cbd5e1; padding: 12px 8px; text-align: center; font-size: 13px; }
                 th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; color: #1e293b; font-weight: bold; }
                 tr { page-break-inside: avoid; }
                 tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
                 .price-col { color: #0f9d7a; font-weight: bold; }
-                .no-print { display: none !important; }
+                .no-print, button, input[type="checkbox"] { display: none !important; }
             </style>
         </head>
         <body>
-            <h2>الشيت المالي والحسابات</h2>
-            <h4>${title}</h4>
             ${tableHtml}
             <script>
                 setTimeout(() => {
@@ -165,7 +374,6 @@
     `);
     printWindow.document.close();
   };
-
   window.setSheetFilter = function (filter) {
     if (!appState.ui) appState.ui = {};
     appState.ui.sheetFilter = filter;
