@@ -7,6 +7,11 @@
   if (!appState.ui.sheetFilter) appState.ui.sheetFilter = "month"; 
   if (!appState.tempAdjustments) appState.tempAdjustments = {};
 
+  // تأمين قراءة الشهر والسنة الحاليين إذا لم يكونوا محددين
+  const currentDateObj = new Date();
+  if (appState.ui.month === undefined) appState.ui.month = currentDateObj.getMonth() + 1;
+  if (appState.ui.year === undefined) appState.ui.year = currentDateObj.getFullYear();
+
   window.prevMonth = function () {
     if (appState.ui.month === 1) {
       appState.ui.month = 12;
@@ -54,7 +59,7 @@
     const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "غير محدد";
     const lines = [
       "📋 شيت حضور حلقة القرآن الكريم",
-      `📅 ${typeof formatMonthLabel === 'function' ? formatMonthLabel(appState.ui.year, appState.ui.month) : `${appState.ui.month}/${appState.ui.year}`}`,
+      `📅 ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} / ${appState.ui.year}`,
       `المعلم: ${teacherName}`,
       "─────────────────────────",
       ...studentsList.map((s, i) => {
@@ -95,7 +100,7 @@
   window.adjustTempCount = function(studentId, field, amount) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
-      appState.tempAdjustments[studentId] = { quran: 0, calc: 0 };
+      appState.tempAdjustments[studentId] = { quran: 0, calc: 0, group: 0, individual: 0 };
     }
     if (typeof appState.tempAdjustments[studentId][field] !== 'number') {
       appState.tempAdjustments[studentId][field] = 0;
@@ -122,11 +127,10 @@
                 h2 { text-align: center; color: #065f46; margin-bottom: 5px; }
                 h4 { text-align: center; color: #64748b; margin-top: 0; margin-bottom: 20px; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }
-                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 14px; }
+                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-size: 13px; }
                 th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; color: #1e293b; font-weight: bold; }
                 tr { page-break-inside: avoid; }
-                .group-label { font-size: 11px; color: #0284c7; display: block; margin-top: 4px; }
-                tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 16px; }
+                tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
                 .price-col { color: #0f9d7a; font-weight: bold; }
                 .no-print { display: none !important; }
             </style>
@@ -162,26 +166,25 @@
         appState.ui.sheetFilter = "month"; 
       }
 
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
       const monthNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
       appState.ui.monthNames = monthNames;
 
       const sessionsList = appState.sessions || [];
       const studentsList = appState.students || [];
 
-      // 1. تصفية الجلسات
+      // 1. تصفية الجلسات بناءً على الفلتر المختار والشهر/السنة المحددين علوياً
       const filteredSessions = sessionsList.filter(s => {
         if (!s.date) return false;
         const d = new Date(s.date);
         
         if (appState.ui.sheetFilter === "week") {
+          const now = new Date();
           const oneWeekAgo = new Date();
           oneWeekAgo.setDate(now.getDate() - 7);
           return d >= oneWeekAgo && d <= now;
         } else {
-          return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+          // جلب الحلقات الخاصة بالشهر والسنة المحددين في أزرار التنقل
+          return (d.getMonth() + 1) === appState.ui.month && d.getFullYear() === appState.ui.year;
         }
       });
 
@@ -189,14 +192,16 @@
       let grandTotalCalculatedSessions = 0;
       let grandTotalQuran = 0;
       let grandTotalIslamic = 0;
+      let grandTotalIndividual = 0;
+      let grandTotalGroup = 0;
 
-      // 2. تجهيز بيانات الطلاب
+      // 2. معالجة وتجميع البيانات على مستوى أسماء الطلاب فقط
       let tableData = studentsList.map(student => {
         const stdSessions = filteredSessions.filter(s => {
-          if (s.mode === "individual") {
-              return s.studentId === student.id;
+          if (s.mode === "individual" || !s.mode) {
+            return s.studentId === student.id;
           } else if (s.mode === "group" && Array.isArray(s.participants)) {
-              return s.participants.some(p => p.studentId === student.id);
+            return s.participants.some(p => p.studentId === student.id);
           }
           return false;
         });
@@ -205,25 +210,35 @@
         let islamicCount = 0;
         let unexcusedAbsenceCount = 0;
         let excusedAbsenceCount = 0;
+        let individualCount = 0;
+        let groupCount = 0;
 
         stdSessions.forEach(s => {
           let isPresent = true;
           let attendanceStatus = "present";
           
           if (s.mode === "group" && Array.isArray(s.participants)) {
-              const p = s.participants.find(x => x.studentId === student.id);
-              if (p && p.present === false) {
-                  isPresent = false;
-                  attendanceStatus = "absent_unexcused"; 
-              }
-          } else if (s.attendance && s.attendance !== "present") {
+            const p = s.participants.find(x => x.studentId === student.id);
+            if (p && p.present === false) {
               isPresent = false;
-              attendanceStatus = s.attendance;
+              attendanceStatus = "absent_unexcused"; 
+            }
+          } else if (s.attendance && s.attendance !== "present") {
+            isPresent = false;
+            attendanceStatus = s.attendance;
           }
 
           if (isPresent) {
+            // تصنيف نوع الحلقة
             if (s.sessionType === "quran" || s.sessionType === "review") quranCount++;
             if (s.sessionType === "islamic") islamicCount++;
+            
+            // تصنيف فردي أو جماعي للمحتسب
+            if (s.mode === "group") {
+              groupCount++;
+            } else {
+              individualCount++;
+            }
           } else {
             if (attendanceStatus === "absent_excused") {
               excusedAbsenceCount++;
@@ -233,168 +248,152 @@
           }
         });
 
+        // دمج التعديلات اليدوية المؤقتة إن وجدت
         if (!appState.tempAdjustments) appState.tempAdjustments = {};
         const adj = appState.tempAdjustments[student.id] || {};
         const adjQuran = typeof adj.quran === 'number' ? adj.quran : 0;
         const adjCalc = typeof adj.calc === 'number' ? adj.calc : 0;
+        const adjInd = typeof adj.individual === 'number' ? adj.individual : 0;
+        const adjGrp = typeof adj.group === 'number' ? adj.group : 0;
 
         quranCount += adjQuran;
+        individualCount += adjInd;
+        groupCount += adjGrp;
 
-        const totalAttended = quranCount + islamicCount;
+        // الحسابات المالية (مستقبلاً سيدعم سعر خاص بالجماعي وسعر خاص بالفردي)
         const sessionPrice = student.sessionPrice || 70;
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
-        const groupName = student.group || "فردي (بدون مجموعة)";
-
-        // 🔴 التعديل السحري: قراءة زر تفعيل الغياب الخاص بالطالب (أو تفعيله افتراضياً)
         const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
 
-        // 🔴 حساب الغياب المحاسب عليه بناءً على التفعيل
         let payableAbsences = 0;
         if (enableUnexcusedAbsence) {
-            payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
+          payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
         }
 
-        let totalCalculatedSessions = totalAttended + payableAbsences;
-        
-        totalCalculatedSessions += adjCalc; 
-
+        // إجمالي الحلقات المحتسبة = فردي + جماعي + غياب محاسب + تعديل يدوي
+        let totalCalculatedSessions = individualCount + groupCount + payableAbsences + adjCalc;
         const totalAmount = totalCalculatedSessions * sessionPrice;
 
         grandTotalAmount += totalAmount;
         grandTotalCalculatedSessions += totalCalculatedSessions;
         grandTotalQuran += quranCount;
         grandTotalIslamic += islamicCount;
+        grandTotalIndividual += individualCount;
+        grandTotalGroup += groupCount;
 
         return {
           ...student,
-          groupName,
           quranCount,
           islamicCount,
-          totalAttended,
+          individualCount,
+          groupCount,
           unexcusedAbsenceCount,
           excusedAbsenceCount,
           payableAbsences,
           totalCalculatedSessions,
           totalAmount,
           sessionPrice,
-          enableUnexcusedAbsence // تمرير حالة الزرار عشان نظهرها في الجدول
+          enableUnexcusedAbsence
         };
       });
 
-      // 3. ترتيب الطلاب
-      tableData.sort((a, b) => {
-        if (a.groupName.includes("فردي") && !b.groupName.includes("فردي")) return 1;
-        if (!a.groupName.includes("فردي") && b.groupName.includes("فردي")) return -1;
-        return a.groupName.localeCompare(b.groupName, 'ar');
-      });
+      // ترتيب الطلاب أبجدياً بالاسم
+      tableData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
-      // 4. الألوان
-      const groupColors = { "فردي (بدون مجموعة)": "transparent" };
-      const pastelPalette = ["#e0f2fe", "#fce7f3", "#fef3c7", "#dcfce7", "#f3e8ff", "#ffedd5"];
-      let colorIndex = 0;
-      
-      tableData.forEach(row => {
-        if (!groupColors[row.groupName]) {
-          groupColors[row.groupName] = pastelPalette[colorIndex % pastelPalette.length];
-          colorIndex++;
-        }
-      });
-
-      // 5. بناء صفوف الجدول
+      // 3. بناء صفوف الجدول المطور (10 أعمدة)
       const tbodyHtml = tableData.length ? tableData.map(row => {
-        const rowBgColor = groupColors[row.groupName];
         return `
-          <tr style="background-color: ${rowBgColor}; border-bottom: 1px solid var(--color-border);">
-            <td style="padding: 16px; font-weight: bold; color: var(--color-slate-800);">
-              ${row.name} 
-              ${!row.groupName.includes("فردي") ? `<span class="group-label" style="font-size: 11px; color: var(--color-primary-600); background: rgba(255,255,255,0.6); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.05); display: inline-block; margin-top: 4px;">(مجموعة: ${row.groupName})</span>` : ''}
+          <tr style="border-bottom: 1px solid var(--color-border); background: var(--card-bg);">
+            <td style="padding: 14px 16px; font-weight: bold; color: var(--color-slate-800); text-align: right;">
+              <i class="ph-bold ph-user" style="margin-left:6px; color:${row.gender === 'girl' ? '#ec4899' : '#10b981'};"></i>${row.name}
             </td>
-            <td style="padding: 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
-               ${row.sessionPrice} <span style="font-size:10px;">ج.م</span>
+            <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
+               ${row.sessionPrice} <span style="font-size:11px; font-weight:normal;">ج.م</span>
             </td>
-
-            <td style="padding: 16px; text-align: center;">
-              <div style="font-size: 15px;">${row.quranCount}</div>
-              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 6px;">
-                <button onclick='adjustTempCount("${row.id}", "quran", 1)' style="width: 22px; height: 22px; cursor: pointer; border: none; background: #cbd5e1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">+</button>
-                <button onclick='adjustTempCount("${row.id}", "quran", -1)' style="width: 22px; height: 22px; cursor: pointer; border: none; background: #cbd5e1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">-</button>
+            <td style="padding: 14px 16px; text-align: center; font-weight: 600;">
+              <div>${row.quranCount}</div>
+              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 4px;">
+                <button type="button" onclick='adjustTempCount("${row.id}", "quran", 1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold;">+</button>
+                <button type="button" onclick='adjustTempCount("${row.id}", "quran", -1)' style="width: 20px; height: 20px; cursor: pointer; border: none; background: var(--color-slate-200); border-radius: 4px; font-weight:bold;">-</button>
               </div>
             </td>
-
-            <td style="padding: 16px; text-align: center;">${row.islamicCount}</td>
-            <td style="padding: 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
-            
-            <td style="padding: 16px; text-align: center; color: #ef4444; font-weight: bold;">
+            <td style="padding: 14px 16px; text-align: center; font-weight: 600;">${row.islamicCount}</td>
+            <td style="padding: 14px 16px; text-align: center; color: #64748b;">${row.excusedAbsenceCount}</td>
+            <td style="padding: 14px 16px; text-align: center; color: #ef4444; font-weight: bold;">
               ${row.unexcusedAbsenceCount} 
-              <br>
-              <span style="font-size:10px; color:${row.enableUnexcusedAbsence !== false ? '#94a3b8' : '#cbd5e1'}; font-weight:normal;">
-                 ${row.enableUnexcusedAbsence !== false 
-                    ? `(مُحاسب على ${row.payableAbsences})` 
-                    : '<del>(غير مُفعل)</del>'}
+              <span style="font-size:10px; display:block; color:${row.enableUnexcusedAbsence ? '#94a3b8' : '#cbd5e1'}; font-weight:normal;">
+                 ${row.enableUnexcusedAbsence ? `(مُحاسب على ${row.payableAbsences})` : '<del>(موقف)</del>'}
               </span>
             </td>
-
-            <td style="padding: 16px; text-align: center;">
-              <span style="background: var(--color-slate-100); padding: 4px 10px; border-radius: 6px; font-weight: bold; color: #0284c7;">
+            <td style="padding: 14px 16px; text-align: center; color: #0ea5e9; font-weight: 600;">${row.individualCount}</td>
+            <td style="padding: 14px 16px; text-align: center; color: #8b5cf6; font-weight: 600;">${row.groupCount}</td>
+            
+            <td style="padding: 14px 16px; text-align: center;">
+              <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 6px; font-weight: bold;">
                 ${row.totalCalculatedSessions}
               </span>
-              <div class="no-print" style="display: flex; justify-content: center; gap: 4px; margin-top: 6px;">
-                <button onclick='adjustTempCount("${row.id}", "calc", 1)' style="width: 22px; height: 22px; cursor: pointer; border: none; background: #bae6fd; color: #0369a1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">+</button>
-                <button onclick='adjustTempCount("${row.id}", "calc", -1)' style="width: 22px; height: 22px; cursor: pointer; border: none; background: #bae6fd; color: #0369a1; border-radius: 4px; display:flex; align-items:center; justify-content:center; font-weight:bold;">-</button>
-              </div>
             </td>
-
-            <td class="price-col" style="padding: 16px; text-align: center; font-weight: 900; font-size: 16px; color: #0f9d7a;">
-              ${row.totalAmount} <span style="font-size: 12px; font-weight: normal; color: #64748b;">ج.م</span>
+            <td class="price-col" style="padding: 14px 16px; text-align: center; font-weight: var(--fw-extrabold); font-size: 15px; color: #0f9d7a;">
+              ${row.totalAmount} <span style="font-size: 11px; font-weight: normal; color: #64748b;">ج.م</span>
             </td>
           </tr>
         `;
-      }).join("") : `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">لا توجد بيانات لهذه الفترة حتى الآن.</td></tr>`;
+      }).join("") : `<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-muted);">لا توجد بيانات متاحة لهذا الشهر حتى الآن.</td></tr>`;
 
-      // 6. عرض الصفحة
+      // 4. تجميع الواجهة الكاملة للشيت مع شريط التحكم بالشهور والأرشيف
       return `
-        <div>
+        <div style="font-family: 'Cairo', sans-serif;">
           <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+            
             <div class="d-flex align-items-center gap-3">
-              <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--emerald-bg);display:flex;align-items:center;justify-content:center;">
-                <i class="ph-duotone ph-wallet" style="font-size: 20px; color: var(--emerald)"></i>
+              <div style="width:44px;height:44px;border-radius:12px;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;">
+                <i class="ph-duotone ph-wallet" style="font-size: 22px; color: #10b981"></i>
               </div>
               <div>
-                <div style="font-weight:var(--fw-bold);font-size:var(--fs-lg);color:var(--text-primary);">الشيت المالي والحسابات</div>
-                <div style="font-size:var(--fs-xs);color:var(--text-muted);">
-                  ${appState.ui.sheetFilter === "month" ? `تقرير شهر ${monthNames[currentMonth]} ${currentYear}` : "تقرير آخر 7 أيام"}
+                <div style="font-weight:800; font-size:18px; color:var(--text-primary);">الشيت المالي والحسابات</div>
+                
+                <div class="d-flex align-items-center gap-2 mt-1 no-print">
+                  <button type="button" onclick="prevMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;">◀</button>
+                  <span style="font-size:13px; font-weight:bold; color: #475569; min-width: 90px; text-align:center; background:#f1f5f9; padding:2px 8px; border-radius:6px;">
+                    ${monthNames[appState.ui.month - 1]} ${appState.ui.year}
+                  </span>
+                  <button type="button" onclick="nextMonth()" class="btn btn-light btn-sm" style="padding: 2px 8px; font-weight: bold;">▶</button>
                 </div>
               </div>
             </div>
             
-            <div class="d-flex gap-2 flex-wrap">
+            <div class="d-flex gap-2 flex-wrap no-print">
               <div style="background: var(--color-slate-100); padding: 4px; border-radius: 8px; display: flex; gap: 4px;">
-                <button onclick="setSheetFilter('month')" style="border: none; background: ${appState.ui.sheetFilter === 'month' ? 'white' : 'transparent'}; color: ${appState.ui.sheetFilter === 'month' ? 'var(--color-slate-800)' : 'var(--color-slate-500)'}; box-shadow: ${appState.ui.sheetFilter === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s;">
+                <button type="button" onclick="setSheetFilter('month')" style="border: none; background: ${appState.ui.sheetFilter === 'month' ? 'white' : 'transparent'}; color: ${appState.ui.sheetFilter === 'month' ? 'var(--color-slate-800)' : 'var(--color-slate-500)'}; box-shadow: ${appState.ui.sheetFilter === 'month' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
                   حصاد الشهر
                 </button>
-                <button onclick="setSheetFilter('week')" style="border: none; background: ${appState.ui.sheetFilter === 'week' ? 'white' : 'transparent'}; color: ${appState.ui.sheetFilter === 'week' ? 'var(--color-slate-800)' : 'var(--color-slate-500)'}; box-shadow: ${appState.ui.sheetFilter === 'week' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s;">
+                <button type="button" onclick="setSheetFilter('week')" style="border: none; background: ${appState.ui.sheetFilter === 'week' ? 'white' : 'transparent'}; color: ${appState.ui.sheetFilter === 'week' ? 'var(--color-slate-800)' : 'var(--color-slate-500)'}; box-shadow: ${appState.ui.sheetFilter === 'week' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'}; padding: 6px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer;">
                   حصاد الأسبوع
                 </button>
               </div>
               
-              <button class="btn btn-outline" style="color:#e11d48; border-color:#e11d48;" onclick="exportMonthlySheetPdf()" title="تحميل كملف PDF"><i class="ph-duotone ph-file-pdf"></i></button>
-              <button class="btn btn-outline" style="color:#0284c7; border-color:#0284c7;" onclick="exportMonthlySheetImage()" title="تحميل كصورة"><i class="ph-duotone ph-image"></i></button>
-              <button class="btn" style="background:#065f46; color:white;" onclick="printCustomSheet()"><i class="ph-duotone ph-printer"></i> طباعة</button>
+              <button type="button" class="btn btn-outline" style="color:#e11d48; border-color:#e11d48;" onclick="exportMonthlySheetPdf()" title="تحميل كملف PDF"><i class="ph-duotone ph-file-pdf"></i></button>
+              <button type="button" class="btn btn-outline" style="color:#0284c7; border-color:#0284c7;" onclick="exportMonthlySheetImage()" title="تحميل كصورة"><i class="ph-duotone ph-image"></i></button>
+              <button type="button" class="btn btn-outline" style="color:#475569; border-color:#cbd5e1;" onclick="copyMonthlySheet()" title="نسخ الشيت كنص"><i class="ph-duotone ph-copy"></i> نص</button>
+              <button type="button" class="btn" style="background:#065f46; color:white; font-weight:bold;" onclick="printCustomSheet()"><i class="ph-duotone ph-printer"></i> طباعة</button>
             </div>
           </div>
 
-          <div class="card-soft" style="padding: 0; overflow-x: auto; border: 1px solid var(--color-border); border-radius: 12px;">
-            <table style="width: 100%; border-collapse: collapse; min-width: 900px;" id="monthly-sheet-box">
+          <div class="card-soft" style="padding: 0; overflow-x: auto; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-sm);">
+            <table style="width: 100%; border-collapse: collapse; min-width: 1000px;" id="monthly-sheet-box">
               <thead>
                 <tr style="background: var(--color-slate-50); border-bottom: 2px solid var(--color-border-strong);">
-                  <th style="padding: 16px; text-align: right; color: var(--color-slate-600); font-size: 13px;">الطالب / المجموعة</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">سعر الحلقة</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">حضور قرآن</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">حضور تربية</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">غياب (بعذر)</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">غياب (بدون عذر)</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">الحلقات المُحاسبة</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-600); font-size: 13px;">الإجمالي المالي</th>
+                  <th style="padding: 16px; text-align: right; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الطالب</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">سعر الحلقة</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">حضور قرآن</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">حضور تربية</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب (بعذر)</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب (بدون عذر)</th>
+                  <th style="padding: 16px; text-align: center; color: #0284c7; font-size: 13px; font-weight: bold;">حلقات فردية</th>
+                  <th style="padding: 16px; text-align: center; color: #6d28d9; font-size: 13px; font-weight: bold;">حلقات جماعية</th>
+                  
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الحلقات المُحاسبة</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الإجمالي المالي</th>
                 </tr>
               </thead>
               <tbody>
@@ -402,14 +401,16 @@
               </tbody>
               ${tableData.length > 0 ? `
                 <tfoot style="background: #065f46; color: white;">
-                  <tr>
-                    <td colspan="2" style="padding: 16px; font-weight: bold; text-align: right; font-size: 15px;">الإجمالي الكلي:</td>
-                    <td style="padding: 16px; text-align: center; font-weight: bold;">${grandTotalQuran}</td>
-                    <td style="padding: 16px; text-align: center; font-weight: bold;">${grandTotalIslamic}</td>
-                    <td style="padding: 16px; text-align: center; font-weight: bold;">-</td>
-                    <td style="padding: 16px; text-align: center; font-weight: bold;">-</td>
-                    <td style="padding: 16px; text-align: center; font-weight: 900; font-size: 16px; color: #a7f3d0;">${grandTotalCalculatedSessions}</td>
-                    <td style="padding: 16px; text-align: center; font-weight: 900; font-size: 18px; color: #fde047;">${grandTotalAmount} ج.م</td>
+                  <tr style="font-weight: bold;">
+                    <td colspan="2" style="padding: 16px; text-align: right; font-size: 14px;">الإجمالي الكلي للشهر:</td>
+                    <td style="padding: 16px; text-align: center;">${grandTotalQuran}</td>
+                    <td style="padding: 16px; text-align: center;">${grandTotalIslamic}</td>
+                    <td style="padding: 16px; text-align: center;">-</td>
+                    <td style="padding: 16px; text-align: center;">-</td>
+                    <td style="padding: 16px; text-align: center; color:#bae6fd;">${grandTotalIndividual}</td>
+                    <td style="padding: 16px; text-align: center; color:#ddd6fe;">${grandTotalGroup}</td>
+                    <td style="padding: 16px; text-align: center; font-size: 15px; color: #a7f3d0;">${grandTotalCalculatedSessions}</td>
+                    <td style="padding: 16px; text-align: center; font-size: 17px; color: #fde047;">${grandTotalAmount} ج.م</td>
                   </tr>
                 </tfoot>
               ` : ''}
@@ -419,9 +420,8 @@
       `;
     } catch (err) {
       console.error("Sheet Render Error:", err);
-      // ظهور رسالة واضحة في الصفحة لو حصلت مشكلة بدل ما تقف تماماً
-      return `<div style="padding: 40px; color: #ef4444; text-align: center; background: #fee2e2; border-radius: 8px; margin: 20px;">
-         <h3 style="margin-bottom:10px;">عذراً، حدث خطأ أثناء تحميل الشيت</h3>
+      return `<div style="padding: 40px; color: #ef4444; text-align: center; background: #fee2e2; border-radius: 8px; margin: 20px; direction:rtl;">
+         <h3 style="margin-bottom:10px;">عذراً، حدث خطأ أثناء تحميل الشيت المالي</h3>
          <p>${err.message}</p>
       </div>`;
     }
