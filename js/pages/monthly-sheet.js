@@ -49,11 +49,11 @@
       if (d.getFullYear() === appState.ui.year && d.getMonth() + 1 === appState.ui.month) {
         if (s.mode === "group" && Array.isArray(s.participants)) {
           s.participants
-            .filter((p) => p.present !== false)
+            .filter((p) => p.present !== false && p.attendance !== "absent_excused" && p.attendance !== "absent_unexcused")
             .forEach((p) => {
               map[p.studentId] = (map[p.studentId] || 0) + 1;
             });
-        } else if (s.studentId) {
+        } else if (s.studentId && s.attendance !== "absent_excused" && s.attendance !== "absent_unexcused") {
           map[s.studentId] = (map[s.studentId] || 0) + 1;
         }
       }
@@ -84,148 +84,6 @@
       .catch(() => typeof showToast === 'function' && showToast("تعذر النسخ"));
   };
 
- // ==============================================================
-  // دوال التصدير والطباعة (نسخة نظيفة خالية من الأزرار والمستبعدين)
-  // ==============================================================
-
-  // 1. الدالة المساعدة (الجديدة)
-  function createCleanTableClone() {
-    const originalEl = document.getElementById("monthly-sheet-box");
-    if (!originalEl) return null;
-
-    const clone = originalEl.cloneNode(true);
-    
-    const noPrintElements = clone.querySelectorAll('.no-print');
-    noPrintElements.forEach(el => el.remove());
-
-    const buttons = clone.querySelectorAll('button');
-    buttons.forEach(btn => btn.remove());
-
-    const inputs = clone.querySelectorAll('input[type="checkbox"]');
-    inputs.forEach(input => input.remove());
-
-    const rows = clone.querySelectorAll('tr');
-    rows.forEach(row => {
-        row.style.opacity = '1';
-    });
-
-    const container = document.createElement('div');
-    container.id = 'temp-export-container';
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.background = 'white';
-    container.style.padding = '20px';
-    container.style.direction = 'rtl';
-    container.style.width = '1200px'; 
-    
-    const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "";
-    const title = appState.ui.sheetFilter === "month" 
-        ? `تقرير شهر ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} لسنة ${appState.ui.year}` 
-        : "تقرير آخر 7 أيام";
-        
-    container.innerHTML = `
-        <h2 style="text-align: center; color: #065f46; font-family: 'Cairo', sans-serif; margin-bottom: 5px;">الشيت المالي والحسابات</h2>
-        <h4 style="text-align: center; color: #64748b; font-family: 'Cairo', sans-serif; margin-top: 0; margin-bottom: 20px;">${title} | المعلم: ${teacherName}</h4>
-    `;
-    
-    clone.style.width = '100%';
-    clone.style.borderCollapse = 'collapse';
-    clone.style.fontFamily = "'Cairo', sans-serif";
-    
-    container.appendChild(clone);
-    document.body.appendChild(container);
-    
-    return container;
-  }
-
-  // 2. دالة الصورة (المحدثة)
-  window.exportMonthlySheetImage = async function () {
-    const cleanContainer = createCleanTableClone();
-    if (!cleanContainer) {
-      if (typeof showToast === 'function') showToast("الجدول غير موجود");
-      return;
-    }
-
-    try {
-        if (typeof exportElementAsImage === 'function') {
-          await exportElementAsImage(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
-        } else {
-          if (typeof showToast === 'function') showToast("خاصية الصورة غير متوفرة حالياً");
-        }
-    } finally {
-        document.body.removeChild(cleanContainer);
-    }
-  };
-
-  // 3. دالة الـ PDF (المحدثة)
-  window.exportMonthlySheetPdf = async function () {
-    const cleanContainer = createCleanTableClone();
-    if (!cleanContainer) {
-      if (typeof showToast === 'function') showToast("الجدول غير موجود");
-      return;
-    }
-
-    try {
-        if (typeof exportElementAsPdf === 'function') {
-          await exportElementAsPdf(cleanContainer, `sheet-${appState.ui.year}-${appState.ui.month}.pdf`);
-        } else {
-          if (typeof showToast === 'function') showToast("خاصية PDF غير متوفرة حالياً");
-        }
-    } finally {
-        document.body.removeChild(cleanContainer);
-    }
-  };
-
-  // 4. دالة الطباعة الورقية (المحدثة)
-  window.printCustomSheet = function () {
-    const cleanContainer = createCleanTableClone();
-    if (!cleanContainer) return;
-    
-    const tableHtml = cleanContainer.innerHTML;
-    document.body.removeChild(cleanContainer);
-        
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html dir="rtl">
-        <head>
-            <title>طباعة الشيت المالي</title>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
-                body { font-family: 'Cairo', Tahoma, sans-serif; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; direction: rtl; }
-                th, td { border: 1px solid #cbd5e1; padding: 12px 8px; text-align: center; font-size: 13px; }
-                th { background-color: #f1f5f9 !important; -webkit-print-color-adjust: exact; color: #1e293b; font-weight: bold; }
-                tr { page-break-inside: avoid; }
-                tfoot td { background-color: #065f46 !important; color: white !important; -webkit-print-color-adjust: exact; font-weight: bold; font-size: 15px; }
-                .price-col { color: #0f9d7a; font-weight: bold; }
-                .no-print, button, input[type="checkbox"] { display: none !important; }
-            </style>
-        </head>
-        <body>
-            ${tableHtml}
-            <script>
-                setTimeout(() => {
-                    window.print();
-                    window.close();
-                }, 500);
-            </script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-  };
-
-  window.exportMonthlySheetImage = async function () {
-    const el = document.getElementById("monthly-sheet-box");
-    if (!el) return;
-    if (typeof exportElementAsImage === 'function') {
-      await exportElementAsImage(el, `sheet-${appState.ui.year}-${appState.ui.month}.png`);
-    } else {
-      if (typeof showToast === 'function') showToast("خاصية الصورة غير متوفرة حالياً");
-    }
-  };
-
   window.adjustTempCount = function(studentId, field, amount) {
     if (!appState.tempAdjustments) appState.tempAdjustments = {};
     if (!appState.tempAdjustments[studentId]) {
@@ -236,8 +94,7 @@
     }
     appState.tempAdjustments[studentId][field] += amount;
     
-    // منع القيم السلبية تماماً في الحسابات
-    const baseCount = field === 'quran' ? 0 : 0; // القيم تتجمع لاحقاً مع الحقيقي، بس نمنع التعديل ينزل عن رقم غير منطقي لو حبينا
+    // السماح بالنزول حتى -50 للتصحيح السالب
     if (appState.tempAdjustments[studentId][field] < -50) appState.tempAdjustments[studentId][field] = -50; 
 
     if (typeof router !== "undefined") router.render(); 
@@ -247,7 +104,6 @@
   // دوال التصدير والطباعة (نسخة نظيفة خالية من الأزرار والمستبعدين)
   // ==============================================================
 
-  // 1. الدالة المساعدة (الجديدة)
   function createCleanTableClone() {
     const originalEl = document.getElementById("monthly-sheet-box");
     if (!originalEl) return null;
@@ -298,7 +154,6 @@
     return container;
   }
 
-  // 2. دالة الصورة (المحدثة)
   window.exportMonthlySheetImage = async function () {
     const cleanContainer = createCleanTableClone();
     if (!cleanContainer) {
@@ -317,7 +172,6 @@
     }
   };
 
-  // 3. دالة الـ PDF (المحدثة)
   window.exportMonthlySheetPdf = async function () {
     const cleanContainer = createCleanTableClone();
     if (!cleanContainer) {
@@ -336,7 +190,6 @@
     }
   };
 
-  // 4. دالة الطباعة الورقية (المحدثة)
   window.printCustomSheet = function () {
     const cleanContainer = createCleanTableClone();
     if (!cleanContainer) return;
@@ -374,6 +227,7 @@
     `);
     printWindow.document.close();
   };
+
   window.setSheetFilter = function (filter) {
     if (!appState.ui) appState.ui = {};
     appState.ui.sheetFilter = filter;
@@ -440,7 +294,10 @@
             const p = s.participants.find(x => x.studentId === student.id);
             if (p && p.present === false) {
               isPresent = false;
-              attendanceStatus = "absent_unexcused"; 
+              attendanceStatus = p.attendance || "absent_unexcused"; 
+            } else if (p && p.attendance && p.attendance !== "present") {
+              isPresent = false;
+              attendanceStatus = p.attendance;
             }
           } else if (s.attendance && s.attendance !== "present") {
             isPresent = false;
@@ -465,22 +322,21 @@
           }
         });
 
-        // قراءة التعديلات اليدوية لكل الحقول
+        // قراءة التعديلات اليدوية
         if (!appState.tempAdjustments) appState.tempAdjustments = {};
         const adj = appState.tempAdjustments[student.id] || {};
-        const adjQuran = typeof adj.quran === 'number' ? adj.quran : 0;
-        const adjIslamic = typeof adj.islamic === 'number' ? adj.islamic : 0;
-        const adjInd = typeof adj.individual === 'number' ? adj.individual : 0;
-        const adjGrp = typeof adj.group === 'number' ? adj.group : 0;
         const printExcluded = adj.printExcluded || false; 
 
-        // تطبيق الزيادات
-        quranCount = Math.max(0, quranCount + adjQuran);
-        islamicCount = Math.max(0, islamicCount + adjIslamic);
-        individualCount = Math.max(0, individualCount + adjInd);
-        groupCount = Math.max(0, groupCount + adjGrp);
+        // تطبيق التعديلات اليدوية (موجب أو سالب)
+        quranCount = Math.max(0, quranCount + (adj.quran || 0));
+        islamicCount = Math.max(0, islamicCount + (adj.islamic || 0));
+        individualCount = Math.max(0, individualCount + (adj.individual || 0));
+        groupCount = Math.max(0, groupCount + (adj.group || 0));
 
-        const sessionPrice = student.sessionPrice || 70;
+        const sessionPriceInd = student.sessionPrice || 70;
+        // مؤقتاً: لو مفيش سعر للجماعي في الداتا، نستخدم الفردي
+        const sessionPriceGrp = student.groupSessionPrice || sessionPriceInd; 
+        
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
         const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
 
@@ -489,9 +345,11 @@
           payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
         }
 
-        // 🔴 الحلقات المحتسبة = فردي + جماعي + غياب محاسب (قاعدة صارمة)
+        // الحلقات المحتسبة
         let totalCalculatedSessions = individualCount + groupCount + payableAbsences;
-        const totalAmount = totalCalculatedSessions * sessionPrice;
+        
+        // حساب الفلوس: (الفردي × سعره) + (الجماعي × سعره) + (الغياب المحاسب × سعر الفردي مؤقتاً)
+        let totalAmount = (individualCount * sessionPriceInd) + (groupCount * sessionPriceGrp) + (payableAbsences * sessionPriceInd);
 
         if (!printExcluded) {
           grandTotalAmount += totalAmount;
@@ -513,7 +371,8 @@
           payableAbsences,
           totalCalculatedSessions,
           totalAmount,
-          sessionPrice,
+          sessionPriceInd,
+          sessionPriceGrp,
           enableUnexcusedAbsence,
           printExcluded
         };
@@ -522,6 +381,9 @@
       tableData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
       const tbodyHtml = tableData.length ? tableData.map(row => {
+        const isGrpPriceDifferent = row.sessionPriceInd !== row.sessionPriceGrp;
+        const priceLabel = isGrpPriceDifferent ? `${row.sessionPriceInd}/${row.sessionPriceGrp}` : row.sessionPriceInd;
+
         return `
           <tr class="${row.printExcluded ? 'no-print' : ''}" style="border-bottom: 1px solid var(--color-border); background: var(--card-bg); opacity: ${row.printExcluded ? '0.4' : '1'}; transition: opacity 0.3s ease;">
             
@@ -534,8 +396,8 @@
               </div>
             </td>
             
-            <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;">
-               ${row.sessionPrice} <span style="font-size:11px; font-weight:normal;">ج.م</span>
+            <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;" title="فردي/جماعي">
+               <span style="font-size:13px;">${priceLabel}</span> <span style="font-size:10px; font-weight:normal;">ج</span>
             </td>
             
             <td style="padding: 14px 16px; text-align: center; font-weight: 600;">
@@ -584,7 +446,7 @@
               </span>
             </td>
             
-            <td class="price-col" style="padding: 14px 16px; text-align: center; font-weight: var(--fw-extrabold); font-size: 15px; color: #0f9d7a;">
+            <td class="price-col" style="padding: 14px 16px; text-align: center; font-weight: 800; font-size: 15px; color: #0f9d7a;">
               ${row.totalAmount} <span style="font-size: 11px; font-weight: normal; color: #64748b;">ج.م</span>
             </td>
           </tr>
@@ -635,13 +497,13 @@
                 <tr style="background: var(--color-slate-50); border-bottom: 2px solid var(--color-border-strong);">
                   <th style="padding: 16px; text-align: right; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الطالب</th>
                   <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">سعر الحلقة</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">حضور قرآن</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">حضور تربية</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب (بعذر)</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب (بدون عذر)</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">قرآن</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">تربية</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب بعذر</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">غياب بدون عذر</th>
                   <th style="padding: 16px; text-align: center; color: #0284c7; font-size: 13px; font-weight: bold;">حلقات فردية</th>
                   <th style="padding: 16px; text-align: center; color: #6d28d9; font-size: 13px; font-weight: bold;">حلقات جماعية</th>
-                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الحلقات المُحاسبة</th>
+                  <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">مُحاسب على</th>
                   <th style="padding: 16px; text-align: center; color: var(--color-slate-700); font-size: 13px; font-weight: bold;">الإجمالي المالي</th>
                 </tr>
               </thead>
