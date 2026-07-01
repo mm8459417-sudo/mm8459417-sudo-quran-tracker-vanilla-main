@@ -31,9 +31,9 @@
           </div>
           
           <button class="theme-toggle-btn" onclick="toggleThemeSwitch()" title="تبديل المظهر">
-  <i class="ph-fill ph-sun sun-icon"></i>
-  <i class="ph-fill ph-moon moon-icon"></i>
-</button>
+            <i class="ph-fill ph-sun sun-icon"></i>
+            <i class="ph-fill ph-moon moon-icon"></i>
+          </button>
           
           <button class="btn btn-outline btn-sm" onclick="handleLogout()">
             <i class="ph-bold ph-sign-out" style="font-size: 16px;"></i>
@@ -62,13 +62,14 @@
     const teacherName = appState.settings.teacherName || "المعلم";
     const initial = teacherName ? teacherName.charAt(0) : "م";
     
-    // تم إضافة الجدول الأسبوعي هنا
+    // تم إضافة السكرتير الذكي هنا 👇
     const tabs = [
       { key: "form", icon: `<i class="ph-duotone ph-house"></i>`, label: "الرئيسية" },
+      { key: "secretary", icon: `<i class="ph-duotone ph-robot"></i>`, label: "السكرتير الذكي" },
+      { key: "schedule", icon: `<i class="ph-duotone ph-calendar-plus"></i>`, label: "الجدول الأسبوعي" },
+      { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت الشهري" },
       { key: "history", icon: `<i class="ph-duotone ph-clock-counter-clockwise"></i>`, label: "سجلات الطلاب" },
       { key: "analysis", icon: `<i class="ph-duotone ph-chart-line-up"></i>`, label: "تحليل الأداء" },
-      { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت الشهري" },
-      { key: "schedule", icon: `<i class="ph-duotone ph-calendar-plus"></i>`, label: "الجدول الأسبوعي" },
       { key: "settings", icon: `<i class="ph-duotone ph-gear-six"></i>`, label: "الإعدادات" },
       { key: "account", icon: `<i class="ph-duotone ph-user-circle"></i>`, label: "الحساب" },
     ];
@@ -120,13 +121,13 @@
       return;
     }
 
-    // تم إضافة الجدول هنا أيضاً للموبايل
+    // تم إضافة السكرتير الذكي هنا للموبايل 👇
     const items = [
       { key: "form", icon: `<i class="ph-duotone ph-house"></i>`, label: "الرئيسية" },
-      { key: "history", icon: `<i class="ph-duotone ph-clock-counter-clockwise"></i>`, label: "السجل" },
-      { key: "analysis", icon: `<i class="ph-duotone ph-chart-line-up"></i>`, label: "التحليل" },
-      { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت" },
+      { key: "secretary", icon: `<i class="ph-duotone ph-robot"></i>`, label: "السكرتير" },
       { key: "schedule", icon: `<i class="ph-duotone ph-calendar-plus"></i>`, label: "الجدول" },
+      { key: "monthly", icon: `<i class="ph-duotone ph-calendar-check"></i>`, label: "الشيت" },
+      { key: "history", icon: `<i class="ph-duotone ph-clock-counter-clockwise"></i>`, label: "السجل" },
       { key: "settings", icon: `<i class="ph-duotone ph-gear-six"></i>`, label: "الإعدادات" },
     ];
 
