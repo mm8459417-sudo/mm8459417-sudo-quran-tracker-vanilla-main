@@ -1,16 +1,8 @@
 (function () {
-  const ARABIC_DAYS = [
-    "الأحد",
-    "الاثنين",
-    "الثلاثاء",
-    "الأربعاء",
-    "الخميس",
-    "الجمعة",
-    "السبت",
-  ];
+  const ARABIC_DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
   // ==========================================
-  // إعدادات المظهر والوضع الليلي (تأمين الحماية من التحميل المبكر)
+  // إعدادات المظهر والوضع الليلي
   // ==========================================
   function initThemeState() {
     if (!window.appState) window.appState = {};
@@ -164,6 +156,7 @@
         editId: null,
         name: "",
         price: 70,
+        groupPrice: 50,
         studentIds: [], 
       };
     }
@@ -185,7 +178,7 @@
         form.gender = stu.gender || "boy";
         form.packageId = stu.packageId || (packages.length > 0 ? packages[0].id : "");
         
-        form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : 8;
+        form.quranLimit = stu.quranLimit !== undefined ? stu.quranLimit : (stu.sessionLimit || 8);
         form.islamicLimit = stu.islamicLimit !== undefined ? stu.islamicLimit : 4;
         form.quranEnabled = stu.quranEnabled !== undefined ? stu.quranEnabled : (form.quranLimit > 0);
         form.islamicEnabled = stu.islamicEnabled !== undefined ? stu.islamicEnabled : (form.islamicLimit > 0);
@@ -301,7 +294,9 @@
 
     const packages = ensurePackagesExist();
     const selectedPackage = packages.find(p => p.id === form.packageId);
+    
     const sessionPrice = selectedPackage ? selectedPackage.price : 70;
+    const groupSessionPrice = selectedPackage && selectedPackage.groupPrice !== undefined ? selectedPackage.groupPrice : sessionPrice;
 
     const quranNum = form.quranEnabled ? parseInt(form.quranLimit, 10) : 0;
     const islamicNum = form.islamicEnabled ? parseInt(form.islamicLimit, 10) : 0;
@@ -313,6 +308,7 @@
       gender: form.gender,
       packageId: form.packageId,
       sessionPrice: sessionPrice,
+      groupSessionPrice: groupSessionPrice,
       quranEnabled: form.quranEnabled,
       islamicEnabled: form.islamicEnabled,
       quranLimit: isNaN(quranNum) ? 0 : quranNum,
@@ -492,12 +488,14 @@
         form.editId = pkg.id;
         form.name = pkg.name || "";
         form.price = pkg.price || 70;
+        form.groupPrice = pkg.groupPrice !== undefined ? pkg.groupPrice : (pkg.price || 70);
         form.studentIds = (window.appState.students || []).filter(s => s.packageId === pkg.id).map(s => s.id);
       }
     } else {
       form.editId = null;
       form.name = "";
       form.price = 70;
+      form.groupPrice = 50; 
       form.studentIds = [];
     }
     form.open = true;
@@ -540,6 +538,7 @@
       id: form.editId || `pkg-${Date.now()}`,
       name: form.name.trim(),
       price: parseFloat(form.price) || 0,
+      groupPrice: parseFloat(form.groupPrice) || 0,
     };
 
     let packages = [...ensurePackagesExist()];
@@ -560,9 +559,11 @@
         if (studentsToUpdate.includes(stu.id)) {
             stu.packageId = pkgData.id;
             stu.sessionPrice = pkgData.price;
+            stu.groupSessionPrice = pkgData.groupPrice; 
         } else if (stu.packageId === pkgData.id) {
             stu.packageId = ""; 
             stu.sessionPrice = 70; 
+            stu.groupSessionPrice = 70; 
         }
     });
 
@@ -575,7 +576,11 @@
       
       (window.appState.students || []).forEach((stu) => {
           if (studentsToUpdate.includes(stu.id) || stu.packageId === pkgData.id || stu.packageId === "") {
-              dbModule.updateStudent(stu.id, { packageId: stu.packageId, sessionPrice: stu.sessionPrice }).catch(e => console.error(e));
+              dbModule.updateStudent(stu.id, { 
+                packageId: stu.packageId, 
+                sessionPrice: stu.sessionPrice,
+                groupSessionPrice: stu.groupSessionPrice 
+              }).catch(e => console.error(e));
           }
       });
     } catch (err) {
@@ -715,7 +720,7 @@
   };
 
   // ==========================================
-  // شاشة عرض تفاصيل الطالب (Student Details Modal)
+  // 🔥 شاشة عرض تفاصيل الطالب (بعد التوافق الرجعي) 🔥
   // ==========================================
   window.showStudentDetails = function(studentId) {
     const student = window.appState.students.find(s => s.id === studentId);
@@ -725,6 +730,17 @@
     const pkg = packages.find(p => p.id === student.packageId);
     const pkgName = pkg ? pkg.name : "بدون باقة";
     const sessionPrice = pkg ? pkg.price : 70;
+    const groupPrice = pkg && pkg.groupPrice !== undefined ? pkg.groupPrice : sessionPrice;
+
+    // 🔥 حساب المتغيرات بالتوافق الرجعي للطلاب القدام
+    const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
+    const qLimit = student.quranLimit !== undefined ? student.quranLimit : (student.sessionLimit || 8);
+
+    const iEnabled = student.islamicEnabled !== undefined ? student.islamicEnabled : ((student.islamicLimit || 0) > 0);
+    const iLimit = student.islamicLimit !== undefined ? student.islamicLimit : 4;
+
+    const absEnabled = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
+    const absMax = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
 
     const isDark = window.appState && window.appState.settings && window.appState.settings.darkMode;
     const bgColor = isDark ? '#1e293b' : '#ffffff';
@@ -766,11 +782,11 @@
       </div>
     `;
 
-    const quranSchedHtml = (student.quranSchedule && student.quranSchedule.length > 0) 
+    const quranSchedHtml = (qEnabled && student.quranSchedule && student.quranSchedule.length > 0) 
       ? student.quranSchedule.map(s => `<span style="background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight:bold;">${s.day} - ${s.time}</span>`).join('') 
       : `<span style="color: ${mutedColor}; font-size: 12px;">لا توجد مواعيد</span>`;
 
-    const islamicSchedHtml = (student.islamicSchedule && student.islamicSchedule.length > 0) 
+    const islamicSchedHtml = (iEnabled && student.islamicSchedule && student.islamicSchedule.length > 0) 
       ? student.islamicSchedule.map(s => `<span style="background: rgba(14,165,233,0.1); color: #0ea5e9; border: 1px solid rgba(14,165,233,0.2); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight:bold;">${s.day} - ${s.time}</span>`).join('') 
       : `<span style="color: ${mutedColor}; font-size: 12px;">لا توجد مواعيد</span>`;
 
@@ -779,7 +795,8 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
            <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
               <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">الباقة الحالية</div>
-              <div style="color: ${textColor}; font-weight: bold; font-size: 14px;">${pkgName} <span style="font-size: 11px; font-weight: normal;">(${sessionPrice} ج)</span></div>
+              <div style="color: ${textColor}; font-weight: bold; font-size: 14px;">${pkgName}</div>
+              <div style="font-size: 11px; color: #10b981; margin-top:4px;">فردي: ${sessionPrice} ج | جماعي: ${groupPrice} ج</div>
            </div>
            <div style="background: ${cardBg}; padding: 12px; border-radius: 12px; border: 1px solid ${borderColor};">
               <div style="color: ${mutedColor}; font-size: 12px; margin-bottom: 4px;">ولي الأمر (واتساب)</div>
@@ -791,31 +808,31 @@
         <div style="background: ${cardBg}; border-radius: 12px; border: 1px solid ${borderColor}; margin-bottom: 20px;">
            <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">حصص القرآن</span>
-             <span style="color: ${student.quranEnabled ? textColor : mutedColor}; font-weight: bold;">
-                ${student.quranEnabled ? student.quranLimit : 'موقف'}
+             <span style="color: ${qEnabled ? textColor : mutedColor}; font-weight: bold;">
+                ${qEnabled ? qLimit : 'موقف'}
              </span>
            </div>
            <div style="padding: 12px; border-bottom: 1px solid ${borderColor}; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">حصص التربية</span>
-             <span style="color: ${student.islamicEnabled ? textColor : mutedColor}; font-weight: bold;">
-                ${student.islamicEnabled ? student.islamicLimit : 'موقف'}
+             <span style="color: ${iEnabled ? textColor : mutedColor}; font-weight: bold;">
+                ${iEnabled ? iLimit : 'موقف'}
              </span>
            </div>
            <div style="padding: 12px; display: flex; justify-content: space-between;">
              <span style="color: ${mutedColor}; font-size: 13px;">الغياب المُحاسب (تجاوز)</span>
-             <span style="color: ${student.enableUnexcusedAbsence ? '#ef4444' : mutedColor}; font-weight: bold;">
-                ${student.enableUnexcusedAbsence ? (student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1) : 'غير مفعل'}
+             <span style="color: ${absEnabled ? '#ef4444' : mutedColor}; font-weight: bold;">
+                ${absEnabled ? absMax : 'غير مفعل'}
              </span>
            </div>
         </div>
 
-        ${student.quranEnabled ? `
+        ${qEnabled ? `
         <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-clock" style="margin-left: 6px; color: #10b981;"></i>مواعيد القرآن</h4>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
            ${quranSchedHtml}
         </div>` : ''}
 
-        ${student.islamicEnabled ? `
+        ${iEnabled ? `
         <h4 style="margin: 0 0 12px; color: ${textColor}; font-size: 14px; font-weight: bold;"><i class="ph-duotone ph-clock" style="margin-left: 6px; color: #0ea5e9;"></i>مواعيد التربية</h4>
         <div style="display: flex; flex-wrap: wrap; gap: 8px;">
            ${islamicSchedHtml}
@@ -874,10 +891,21 @@
           <div class="account-input-line"></div>
         </div>
 
-        <div class="form-group mb-4 exec-animate" style="--stagger: 3;">
-          <input type="number" class="form-control account-custom-input" value="${form.price}" oninput="updatePackageFormField('price', this.value)" placeholder=" " />
-          <label class="form-label">سعر الحلقة (ج.م)</label>
-          <div class="account-input-line"></div>
+        <div class="row mb-4 exec-animate" style="--stagger: 3;">
+          <div class="col-6">
+            <div class="form-group">
+              <input type="number" class="form-control account-custom-input" value="${form.price}" oninput="updatePackageFormField('price', this.value)" placeholder=" " />
+              <label class="form-label" style="color: #065f46;"><i class="ph-duotone ph-user" style="margin-left:4px;"></i>سعر الفردي (ج)</label>
+              <div class="account-input-line" style="background:#10b981;"></div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="form-group">
+              <input type="number" class="form-control account-custom-input" value="${form.groupPrice}" oninput="updatePackageFormField('groupPrice', this.value)" placeholder=" " />
+              <label class="form-label" style="color: #0369a1;"><i class="ph-duotone ph-users-three" style="margin-left:4px;"></i>سعر الجماعي (ج)</label>
+              <div class="account-input-line" style="background:#0ea5e9;"></div>
+            </div>
+          </div>
         </div>
 
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
@@ -989,7 +1017,7 @@
             <label class="form-label" style="font-size: 13px;">تحديد الباقة المالية</label>
             <select class="form-select account-custom-input" onchange="updateStudentFormField('packageId', this.value)">
               <option value="">-- بدون باقة --</option>
-              ${packages.map(p => `<option value="${p.id}" ${form.packageId === p.id ? 'selected' : ''}>${p.name} (${p.price} ج.م/الحلقة)</option>`).join("")}
+              ${packages.map(p => `<option value="${p.id}" ${form.packageId === p.id ? 'selected' : ''}>${p.name} (فردي: ${p.price}ج | جماعي: ${p.groupPrice !== undefined ? p.groupPrice : p.price}ج)</option>`).join("")}
             </select>
           </div>
 
@@ -1198,7 +1226,7 @@
             <div class="card-soft exec-animate" style="--stagger: ${5 + (index * 0.2)}; padding:16px; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 12px; display:flex; justify-content:space-between; align-items:center;">
               <div>
                 <div style="font-weight:bold; color:#065f46; font-size:15px;">${p.name}</div>
-                <div style="font-size:13px; color:#047857; margin-top:4px;">سعر الحلقة: <strong>${p.price} ج.م</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
+                <div style="font-size:13px; color:#047857; margin-top:4px;">فردي: <strong>${p.price}ج</strong> | جماعي: <strong>${p.groupPrice !== undefined ? p.groupPrice : p.price}ج</strong> | مرتبط بـ: <strong>${stuCount} طالب</strong></div>
               </div>
               <div class="d-flex gap-2">
                 <button type="button" class="btn btn-outline icon-btn" style="border-color:#10b981; color:#10b981;" onclick="openPackageForm('${p.id}')"><i class="ph-duotone ph-pencil-simple"></i></button>
@@ -1227,6 +1255,13 @@
               (s, index) => {
                 const pkg = packages.find(p => p.id === s.packageId);
                 const pkgName = pkg ? pkg.name : "غير محدد";
+
+                // 🔥 توافق رجعي لعدادات الكارت الخارجي
+                const qEnabled = s.quranEnabled !== undefined ? s.quranEnabled : ((s.quranLimit || s.sessionLimit) > 0);
+                const qLimit = s.quranLimit !== undefined ? s.quranLimit : (s.sessionLimit || 8);
+                const iEnabled = s.islamicEnabled !== undefined ? s.islamicEnabled : ((s.islamicLimit || 0) > 0);
+                const iLimit = s.islamicLimit !== undefined ? s.islamicLimit : 4;
+
                 return `
             <div class="card-soft exec-animate" style="--stagger: ${7 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease; cursor: pointer;" onclick="showStudentDetails('${s.id}')">
               <div class="d-flex justify-content-between align-items-center">
@@ -1234,8 +1269,8 @@
                   <div style="font-weight:var(--fw-bold);font-size:var(--fs-md);color:var(--text-primary);margin-bottom:4px;"><i class="ph-duotone ph-user" style="margin-left:4px;color:${s.gender === 'girl' ? 'var(--gold)' : 'var(--emerald)'}"></i>${s.name}</div>
                   <div style="font-size:12px;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;">
                     <span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">الباقة: <strong>${pkgName}</strong></span>
-                    <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${s.quranLimit !== undefined ? s.quranLimit : 8}</strong></span>
-                    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${s.islamicLimit !== undefined ? s.islamicLimit : 4}</strong></span>
+                    <span style="background:#f0fdf4;color:#065f46;padding:2px 8px;border-radius:4px;">قرآن: <strong>${qEnabled ? qLimit : 'موقف'}</strong></span>
+                    <span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;">تربية: <strong>${iEnabled ? iLimit : 'موقف'}</strong></span>
                   </div>
                 </div>
                 <div class="d-flex gap-2" onclick="event.stopPropagation()">
