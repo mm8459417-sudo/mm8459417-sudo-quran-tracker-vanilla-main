@@ -143,7 +143,6 @@
         open: false,
         editId: null,
         name: "",
-        groupLink: "",
         studentIds: [],
       };
     }
@@ -178,8 +177,7 @@
         form.phone = stu.phone || "";
         form.gender = stu.gender || "boy";
 
-        // توافق رجعي: الطلاب القدام كانت لديهم packageId واحد فقط.
-        // نحاول تخمين نوعه من قائمة الباقات الحالية، وإلا نعتبره باقة فردية بشكل افتراضي.
+        // توافق رجعي
         if (stu.individualPackageId !== undefined || stu.groupPackageId !== undefined) {
           form.individualPackageId = stu.individualPackageId || "";
           form.groupPackageId = stu.groupPackageId || "";
@@ -233,8 +231,16 @@
   window.closeStudentForm = function () {
     const form = ensureStudentForm();
     form.open = false;
-    if (window.appState) {
-        window.appState.activeTab = "settings"; 
+
+    // 🔥 لو المعلم كان جاي من شاشة المجموعة، نرجعهولها تاني
+    if (window.appState.ui.returnToGroupForm) {
+      window.appState.ui.returnToGroupForm = false;
+      const groupForm = ensureGroupForm();
+      groupForm.open = true;
+    } else {
+      if (window.appState) {
+          window.appState.activeTab = "settings"; 
+      }
     }
     router.render();
   };
@@ -329,7 +335,6 @@
       gender: form.gender,
       individualPackageId: form.individualPackageId,
       groupPackageId: form.groupPackageId,
-      // نُبقي packageId للتوافق الرجعي مع أي صفحات أخرى (مثل التقارير المالية) قد تقرأ هذا الحقل مباشرة
       packageId: form.individualPackageId || form.groupPackageId || "",
       sessionPrice: sessionPrice,
       groupSessionPrice: groupSessionPrice,
@@ -356,8 +361,21 @@
     }
 
     form.open = false;
-    router.render();
     showToast(isEdit ? "تم تحديث الطالب بنجاح" : "تم إضافة الطالب بنجاح");
+
+    // 🔥 الـ Shortcut السحري للرجوع للمجموعة
+    if (window.appState.ui.returnToGroupForm) {
+      window.appState.ui.returnToGroupForm = false;
+      const groupForm = ensureGroupForm();
+      if (!isEdit) {
+         // نعلم على الطالب الجديد إنه ينضم للمجموعة تلقائياً
+         if (!groupForm.studentIds) groupForm.studentIds = [];
+         groupForm.studentIds.push(tempId); // هنستخدم الآي دي المؤقت لحد ما الداتابيز ترد
+      }
+      groupForm.open = true;
+    }
+
+    router.render();
 
     try {
       if (isEdit) {
@@ -367,6 +385,12 @@
         if (addedStudent && addedStudent.id) {
             const tempIdx = window.appState.students.findIndex(s => s.id === tempId);
             if (tempIdx !== -1) window.appState.students[tempIdx].id = addedStudent.id;
+            
+            // تحديث الآي دي جوه المجموعة لو كان منضاف
+            const groupForm = ensureGroupForm();
+            if (groupForm.studentIds && groupForm.studentIds.includes(tempId)) {
+                groupForm.studentIds = groupForm.studentIds.map(id => id === tempId ? addedStudent.id : id);
+            }
         }
       }
     } catch (err) {
@@ -400,17 +424,23 @@
       if (group) {
         form.editId = group.id;
         form.name = group.name || "";
-        form.groupLink = group.groupLink || "";
         form.studentIds = Array.isArray(group.studentIds) ? group.studentIds : [];
       }
     } else {
       form.editId = null;
       form.name = "";
-      form.groupLink = "";
       form.studentIds = [];
     }
     form.open = true;
     router.render();
+  };
+
+  // 🔥 دالة الاختصار لفتح فورم الطالب من جوه المجموعة
+  window.openStudentFormFromGroup = function() {
+    const groupForm = ensureGroupForm();
+    groupForm.open = false; // نقفل شاشة المجموعة مؤقتاً
+    window.appState.ui.returnToGroupForm = true; // علامة عشان نرجع هنا تاني
+    window.openStudentForm(); // نفتح شاشة الطالب
   };
 
   window.closeGroupForm = function () {
@@ -451,7 +481,6 @@
 
     const payload = {
       name: form.name.trim(),
-      groupLink: form.groupLink.trim(),
       studentIds: form.studentIds,
     };
 
@@ -517,7 +546,6 @@
         form.studentIds = (window.appState.students || [])
           .filter((s) => {
             if (form.type === "group") return s.groupPackageId === pkg.id;
-            // توافق رجعي: طالب قديم لسه بيشاور على packageId فقط
             return s.individualPackageId === pkg.id || (!s.individualPackageId && s.packageId === pkg.id);
           })
           .map((s) => s.id);
@@ -616,7 +644,6 @@
                 touchedStudentIds.add(stu.id);
             }
         }
-        // نُبقي packageId متزامناً للتوافق الرجعي مع أي صفحات أخرى تقرأه مباشرة
         stu.packageId = stu.individualPackageId || stu.groupPackageId || "";
     });
 
@@ -775,7 +802,7 @@
   };
 
   // ==========================================
-  // 🔥 شاشة عرض تفاصيل الطالب (بعد التوافق الرجعي) 🔥
+  // شاشة عرض تفاصيل الطالب
   // ==========================================
   window.showStudentDetails = function(studentId) {
     const student = window.appState.students.find(s => s.id === studentId);
@@ -787,7 +814,6 @@
     const sessionPrice = individualPkg ? individualPkg.price : (student.sessionPrice !== undefined ? student.sessionPrice : 70);
     const groupPrice = groupPkg ? groupPkg.price : (student.groupSessionPrice !== undefined ? student.groupSessionPrice : 70);
 
-    // 🔥 حساب المتغيرات بالتوافق الرجعي للطلاب القدام
     const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
     const qLimit = student.quranLimit !== undefined ? student.quranLimit : (student.sessionLimit || 8);
 
@@ -1232,15 +1258,17 @@
           <div class="account-input-line"></div>
         </div>
 
-        <div class="form-group mb-4 exec-animate" style="--stagger: 3;">
-          <input class="form-control account-custom-input" value="${form.groupLink}" oninput="updateGroupFormField('groupLink', this.value)" dir="ltr" style="text-align: right;" placeholder=" " />
-          <label class="form-label">رابط الجروب (اختياري)</label>
-          <div class="account-input-line"></div>
-        </div>
-
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4; background: rgba(255,255,255,0.4); border: 1px dashed rgba(212, 175, 55, 0.4);">
-          <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:var(--text-primary);"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>اختر طلاب المجموعة</div>
-          <div class="d-grid gap-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+             <div style="font-weight:var(--fw-bold);color:var(--text-primary);"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>اختر طلاب المجموعة</div>
+             
+             <!-- 🔥 زرار الاختصار السحري لإضافة طالب جديد -->
+             <button type="button" class="btn btn-sm btn-outline" style="color:var(--emerald); border-color:var(--emerald); font-weight:bold;" onclick="openStudentFormFromGroup()">
+               <i class="ph-bold ph-plus" style="margin-left:4px;"></i>إضافة طالب جديد
+             </button>
+          </div>
+          
+          <div class="d-grid gap-3" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
             ${(window.appState.students || [])
               .map(
                 (s) => `
