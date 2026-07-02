@@ -242,8 +242,7 @@ window.scheduleRender = function() {
 // ==========================================
 
 // متغير للصوت المخصص (يرجى توفير ملف notification.mp3 في المجلد الرئيسي)
-const notificationSound = new Audio('./notification.mp3');
-
+const notificationSound = new Audio('./p2.ogg');
 // طلب إذن الإشعارات
 function requestNotificationPermission() {
   if (Notification.permission === 'default') {
