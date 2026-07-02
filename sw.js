@@ -1,6 +1,5 @@
-const CACHE_NAME = 'rafiq-quran-v3'; // كود الإصدار - نغيره (v4, v5...) كل ما نرفع تحديث كبير
+const CACHE_NAME = 'rafiq-quran-v5'; // تحديث الإصدار
 
-// الملفات الأساسية اللي المنصة محتاجاها لتشتغل بدون إنترنت (App Shell)
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -27,17 +26,15 @@ const PRECACHE_ASSETS = [
   './js/utils/export-utils.js'
 ];
 
-// 1. مرحلة التثبيت: كاش للملفات الأساسية واجبار السيرفس وركر الجديد يتفعل فوراً
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Pre-caching App Shell...');
       return cache.addAll(PRECACHE_ASSETS);
-    }).then(() => self.skipWaiting()) // إنهاء وضع الانتظار فوراً
+    }).then(() => self.skipWaiting())
   );
 });
 
-// 2. مرحلة التفعيل: تنظيف الكاش القديم تماماً عشان ميعملش تضارب
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -49,32 +46,109 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // السيطرة على كل الصفحات المفتوحة فوراً
+    }).then(() => self.clients.claim())
   );
 });
 
-// 3. استراتيجية جلب البيانات: Network First للـ CSS والـ JS لضمان ظهور التعديلات فوراً
 self.addEventListener('fetch', (event) => {
-  // تخطي طلبات Firebase و Chart.js عشان متعملش مشاكل مع الكاش المحلي
   if (event.request.url.includes('firestore.googleapis.com') || event.request.url.includes('firebasecss') || event.request.url.includes('unpkg.com')) {
     return;
   }
-
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // لو الطلب ناجح، نحدث النسخة اللي في الكاش ونرجع الاستجابة
         if (response.status === 200 && event.request.method === 'GET') {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return response;
       })
-      .catch(() => {
-        // لو مفيش إنترنت، يفتح الملف مباشرة من الكاش
-        return caches.match(event.request);
-      })
+      .catch(() => caches.match(event.request))
+  );
+});
+
+// ==========================================
+// 🤖 العقل المدبر: نظام الإشعارات (المطور)
+// ==========================================
+let todayTasks = [];
+let notifiedTasks = new Set(); 
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SYNC_TASKS') {
+    todayTasks = event.data.tasks;
+    checkTasks();
+  }
+});
+
+function checkTasks() {
+  if (!todayTasks || todayTasks.length === 0) return;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  todayTasks.forEach(task => {
+    const taskKey = `${task.id}-${task.time}`;
+    if (notifiedTasks.has(taskKey)) return;
+
+    const timeDiff = task.minutes - currentMinutes;
+
+    let notificationTitle = '';
+    let notificationBody = '';
+    let actionTitle = 'افتح السكرتير';
+
+    if (timeDiff <= 10 && timeDiff > 0) {
+      notificationTitle = '⏳ حصة قريبة جداً!';
+      notificationBody = `حصة ${task.type} (${task.name}) هتبدأ خلال ${timeDiff} دقائق.`;
+    } else if (timeDiff <= 0 && timeDiff > -15) {
+      notificationTitle = '🔔 الحصة بدأت!';
+      notificationBody = `حصة ${task.name} المفروض تكون شغالة دلوقتي.`;
+      actionTitle = 'سجل الحضور';
+    } else if (timeDiff <= -30 && timeDiff > -60) {
+      notificationTitle = '❓ هل نسيت التسجيل؟';
+      notificationBody = `حصة ${task.name} انتهت. افتح لتسجيل الحضور أو الغياب.`;
+      actionTitle = 'سجل الآن';
+    }
+
+    if (notificationTitle) {
+      // إرسال رسالة للمنصة (عشان لو مفتوحة، تشغل الصوت الخاص بيك)
+      self.clients.matchAll().then(clients => {
+         clients.forEach(client => {
+             client.postMessage({ type: 'PLAY_NOTIFICATION_SOUND' });
+         });
+      });
+
+      self.registration.showNotification(notificationTitle, {
+        body: notificationBody,
+        icon: './logo.jpeg', // مسار اللوجو بتاعك
+        badge: './logo.jpeg', // أيقونة شريط الإشعارات (يفضل تكون PNG شفافة لون واحد، بس لوجو هيمشي)
+        dir: 'rtl',
+        lang: 'ar',
+        vibrate: [300, 100, 300], // اهتزاز مميز (دقتين)
+        data: { url: '/?page=secretary' },
+        actions: [
+          { action: 'open_secretary', title: actionTitle }
+        ]
+      });
+
+      notifiedTasks.add(taskKey);
+    }
+  });
+}
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url || '/');
+      }
+    })
   );
 });
