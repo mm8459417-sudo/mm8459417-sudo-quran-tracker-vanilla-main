@@ -151,24 +151,22 @@ window.handleLogout = async function () {
 function attachSubscriptions() {
   dbModule.subscribeStudents((data) => {
     appState.students = data;
-    syncTasksWithWorker(); // تحديث السكرتير بالجدول الجديد
+    syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeGroups((data) => {
     appState.groups = data;
-    syncTasksWithWorker(); // تحديث السكرتير بالجدول الجديد
+    syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeSessions((data) => {
     appState.sessions = data;
-    syncTasksWithWorker(); // تحديث السكرتير عشان ميقرفناش بحصص اتسجلت
+    syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeSettings((data) => {
     const user = appState.user;
-    const fallbackName = user
-      ? user.displayName || user.email?.split("@")[0] || "المعلم"
-      : "المعلم";
+    const fallbackName = user ? user.displayName || user.email?.split("@")[0] || "المعلم" : "المعلم";
       
     appState.settings = {
       ...appState.settings, 
@@ -203,9 +201,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* =========================================
-   DASHBOARD UI ENGINE (Lightweight)
+   DASHBOARD UI ENGINE
    ========================================= */
-
 const scrollObserver = prefersReducedMotion.matches
   ? null
   : new IntersectionObserver((entries) => {
@@ -241,41 +238,47 @@ window.scheduleRender = function() {
 };
 
 // ==========================================
-// 🤖 نظام ربط السكرتير الذكي والإشعارات (Service Worker Registration)
+// 🤖 نظام ربط السكرتير الذكي والإشعارات المتقدمة
 // ==========================================
 
-// 1. تسجيل الـ Service Worker وطلب الصلاحية أول ما المنصة تفتح
-if ('serviceWorker' in navigator && 'Notification' in window) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(registration => {
-        console.log('✅ ServiceWorker registration successful with scope: ', registration.scope);
-        requestNotificationPermission();
-      })
-      .catch(err => {
-        console.log('❌ ServiceWorker registration failed: ', err);
-      });
-  });
-}
+// متغير للصوت المخصص (يرجى توفير ملف notification.mp3 في المجلد الرئيسي)
+const notificationSound = new Audio('./notification.mp3');
 
+// طلب إذن الإشعارات
 function requestNotificationPermission() {
   if (Notification.permission === 'default') {
     Notification.requestPermission().then(permission => {
       if (permission === 'granted') {
         console.log('✅ Notification permission granted.');
         showToast("تم تفعيل إشعارات السكرتير الذكي 🔔");
-      } else {
-        console.log('❌ Notification permission denied.');
       }
     });
   }
 }
 
-// 2. دالة لاستخراج المهام من الداتابيز وإرسالها للـ Worker
+if ('serviceWorker' in navigator && 'Notification' in window) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('✅ ServiceWorker registered');
+        requestNotificationPermission();
+      })
+      .catch(err => console.log('❌ ServiceWorker registration failed: ', err));
+  });
+
+  // 🔊 استقبال أمر تشغيل الصوت من الـ Service Worker
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'PLAY_NOTIFICATION_SOUND') {
+      // محاولة تشغيل الصوت، المتصفحات قد تمنع التشغيل التلقائي إلا إذا كان المستخدم تفاعل مع الصفحة
+      notificationSound.play().catch(e => console.log("Audio play blocked by browser:", e));
+    }
+  });
+}
+
+// مزامنة المهام
 function syncTasksWithWorker() {
   if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
 
-  // استخراج مهام اليوم (نفس المنطق الموجود في secretary-page.js)
   function normalizeArabic(text) {
     if (!text) return "";
     return text.trim().replace(/[أإآ]/g, "ا").replace(/ة$/g, "ه");
@@ -314,7 +317,6 @@ function syncTasksWithWorker() {
      });
   };
 
-  // مهام الطلاب الفردية
   students.forEach(student => {
     let schedules = [];
     const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
@@ -325,7 +327,6 @@ function syncTasksWithWorker() {
     } else if (qEnabled && Array.isArray(student.schedule)) {
       schedules.push(...student.schedule.map(s => ({...s, type: 'قرآن', sessionType: 'quran'})));
     }
-    
     if (iEnabled && Array.isArray(student.islamicSchedule)) {
       schedules.push(...student.islamicSchedule.map(s => ({...s, type: 'تربية', sessionType: 'islamic'})));
     }
@@ -345,7 +346,6 @@ function syncTasksWithWorker() {
     });
   });
 
-  // مهام المجموعات
   groups.forEach(group => {
      if (group.schedule && Array.isArray(group.schedule)) {
         group.schedule.forEach(sched => {
@@ -364,12 +364,10 @@ function syncTasksWithWorker() {
      }
   });
 
-  // إرسال المهام للـ Service Worker ليعالج الإشعارات في الخلفية
   navigator.serviceWorker.controller.postMessage({
     type: 'SYNC_TASKS',
     tasks: todayTasks
   });
 }
 
-// تشغيل التحديث كل 5 دقائق عشان نضمن إن الداتا دايماً Refresh في الخلفية
 setInterval(syncTasksWithWorker, 5 * 60 * 1000);
