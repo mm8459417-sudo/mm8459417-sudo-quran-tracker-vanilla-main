@@ -1,10 +1,12 @@
-const CACHE_NAME = 'rafiq-quran-v5'; // تحديث الإصدار
+const CACHE_NAME = 'rafiq-quran-v6'; // حدثنا الكاش عشان يقرا الملفات الجديدة
 
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './logo.jpeg',
+  './logo.jpeg.png', // اللوجو الأساسي
+  './image_p1.png',  // اللوجو الأبيض
+  './p2.ogg',        // صوت الإشعار
   './css/rafiq-tokens.css',
   './css/rafiq-components.css',
   './css/rafiq-pages.css',
@@ -68,7 +70,7 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ==========================================
-// 🤖 العقل المدبر: نظام الإشعارات (المطور)
+// 🤖 العقل المدبر: نظام الإشعارات
 // ==========================================
 let todayTasks = [];
 let notifiedTasks = new Set(); 
@@ -110,20 +112,21 @@ function checkTasks() {
     }
 
     if (notificationTitle) {
-      // إرسال رسالة للمنصة (عشان لو مفتوحة، تشغل الصوت الخاص بيك)
+      // أمر بتشغيل الصوت لو المنصة مفتوحة
       self.clients.matchAll().then(clients => {
          clients.forEach(client => {
              client.postMessage({ type: 'PLAY_NOTIFICATION_SOUND' });
          });
       });
 
+      // إرسال الإشعار للموبايل/الجهاز
       self.registration.showNotification(notificationTitle, {
         body: notificationBody,
-        icon: './logo.jpeg', // مسار اللوجو بتاعك
-        badge: './logo.jpeg', // أيقونة شريط الإشعارات (يفضل تكون PNG شفافة لون واحد، بس لوجو هيمشي)
+        icon: './logo.jpeg.png', // اللوجو الأساسي الملون
+        badge: './image_p1.png', // اللوجو الأبيض المفرغ
         dir: 'rtl',
         lang: 'ar',
-        vibrate: [300, 100, 300], // اهتزاز مميز (دقتين)
+        vibrate: [300, 100, 300], 
         data: { url: '/?page=secretary' },
         actions: [
           { action: 'open_secretary', title: actionTitle }
