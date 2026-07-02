@@ -74,7 +74,8 @@
         .filter(s => !(appState.tempAdjustments[s.id] && appState.tempAdjustments[s.id].printExcluded))
         .map((s, i) => {
           const c = counts[s.id] || 0;
-          const lim = s.sessionLimit || (appState.settings && appState.settings.defaultLimit) || 12;
+          // التوافق الرجعي لحساب الباقة الكلية
+          const lim = (s.quranLimit || 0) + (s.islamicLimit || 0) || s.sessionLimit || (appState.settings && appState.settings.defaultLimit) || 12;
           return `${i + 1}. ${s.name}   ${c} / ${lim} حصة`;
         }),
     ];
@@ -94,16 +95,14 @@
     }
     appState.tempAdjustments[studentId][field] += amount;
     
-    // السماح بالنزول حتى -50 للتصحيح السالب
     if (appState.tempAdjustments[studentId][field] < -50) appState.tempAdjustments[studentId][field] = -50; 
 
     if (typeof router !== "undefined") router.render(); 
   };
 
   // ==============================================================
-  // دوال التصدير والطباعة (نسخة نظيفة خالية من الأزرار والمستبعدين)
+  // دوال التصدير والطباعة
   // ==============================================================
-
   function createCleanTableClone() {
     const originalEl = document.getElementById("monthly-sheet-box");
     if (!originalEl) return null;
@@ -234,6 +233,9 @@
     if (typeof router !== "undefined") router.render();
   };
 
+  // ==============================================================
+  // دالة حساب الشيت الشهري الرئيسية
+  // ==============================================================
   window.renderMonthlySheetPage = function () {
     try {
       document.body.classList.add('monthly-active');
@@ -248,6 +250,7 @@
 
       const sessionsList = appState.sessions || [];
       const studentsList = appState.students || [];
+      const packagesList = appState.settings && appState.settings.packages ? appState.settings.packages : [];
 
       const filteredSessions = sessionsList.filter(s => {
         if (!s.date) return false;
@@ -327,15 +330,19 @@
         const adj = appState.tempAdjustments[student.id] || {};
         const printExcluded = adj.printExcluded || false; 
 
-        // تطبيق التعديلات اليدوية (موجب أو سالب)
+        // تطبيق التعديلات اليدوية
         quranCount = Math.max(0, quranCount + (adj.quran || 0));
         islamicCount = Math.max(0, islamicCount + (adj.islamic || 0));
         individualCount = Math.max(0, individualCount + (adj.individual || 0));
         groupCount = Math.max(0, groupCount + (adj.group || 0));
 
-        const sessionPriceInd = student.sessionPrice || 70;
-        // مؤقتاً: لو مفيش سعر للجماعي في الداتا، نستخدم الفردي
-        const sessionPriceGrp = student.groupSessionPrice || sessionPriceInd; 
+        // 🔥 جلب أسعار الباقات المنفصلة (فردي / جماعي)
+        const indPkg = packagesList.find(p => p.id === student.individualPackageId);
+        const grpPkg = packagesList.find(p => p.id === student.groupPackageId);
+        const fallbackPkg = packagesList.find(p => p.id === student.packageId); // للتوافق الرجعي
+
+        let sessionPriceInd = indPkg ? indPkg.price : (fallbackPkg ? fallbackPkg.price : (student.sessionPrice || 70));
+        let sessionPriceGrp = grpPkg ? grpPkg.price : (student.groupSessionPrice !== undefined ? student.groupSessionPrice : sessionPriceInd);
         
         const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
         const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
@@ -348,7 +355,7 @@
         // الحلقات المحتسبة
         let totalCalculatedSessions = individualCount + groupCount + payableAbsences;
         
-        // حساب الفلوس: (الفردي × سعره) + (الجماعي × سعره) + (الغياب المحاسب × سعر الفردي مؤقتاً)
+        // 🔥 حساب الفلوس بدقة: الفردي بسعره + الجماعي بسعره + الغياب بيتحسب بسعر الفردي
         let totalAmount = (individualCount * sessionPriceInd) + (groupCount * sessionPriceGrp) + (payableAbsences * sessionPriceInd);
 
         if (!printExcluded) {
@@ -382,7 +389,7 @@
 
       const tbodyHtml = tableData.length ? tableData.map(row => {
         const isGrpPriceDifferent = row.sessionPriceInd !== row.sessionPriceGrp;
-        const priceLabel = isGrpPriceDifferent ? `${row.sessionPriceInd}/${row.sessionPriceGrp}` : row.sessionPriceInd;
+        const priceLabel = isGrpPriceDifferent ? `${row.sessionPriceInd} / ${row.sessionPriceGrp}` : row.sessionPriceInd;
 
         return `
           <tr class="${row.printExcluded ? 'no-print' : ''}" style="border-bottom: 1px solid var(--color-border); background: var(--card-bg); opacity: ${row.printExcluded ? '0.4' : '1'}; transition: opacity 0.3s ease;">
@@ -396,8 +403,8 @@
               </div>
             </td>
             
-            <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;" title="فردي/جماعي">
-               <span style="font-size:13px;">${priceLabel}</span> <span style="font-size:10px; font-weight:normal;">ج</span>
+            <td style="padding: 14px 16px; text-align: center; color: var(--color-slate-600); font-weight: bold;" title="فردي / جماعي">
+               <span style="font-size:13px; letter-spacing:1px;">${priceLabel}</span> <span style="font-size:10px; font-weight:normal;">ج</span>
             </td>
             
             <td style="padding: 14px 16px; text-align: center; font-weight: 600;">
