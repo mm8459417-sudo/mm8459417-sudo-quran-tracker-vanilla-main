@@ -1,241 +1,168 @@
-const appState = {
-  route: "login",
-  activeTab: "form",
-  user: null,
-  students: [],
-  groups: [],
-  sessions: [],
-  settings: {
-    teacherName: "",
-    defaultLimit: 12,
-    accountingPhone: "",
-  },
-  ui: {
-    loginMode: "login",
-    loginError: "",
-    sessionScope: "individual",
-    searchQuery: "",
-    searchGender: "all",
-    selectedStudentId: "",
-    selectedGroupId: "",
-    historyStudentId: null,
-    analysisStudentId: "all",
-    analysisRange: "all",
-    month: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
-    rewardAmount: "",
-    showCertificate: false,
-    report: null,
-    editSessionId: null,
-    studentForm: null,
-    groupForm: null,
-    sessionForm: null,
-  },
-};
+const CACHE_NAME = 'rafiq-quran-v4'; // تحديث رقم الكاش عشان يحمل السكرتير الجديد
 
-window.appState = appState;
+// الملفات الأساسية
+const PRECACHE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './logo.jpeg',
+  './css/rafiq-tokens.css',
+  './css/rafiq-components.css',
+  './css/rafiq-pages.css',
+  './js/firebase-config.js',
+  './js/auth.js',
+  './js/db.js',
+  './js/router.js',
+  './js/app.js',
+  './js/pages/login.js',
+  './js/pages/dashboard.js',
+  './js/pages/settings.js',
+  './js/pages/account.js',
+  './js/pages/session-form.js',
+  './js/pages/history.js',
+  './js/pages/analysis.js',
+  './js/pages/monthly-sheet.js',
+  './js/pages/schedule.js',
+  './js/utils/toast-manager.js',
+  './js/utils/export-utils.js'
+];
 
-let renderScheduled = false;
-function scheduleRender() {
-  if (renderScheduled) return;
-  renderScheduled = true;
-  requestAnimationFrame(() => {
-    renderScheduled = false;
-    router.render();
-  });
-}
-
-const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-window.debounce = function (fn, delay = 250) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
-  };
-};
-
-window.showToast = function (msg) {
-  const toastRoot = document.getElementById("app-toast");
-  if (!toastRoot) return;
-  toastRoot.innerHTML = `<div class="toast-pill">${msg}</div>`;
-  setTimeout(() => {
-    toastRoot.innerHTML = "";
-  }, 3200);
-};
-
-window.formatArDate = function (iso) {
-  try {
-    return new Date(iso).toLocaleDateString("ar-EG", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
-};
-
-window.formatMonthLabel = function (year, month) {
-  try {
-    return new Date(year, month - 1, 1).toLocaleDateString("ar-EG", {
-      year: "numeric",
-      month: "long",
-    });
-  } catch {
-    return `${year}/${month}`;
-  }
-};
-
-window.formatTime12h = function (time24) {
-  if (!time24 || typeof time24 !== "string") return "";
-  const parts = time24.split(":");
-  if (parts.length < 2) return time24;
-  const h = parseInt(parts[0], 10);
-  const m = parseInt(parts[1], 10);
-  if (Number.isNaN(h) || Number.isNaN(m)) return time24;
-  const suffix = h >= 12 ? "م" : "ص";
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
-};
-
-window.getStudentById = function (id) {
-  return appState.students.find((s) => s.id === id);
-};
-
-window.getGroupById = function (id) {
-  return appState.groups.find((g) => g.id === id);
-};
-
-window.getGroupMembers = function (groupId) {
-  const group = getGroupById(groupId);
-  if (!group || !Array.isArray(group.studentIds)) return [];
-  return appState.students.filter((s) => group.studentIds.includes(s.id));
-};
-
-window.getStudentSessions = function (studentId) {
-  return appState.sessions
-    .map((session) => {
-      if (session.mode === "group") {
-        const participant = session.participants?.find(
-          (p) => p.studentId === studentId && p.present !== false
-        );
-        if (!participant) return null;
-        return { ...session, participant };
-      }
-      if (session.studentId === studentId) return session;
-      return null;
-    })
-    .filter(Boolean);
-};
-
-window.countStudentSessions = function (studentId) {
-  return getStudentSessions(studentId).length;
-};
-
-window.getNextPackageNum = function (studentId, limit) {
-  const count = countStudentSessions(studentId);
-  return (count % limit) + 1;
-};
-
-window.handleLogout = async function () {
-  try {
-    await authModule.logout();
-    showToast("تم تسجيل الخروج");
-  } catch (err) {
-    showToast(err);
-  }
-};
-
-function attachSubscriptions() {
-  dbModule.subscribeStudents((data) => {
-    appState.students = data;
-    scheduleRender();
-  });
-  dbModule.subscribeGroups((data) => {
-    appState.groups = data;
-    scheduleRender();
-  });
-  dbModule.subscribeSessions((data) => {
-    appState.sessions = data;
-    scheduleRender();
-  });
-  dbModule.subscribeSettings((data) => {
-    const user = appState.user;
-    const fallbackName = user
-      ? user.displayName || user.email?.split("@")[0] || "المعلم"
-      : "المعلم";
-      
-    // السر هنا: بنعمل دمج (Merge) عشان نحافظ على إعدادات الدارك مود والألوان ومتمسحش
-    appState.settings = {
-      ...appState.settings, 
-      ...data,
-      teacherName: data.teacherName || fallbackName,
-      defaultLimit: data.defaultLimit || 12,
-      accountingPhone: data.accountingPhone || "",
-    };
-    
-    scheduleRender();
-    if (typeof applyTheme === 'function') applyTheme(); // عشان ينفذ الألوان فوراً
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  authModule.onAuthStateChanged((user) => {
-    if (user) {
-      appState.user = user;
-      dbModule.setTeacherId(user.uid);
-      attachSubscriptions();
-      router.setRoute("dashboard");
-      return;
-    }
-
-    appState.user = null;
-    dbModule.clearSubscriptions();
-    appState.students = [];
-    appState.groups = [];
-    appState.sessions = [];
-    router.setRoute("login");
-  });
+// 1. مرحلة التثبيت
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Pre-caching App Shell...');
+      return cache.addAll(PRECACHE_ASSETS);
+    }).then(() => self.skipWaiting())
+  );
 });
 
-/* =========================================
-   DASHBOARD UI ENGINE (Lightweight)
-   ========================================= */
+// 2. مرحلة التفعيل
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Deleting old cache:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
 
-// Intersection Observer for Scroll Animations
-const scrollObserver = prefersReducedMotion.matches
-  ? null
-  : new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.style.animationPlayState = "running";
-          entry.target.classList.add("is-visible");
-          scrollObserver.unobserve(entry.target);
+// 3. استراتيجية جلب البيانات (Network First)
+self.addEventListener('fetch', (event) => {
+  if (event.request.url.includes('firestore.googleapis.com') || event.request.url.includes('firebasecss') || event.request.url.includes('unpkg.com')) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response.status === 200 && event.request.method === 'GET') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
         }
-      });
-    }, { threshold: 0.15 });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
+});
 
-// Override scheduleRender to re-attach observers
-const originalScheduleRender = scheduleRender;
-window.scheduleRender = function() {
-  originalScheduleRender();
-  setTimeout(() => {
-    const revealTargets = document.querySelectorAll(".card-soft, .stat-card, .reveal, .dash-section");
-    revealTargets.forEach((el, index) => {
-      if (!el.classList.contains("reveal")) {
-        el.classList.add("reveal");
+// ==========================================
+// 🤖 العقل المدبر: نظام الإشعارات في الخلفية
+// ==========================================
+
+let todayTasks = [];
+let notifiedTasks = new Set(); // عشان منبعتش نفس الإشعار مرتين
+
+// الاستماع للرسائل اللي جاية من التطبيق (الجدول اليومي)
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SYNC_TASKS') {
+    todayTasks = event.data.tasks;
+    console.log('[السكرتير الذكي] تم استلام جدول مهام اليوم:', todayTasks);
+    checkTasks(); // فحص فوري أول ما يستلم الجدول
+  }
+});
+
+// دالة فحص المهام مقارنة بالوقت الحالي
+function checkTasks() {
+  if (!todayTasks || todayTasks.length === 0) return;
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  todayTasks.forEach(task => {
+    // لو تم إرسال إشعار للمهمة دي قبل كده، نتخطاها
+    const taskKey = `${task.id}-${task.time}`;
+    if (notifiedTasks.has(taskKey)) return;
+
+    const taskMinutes = task.minutes;
+    const timeDiff = taskMinutes - currentMinutes;
+
+    let notificationTitle = '';
+    let notificationBody = '';
+
+    // 1. تنبيه: باقي 10 دقائق على الحصة ⏳
+    if (timeDiff <= 10 && timeDiff > 0) {
+      notificationTitle = '⏳ حصة قريبة جداً!';
+      notificationBody = `حصة ${task.type} (${task.name}) هتبدأ خلال ${timeDiff} دقائق.`;
+    } 
+    // 2. تنبيه: الحصة بدأت فعلاً أو عدى عليها شوية ⚠️
+    else if (timeDiff <= 0 && timeDiff > -15) {
+      notificationTitle = '🔔 الحصة بدأت!';
+      notificationBody = `المفروض تكون حصة ${task.name} شغالة دلوقتي.`;
+    }
+    // 3. تنبيه: تأكيد التسجيل (عدى عليها وقت وممكن يكون نسي يسجلها) ❓
+    else if (timeDiff <= -30 && timeDiff > -60) {
+      notificationTitle = '❓ هل نسيت تسجيل الحصة؟';
+      notificationBody = `حصة ${task.name} انتهت. افتح السكرتير الذكي لتسجيل الحضور أو الغياب.`;
+    }
+
+    // إرسال الإشعار
+    if (notificationTitle) {
+      self.registration.showNotification(notificationTitle, {
+        body: notificationBody,
+        icon: './logo.jpeg',
+        badge: './logo.jpeg',
+        vibrate: [200, 100, 200],
+        data: { url: '/?page=secretary' } // لما يضغط على الإشعار يفتح صفحة السكرتير
+      });
+
+      // حفظ إننا بعتنا إشعار للحصة دي عشان منكرروش
+      notifiedTasks.add(taskKey);
+    }
+  });
+}
+
+// لما المستخدم يضغط على الإشعار
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  // توجيه المستخدم لصفحة السكرتير
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // لو المنصة مفتوحة في تاب، روح للتاب دي وركز عليها
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus();
+        }
       }
-      el.style.animationDelay = `${(index % 12) * 0.06}s`;
-      if (scrollObserver) {
-        el.style.animationPlayState = "paused";
-        scrollObserver.observe(el);
-      } else {
-        el.style.animationPlayState = "running";
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
+      // لو المنصة مش مفتوحة خالص، افتح تاب جديدة
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url || '/');
       }
-    });
-  }, 50);
-};
+    })
+  );
+});
+
+// تشغيل الفحص كل دقيقة في الخلفية باستخدام Periodic Sync (متوفر في بعض المتصفحات الحديثة)
+// بما إن الـ Interval مش دايماً يعتمد عليه في السيرفس وركر، هنعتمد على إرسال رسالة من الـ app.js كل شوية
