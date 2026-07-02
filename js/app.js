@@ -151,22 +151,24 @@ window.handleLogout = async function () {
 function attachSubscriptions() {
   dbModule.subscribeStudents((data) => {
     appState.students = data;
-    syncTasksWithWorker(); 
+    if (typeof syncTasksWithWorker === 'function') syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeGroups((data) => {
     appState.groups = data;
-    syncTasksWithWorker(); 
+    if (typeof syncTasksWithWorker === 'function') syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeSessions((data) => {
     appState.sessions = data;
-    syncTasksWithWorker(); 
+    if (typeof syncTasksWithWorker === 'function') syncTasksWithWorker(); 
     scheduleRender();
   });
   dbModule.subscribeSettings((data) => {
     const user = appState.user;
-    const fallbackName = user ? user.displayName || user.email?.split("@")[0] || "المعلم" : "المعلم";
+    const fallbackName = user
+      ? user.displayName || user.email?.split("@")[0] || "المعلم"
+      : "المعلم";
       
     appState.settings = {
       ...appState.settings, 
@@ -201,8 +203,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* =========================================
-   DASHBOARD UI ENGINE
+   DASHBOARD UI ENGINE (Lightweight)
    ========================================= */
+
 const scrollObserver = prefersReducedMotion.matches
   ? null
   : new IntersectionObserver((entries) => {
@@ -241,11 +244,8 @@ window.scheduleRender = function() {
 // 🤖 نظام ربط السكرتير الذكي والإشعارات المتقدمة
 // ==========================================
 
-// متغير للصوت المخصص (يرجى توفير ملف notification.mp3 في المجلد الرئيسي)
-const notificationSound = new Audio('./p2.ogg');
-// طلب إذن الإشعارات
 function requestNotificationPermission() {
-  if (Notification.permission === 'default') {
+  if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission().then(permission => {
       if (permission === 'granted') {
         console.log('✅ Notification permission granted.');
@@ -256,25 +256,19 @@ function requestNotificationPermission() {
 }
 
 if ('serviceWorker' in navigator && 'Notification' in window) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(registration => {
-        console.log('✅ ServiceWorker registered');
-        requestNotificationPermission();
-      })
-      .catch(err => console.log('❌ ServiceWorker registration failed: ', err));
-  });
+  // طلب الإذن بالإشعارات
+  requestNotificationPermission();
 
   // 🔊 استقبال أمر تشغيل الصوت من الـ Service Worker
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'PLAY_NOTIFICATION_SOUND') {
-      // محاولة تشغيل الصوت، المتصفحات قد تمنع التشغيل التلقائي إلا إذا كان المستخدم تفاعل مع الصفحة
+      const notificationSound = new Audio('./p2.ogg');
       notificationSound.play().catch(e => console.log("Audio play blocked by browser:", e));
     }
   });
 }
 
-// مزامنة المهام
+// دالة مزامنة المهام مع السكرتير في الخلفية
 function syncTasksWithWorker() {
   if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
 
@@ -369,4 +363,12 @@ function syncTasksWithWorker() {
   });
 }
 
+// مزامنة المهام كل 5 دقائق
 setInterval(syncTasksWithWorker, 5 * 60 * 1000);
+
+// وكمان بنعمل مزامنة أول ما السكرتير يكون جاهز
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.ready.then(() => {
+    setTimeout(syncTasksWithWorker, 2000);
+  });
+}
