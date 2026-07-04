@@ -2,35 +2,6 @@
 // شاشة السكرتير الذكي — مركز القيادة المتكامل (v3.0)
 // Smart Secretary Command Center
 // ==========================================================
-//
-// ملاحظات تكامل مهمة لمحمد (اقرأها قبل الدمج):
-//
-// 1) الشاشة بتتوقع إن appState.sessions فيها سجل الجلسات، وكل جلسة ليها:
-//      { id, date (ISO string), mode: 'individual'|'group',
-//        studentId? , groupId?, groupName?, sessionType: 'quran'|'islamic',
-//        attendance: 'present'|'absent_excused'|'absent_unexcused'|'mixed',
-//        isReportPending: boolean, participants? [{studentId, present, attendance, rating, notes}],
-//        rating, notes, cancelled? }
-//
-// 2) "isReportPending: true" معناها الحضور اتسجل (وبالتالي الشيت المالي
-//    اتحدّث) لكن التقرير الأكاديمي (التقييم) لسه ما اتسجلش. الغياب (absent_*)
-//    بيتسجل مباشرة بـ isReportPending: false لأنه مش محتاج تقييم أكاديمي.
-//
-// 3) لما المعلم يختار "تسجيل التقرير الآن" بيتبعت حدث:
-//      window.dispatchEvent(new CustomEvent('secretary:openEvaluation', { detail: { sessionId } }))
-//    المفروض شاشة التقييم تسمع للحدث ده، وبعد ما تحفظ التقرير تحدّث
-//    الجلسة (session.isReportPending = false) في appState + قاعدة البيانات.
-//    لو الشاشة عايزة تحدّث السكرتير الذكي بعد كده تقدر تنادي:
-//      window.refreshSecretaryPage()
-//
-// 4) "المتأخرة" = مواعيد فاتت من غير أي تسجيل حضور خالص (أكتر من يوم).
-//    "التقارير المتأخرة" (فلتر في السجل) = جلسات اتسجل حضورها لكن التقرير
-//    لسه معلق من أكتر من يوم.
-//
-// 5) لو appState أو dbModule أو showToast أو formatArDate مش موجودين،
-//    الكود بيتعامل معاهم بأمان (Optional chaining / typeof checks).
-//
-// ==========================================================
 (function () {
   "use strict";
 
@@ -43,14 +14,13 @@
   const REPORT_LATE_AFTER_DAYS = 1;  // بعد كام يوم يعتبر التقرير المعلق "متأخر" في السجل
   const OCCURRENCE_LOOKBACK_DAYS = 14; // كام يوم نرجع بالبحث عن مواعيد فايتة
 
-  // حالة الواجهة (بتتصفّر لو الصفحة اتعمل لها reload كامل من الراوتر)
-  let activeMainTab = "tasks";       // 'tasks' | 'log'
-  let activeSubTab = "current";      // 'current' | 'upcoming' | 'reports' | 'late'
-  let activeLogFilter = "all";       // 'all' | 'completed' | 'incomplete' | 'late_reports' | 'absence'
-  let absenceDrafts = {};            // { taskKey: { studentId: 'excused'|'unexcused' } }
-  let expandedAbsence = null;        // taskKey اللي شاشة تقسيم الغياب بتاعته مفتوحة
-  let pendingChoice = null;          // { taskKey, sessionId } لما نعرض اختيار "تسجيل التقرير الآن/لاحقاً"
-  let lastTasks = { upcoming: [], current: [], late: [] }; // آخر نتيجة حسبناها (لاستخدامها وقت الحفظ)
+  let activeMainTab = "tasks";
+  let activeSubTab = "current";
+  let activeLogFilter = "all";
+  let absenceDrafts = {};
+  let expandedAbsence = null;
+  let pendingChoice = null;
+  let lastTasks = { upcoming: [], current: [], late: [] };
   let clockStarted = false;
 
   // ============================================================
@@ -82,9 +52,7 @@
   }
 
   function pad(n) { return n.toString().padStart(2, "0"); }
-
   function dateToStr(d) { return d.toISOString().split("T")[0]; }
-
   function addDays(date, delta) {
     const d = new Date(date);
     d.setDate(d.getDate() + delta);
@@ -100,7 +68,7 @@
 
   function formatDateLabel(dateObj) {
     if (typeof window.formatArDate === "function") {
-      try { return window.formatArDate(dateObj.toISOString()); } catch (e) { /* تجاهل */ }
+      try { return window.formatArDate(dateObj.toISOString()); } catch (e) {}
     }
     return dateObj.toLocaleDateString("ar-EG");
   }
@@ -131,8 +99,6 @@
   // ============================================================
   // 2) محرك البيانات: جلب الجداول + توليد "الحوادث" (Occurrences)
   // ============================================================
-
-  // كل مواعيد الطلاب + المجموعات في شكل موحّد (بدون فلترة على يوم معين)
   function getScheduleEntries() {
     const entries = [];
     const students = window.appState?.students || [];
@@ -145,7 +111,7 @@
 
       if (qEnabled && Array.isArray(student.quranSchedule)) {
         schedules.push(...student.quranSchedule.map(s => ({ ...s, type: "قرآن", sessionType: "quran", icon: "ph-book-open-text", color: "-green" })));
-      } else if (qEnabled && Array.isArray(student.schedule)) { // توافق رجعي
+      } else if (qEnabled && Array.isArray(student.schedule)) {
         schedules.push(...student.schedule.map(s => ({ ...s, type: "قرآن", sessionType: "quran", icon: "ph-book-open-text", color: "-green" })));
       }
       if (iEnabled && Array.isArray(student.islamicSchedule)) {
@@ -191,7 +157,6 @@
     return entries;
   }
 
-  // هل فيه جلسة متسجلة فعلاً لهذا الموعد في تاريخ معين؟
   function findSessionForOccurrence(mode, id, dateStr) {
     const sessions = window.appState?.sessions || [];
     return sessions.find(s => {
@@ -202,8 +167,6 @@
     }) || null;
   }
 
-  // بيولّد كل "الحوادث" (مواعيد فعلية بتاريخ) لآخر كذا يوم + النهاردة،
-  // ويستبعد أي حادثة اتسجلت جلستها بالفعل، وبيصنّفها: قادمة / حالية / متأخرة
   function generateOccurrences() {
     const entries = getScheduleEntries();
     const now = new Date();
@@ -217,7 +180,7 @@
 
       entries.forEach(entry => {
         if (normalizeArabic(entry.day) !== normalizeArabic(dayName)) return;
-        if (findSessionForOccurrence(entry.mode, entry.id, occDateStr)) return; // متسجلة بالفعل
+        if (findSessionForOccurrence(entry.mode, entry.id, occDateStr)) return;
 
         const sessionMinutes = timeToMinutes(entry.time);
         occurrences.push({
@@ -248,17 +211,17 @@
 
     upcoming.sort((a, b) => a.minutes - b.minutes);
     current.sort((a, b) => (a.daysAgo - b.daysAgo) || (a.minutes - b.minutes));
-    late.sort((a, b) => b.daysAgo - a.daysAgo); // الأكثر تأخيراً فوق
+    late.sort((a, b) => b.daysAgo - a.daysAgo);
 
     return { upcoming, current, late };
   }
 
   // ============================================================
-  // 3) التقارير المعلقة (isReportPending)
+  // 3) التقارير المعلقة
   // ============================================================
   function getPendingReportSessions() {
     const sessions = (window.appState?.sessions || []).filter(s => s.isReportPending === true);
-    sessions.sort((a, b) => new Date(a.date) - new Date(b.date)); // الأقدم أولاً
+    sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
     return sessions.map((s, idx) => ({
       ...s,
       _locked: idx !== 0,
@@ -267,7 +230,7 @@
   }
 
   // ============================================================
-  // 4) حالة الجلسة (لأغراض السجل والتقارير)
+  // 4) حالة الجلسة
   // ============================================================
   function computeSessionStatus(s) {
     if (s.cancelled) return "cancelled";
@@ -278,7 +241,7 @@
 
   const STATUS_META = {
     scheduled:            { label: "مجدولة",            color: "var(--ink-3)" },
-    pending_confirmation: { label: "بانتظار التأكيد",     color: "var(--amber)" },
+    pending_confirmation: { label: "بانتظار التأكيد",      color: "var(--amber)" },
     attendance_recorded:  { label: "تم احتساب الحضور",    color: "var(--accent)" },
     completed:            { label: "مكتملة",             color: "var(--green)" },
     absent_excused:       { label: "غياب بعذر",          color: "var(--amber)" },
@@ -287,7 +250,7 @@
   };
 
   // ============================================================
-  // 5) الـ KPIs
+  // 5) KPIs
   // ============================================================
   function computeKPIs(tasks, pendingReports) {
     const now = new Date();
@@ -309,7 +272,7 @@
   }
 
   // ============================================================
-  // 6) بناء أحداث السجل الزمني (Log) من المهام + الجلسات
+  // 6) سجل النشاط
   // ============================================================
   function buildLogEvents(tasks) {
     const events = [];
@@ -360,7 +323,7 @@
       });
     });
 
-    events.sort((a, b) => b.ts - a.ts); // الأحدث فوق
+    events.sort((a, b) => b.ts - a.ts);
     return events;
   }
 
@@ -375,7 +338,7 @@
   }
 
   // ============================================================
-  // 7) حفظ جلسة جديدة (نقطة مركزية واحدة)
+  // 7) حفظ الجلسات
   // ============================================================
   function saveSession(sessionData) {
     const session = { id: `sess-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...sessionData };
@@ -391,7 +354,7 @@
   }
 
   // ============================================================
-  // 8) عناصر واجهة صغيرة قابلة لإعادة الاستخدام
+  // 8) واجهة المستخدم
   // ============================================================
   function emptyState(icon, text, color) {
     return `<div class="empty"><i class="ph-duotone ${icon}" style="font-size:32px;color:${color};margin-bottom:8px;display:block;"></i><br><span>${text}</span></div>`;
@@ -549,7 +512,6 @@
     const meta = STATUS_META[evt.statusKey] || STATUS_META.scheduled;
     const dateObj = new Date(evt.ts);
     const timeStr = formatClock(dateObj);
-    // جلب التاريخ الفعلي للسجل
     const exactDateStr = dateObj.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return `
@@ -569,7 +531,7 @@
   }
 
   // ============================================================
-  // 9) الأنماط (CSS) — نفس الـ Design Tokens الأصلية + إضافات
+  // 9) CSS
   // ============================================================
   const SECRETARY_STYLES = `
   <style>
@@ -698,7 +660,6 @@
     .status-badge.-green { background: var(--green-soft); color: var(--green-ink); }
     .status-badge.-red { background: var(--red-soft); color: var(--red-ink); }
 
-    /* لوحة تقسيم الغياب للمجموعات */
     .absence-card { flex-direction: column; align-items: stretch; }
     .absence-head { margin-bottom: 12px; }
     .absence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -715,12 +676,10 @@
     .chip.-unexcused { background: var(--red-soft); color: var(--red-ink); border-color: rgba(239,68,68,.3); }
     .chip-empty { font-size: 11px; color: var(--ink-3); font-weight: 600; padding: 5px 4px; }
 
-    /* فلاتر السجل */
     .log-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
     .log-filter-btn { border: 1px solid var(--border-soft); background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 800; padding: 7px 14px; border-radius: var(--r-pill); cursor: pointer; transition: all .2s var(--ease); }
     .log-filter-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
 
-    /* Activity log */
     .timeline { position: relative; padding-right: 28px; }
     .timeline::before { content: ""; position: absolute; right: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--border); border-radius: 2px; }
     .t-item { position: relative; padding-bottom: 22px; }
@@ -733,6 +692,13 @@
 
     .empty { text-align:center; padding: 34px 10px; color: var(--ink-3); font-size: 13px; font-weight: 700; }
 
+    .previous-months-toggle { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px 16px; border-radius: 10px; cursor: pointer; margin: 15px 0 10px 0; font-weight: bold; color: #64748b; transition: all 0.2s ease; }
+    .previous-months-toggle:hover { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
+    .previous-months-container { border-right: 3px solid #cbd5e1; padding-right: 15px; margin-bottom: 20px; display: none; flex-direction: column; gap: 10px; }
+    .previous-months-container.is-active { display: flex; animation: fadeIn .4s var(--ease); }
+    .previous-months-toggle .icon-chevron { transition: transform 0.2s ease; }
+    .previous-months-toggle.is-active .icon-chevron { transform: rotate(180deg); }
+
     @media (max-width: 980px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 640px) {
       .kpis { grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -740,18 +706,11 @@
       .card { flex-wrap: wrap; }
       .page-head { flex-direction: column; align-items: flex-start; }
     }
-    /* تصميم بار الشهور السابقة الذكي */
-    .previous-months-toggle { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px 16px; border-radius: 10px; cursor: pointer; margin: 15px 0 10px 0; font-weight: bold; color: #64748b; transition: all 0.2s ease; }
-    .previous-months-toggle:hover { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
-    .previous-months-container { border-right: 3px solid #cbd5e1; padding-right: 15px; margin-bottom: 20px; display: none; flex-direction: column; gap: 10px; }
-    .previous-months-container.is-active { display: flex; animation: fadeIn .4s var(--ease); }
-    .previous-months-toggle .icon-chevron { transition: transform 0.2s ease; }
-    .previous-months-toggle.is-active .icon-chevron { transform: rotate(180deg); }
   </style>
   `;
 
   // ============================================================
-  // 10) الصفحة الرئيسية
+  // 10) رندرة الصفحة
   // ============================================================
   window.renderSecretaryPage = function () {
     const now = new Date();
@@ -764,11 +723,25 @@
     const logEventsAll = buildLogEvents(tasks);
     const logEvents = filterLogEvents(logEventsAll, activeLogFilter);
 
+    const currentMonthLateTasks = [];
+    const previousMonthsLateTasks = [];
+
+    tasks.late.forEach(occ => {
+      const occDate = new Date(occ.dateStr);
+      const isPrevious = occDate.getFullYear() < now.getFullYear() || 
+                         (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
+      if (isPrevious) {
+        previousMonthsLateTasks.push(occ);
+      } else {
+        currentMonthLateTasks.push(occ);
+      }
+    });
+
     const subtabCounts = {
       current: tasks.current.length,
       upcoming: tasks.upcoming.length,
       reports: pendingReports.length,
-      late: tasks.late.length
+      late: tasks.late.length 
     };
 
     let subPanelHtml = "";
@@ -781,31 +754,13 @@
         ? pendingReports.map(renderReportCard).join("")
         : emptyState("ph-file-check", "لا توجد تقارير معلقة", "var(--violet)");
     } else if (activeSubTab === "late") {
-      // 🔥 اللوجيك الجديد: تقسيم المهام المتأخرة لشهر حالي وشهور سابقة
-      const currentMonthLateTasks = [];
-      const previousMonthsLateTasks = [];
       
-      const now = new Date();
-      
-      tasks.late.forEach(occ => {
-        const occDate = new Date(occ.dateStr);
-        const isPrevious = occDate.getFullYear() < now.getFullYear() || 
-                           (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
-        if (isPrevious) {
-          previousMonthsLateTasks.push(occ);
-        } else {
-          currentMonthLateTasks.push(occ);
-        }
-      });
-
-      // بناء الـ HTML الخاص بالشهر الحالي
       if (currentMonthLateTasks.length > 0) {
         subPanelHtml += currentMonthLateTasks.map(o => renderTaskCard(o, "late")).join("");
       } else if (previousMonthsLateTasks.length === 0) {
         subPanelHtml = emptyState("ph-check-circle", "لا توجد مهام متأخرة، عمل ممتاز!", "var(--green)");
       }
 
-      // بناء الأكورديون الخاص بالشهور السابقة (لو فيه)
       if (previousMonthsLateTasks.length > 0) {
         subPanelHtml += `
           <div class="previous-months-toggle" data-action="toggle_previous_months">
@@ -890,7 +845,7 @@
   };
 
   // ============================================================
-  // 11) التفاعلات + إعادة الحساب/العرض
+  // 11) التفاعلات
   // ============================================================
   function positionPill(seg) {
     const active = seg.querySelector("button.active");
@@ -921,6 +876,16 @@
     const filterBtn = e.target.closest("[data-logfilter]");
     if (filterBtn) { activeLogFilter = filterBtn.dataset.logfilter; refresh(); return; }
 
+    const toggleBtn = e.target.closest("[data-action='toggle_previous_months']");
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('is-active');
+      const container = document.getElementById("previousMonthsContainer");
+      if (container) {
+        container.classList.toggle('is-active');
+      }
+      return;
+    }
+
     const chip = e.target.closest(".chip");
     if (chip) {
       const key = chip.dataset.key;
@@ -936,16 +901,6 @@
     const btn = e.target.closest("button[data-action]");
     if (!btn || btn.disabled) return;
     const action = btn.dataset.action;
-    // 🔥 كود فتح وقفل أرشيف الشهور السابقة
-    const toggleBtn = e.target.closest("[data-action='toggle_previous_months']");
-    if (toggleBtn) {
-      toggleBtn.classList.toggle('is-active');
-      const container = document.getElementById("previousMonthsContainer");
-      if (container) {
-        container.classList.toggle('is-active');
-      }
-      return;
-    }
     const key = btn.dataset.key;
     const card = btn.closest(".card");
 
@@ -968,9 +923,9 @@
         groupId: occ.mode === "group" ? occ.id : undefined,
         groupName: occ.mode === "group" ? occ.name.replace("مجموعة: ", "") : undefined,
         sessionType: occ.sessionType,
-        attendance: "cancelled", // حالة مخصصة بتمنعها من التأثير على الشيت
+        attendance: "cancelled",
         cancelled: true,
-        isReportPending: false, // مفيش تقرير هيتكتب ليها
+        isReportPending: false,
         rating: 0,
         notes: "تم إلغاء وتجاهل المهمة (تخص شهر سابق)",
         date: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).toISOString()
@@ -978,7 +933,7 @@
       refresh();
       return;
     }
-    
+
     if (action === "ind_done") {
       const occ = JSON.parse(decodeURIComponent(card.dataset.task));
       const session = saveSession({
@@ -1081,7 +1036,7 @@
       const sessionId = btn.dataset.session;
       window.dispatchEvent(new CustomEvent("secretary:openEvaluation", { detail: { sessionId } }));
       if (window.router && typeof window.router.navigate === "function") {
-        try { window.router.navigate("evaluation", { sessionId }); } catch (err) { /* تجاهل */ }
+        try { window.router.navigate("evaluation", { sessionId }); } catch (err) {}
       }
       if (key) pendingChoice = null;
       refresh();
@@ -1116,8 +1071,6 @@
     mount();
   };
 
-  // متاحة لأي شاشة تانية (مثلاً شاشة التقييم) عشان تحدّث السكرتير الذكي بعد
-  // ما تحفظ تقرير أكاديمي وتخلي isReportPending = false
   window.refreshSecretaryPage = refresh;
 
 })();
