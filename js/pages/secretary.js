@@ -1,6 +1,6 @@
 // ==========================================================
-// شاشة السكرتير الذكي — مركز القيادة المتكامل (v3.0)
-// Smart Secretary Command Center
+// شاشة السكرتير الذكي — مركز القيادة المتكامل (v3.1)
+// Smart Secretary Command Center - Bulletproof Version
 // ==========================================================
 (function () {
   "use strict";
@@ -35,11 +35,12 @@
     if (!timeStr) return 0;
     if (timeStr.includes(":") && !/AM|PM|م|ص/.test(timeStr)) {
       let [h, m] = timeStr.split(":").map(Number);
-      return h * 60 + m;
+      return (h || 0) * 60 + (m || 0);
     }
     let [time, period] = timeStr.split(" ");
     if (!time || !period) return 0;
     let [h, m] = time.split(":").map(Number);
+    h = h || 0; m = m || 0;
     if ((period === "PM" || period === "م") && h !== 12) h += 12;
     if ((period === "AM" || period === "ص") && h === 12) h = 0;
     return h * 60 + m;
@@ -51,7 +52,7 @@
     return `${pad(h)}:${pad(m)}:00`;
   }
 
-  function pad(n) { return n.toString().padStart(2, "0"); }
+  function pad(n) { return (n || 0).toString().padStart(2, "0"); }
   function dateToStr(d) { return d.toISOString().split("T")[0]; }
   function addDays(date, delta) {
     const d = new Date(date);
@@ -60,6 +61,7 @@
   }
 
   function formatClock(date) {
+    if (isNaN(date.getTime())) return "--:--";
     let h = date.getHours();
     const ampm = h >= 12 ? "PM" : "AM";
     h = h % 12 || 12;
@@ -67,6 +69,7 @@
   }
 
   function formatDateLabel(dateObj) {
+    if (isNaN(dateObj.getTime())) return "تاريخ غير معروف";
     if (typeof window.formatArDate === "function") {
       try { return window.formatArDate(dateObj.toISOString()); } catch (e) {}
     }
@@ -82,7 +85,7 @@
   }
 
   function getStudentName(id) {
-    const s = (window.appState?.students || []).find(st => st.id === id);
+    const s = (window.appState?.students || []).find(st => st && st.id === id);
     return s ? s.name : "طالب محذوف";
   }
 
@@ -97,7 +100,7 @@
   }
 
   // ============================================================
-  // 2) محرك البيانات: جلب الجداول + توليد "الحوادث" (Occurrences)
+  // 2) محرك البيانات (محمي ضد الداتا التالفة)
   // ============================================================
   function getScheduleEntries() {
     const entries = [];
@@ -105,6 +108,7 @@
     const groups = window.appState?.groups || [];
 
     students.forEach(student => {
+      if (!student) return; // حماية لو فيه طالب Null
       const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
       const iEnabled = student.islamicEnabled !== undefined ? student.islamicEnabled : ((student.islamicLimit || 0) > 0);
       let schedules = [];
@@ -119,10 +123,11 @@
       }
 
       schedules.forEach(sched => {
+        if (!sched || !sched.day || !sched.time) return; // حماية
         entries.push({
           mode: "individual",
           id: student.id,
-          name: student.name,
+          name: student.name || "بدون اسم",
           gender: student.gender,
           day: sched.day,
           time: sched.time,
@@ -135,12 +140,14 @@
     });
 
     groups.forEach(group => {
+      if (!group) return; // حماية لو جروب Null
       if (Array.isArray(group.schedule)) {
         group.schedule.forEach(sched => {
+          if (!sched || !sched.day || !sched.time) return;
           entries.push({
             mode: "group",
             id: group.id,
-            name: `مجموعة: ${group.name}`,
+            name: `مجموعة: ${group.name || "بدون اسم"}`,
             gender: "group",
             day: sched.day,
             time: sched.time,
@@ -160,7 +167,7 @@
   function findSessionForOccurrence(mode, id, dateStr) {
     const sessions = window.appState?.sessions || [];
     return sessions.find(s => {
-      if (!s.date || !s.date.startsWith(dateStr)) return false;
+      if (!s || !s.date || !s.date.startsWith(dateStr)) return false;
       if (mode === "individual") return s.studentId === id;
       if (mode === "group") return s.groupId === id;
       return false;
@@ -216,23 +223,18 @@
     return { upcoming, current, late };
   }
 
-  // ============================================================
-  // 3) التقارير المعلقة
-  // ============================================================
   function getPendingReportSessions() {
-    const sessions = (window.appState?.sessions || []).filter(s => s.isReportPending === true);
-    sessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const sessions = (window.appState?.sessions || []).filter(s => s && s.isReportPending === true);
+    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
     return sessions.map((s, idx) => ({
       ...s,
       _locked: idx !== 0,
-      _daysOld: Math.floor((Date.now() - new Date(s.date).getTime()) / 86400000)
+      _daysOld: Math.floor((Date.now() - new Date(s.date || Date.now()).getTime()) / 86400000)
     }));
   }
 
-  // ============================================================
-  // 4) حالة الجلسة
-  // ============================================================
   function computeSessionStatus(s) {
+    if (!s) return "cancelled";
     if (s.cancelled) return "cancelled";
     if (s.attendance === "absent_excused") return "absent_excused";
     if (s.attendance === "absent_unexcused") return "absent_unexcused";
@@ -249,16 +251,13 @@
     cancelled:            { label: "ملغاة",              color: "var(--ink-3)" }
   };
 
-  // ============================================================
-  // 5) KPIs
-  // ============================================================
   function computeKPIs(tasks, pendingReports) {
     const now = new Date();
     const monthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
     const sessions = window.appState?.sessions || [];
 
     const completedThisMonth = sessions.filter(s => {
-      if (!s.date || !s.date.startsWith(monthKey)) return false;
+      if (!s || !s.date || !s.date.startsWith(monthKey)) return false;
       return computeSessionStatus(s) === "completed";
     }).length;
 
@@ -271,15 +270,13 @@
     };
   }
 
-  // ============================================================
-  // 6) سجل النشاط
-  // ============================================================
   function buildLogEvents(tasks) {
     const events = [];
 
     tasks.upcoming.forEach(occ => {
+      let tsVal = new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime();
       events.push({
-        ts: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime(),
+        ts: isNaN(tsVal) ? Date.now() : tsVal,
         name: occ.name,
         sub: `حصة ${occ.type} · ${occ.time}`,
         statusKey: "scheduled",
@@ -289,8 +286,9 @@
     });
 
     tasks.current.concat(tasks.late).forEach(occ => {
+      let tsVal = new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime();
       events.push({
-        ts: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime(),
+        ts: isNaN(tsVal) ? Date.now() : tsVal,
         name: occ.name,
         sub: `حصة ${occ.type} · ${occ.time} · ${daysAgoLabel(occ.daysAgo)}`,
         statusKey: "pending_confirmation",
@@ -300,21 +298,23 @@
     });
 
     (window.appState?.sessions || []).forEach(s => {
+      if (!s) return;
       const statusKey = computeSessionStatus(s);
-      const daysOld = Math.floor((Date.now() - new Date(s.date).getTime()) / 86400000);
+      const sDate = s.date ? new Date(s.date) : new Date();
+      const daysOld = Math.floor((Date.now() - sDate.getTime()) / 86400000);
       const isGroup = !!s.groupId;
       const name = isGroup ? `مجموعة: ${s.groupName || ""}` : getStudentName(s.studentId);
-      const partial = isGroup && Array.isArray(s.participants) && s.participants.some(p => p.attendance === "absent_excused" || p.attendance === "absent_unexcused");
+      const partial = isGroup && Array.isArray(s.participants) && s.participants.some(p => p && (p.attendance === "absent_excused" || p.attendance === "absent_unexcused"));
 
       let sub = `حصة ${s.sessionType === "islamic" ? "تربية" : "قرآن"}`;
       if (partial) {
-        const exCount = s.participants.filter(p => p.attendance === "absent_excused").length;
-        const unCount = s.participants.filter(p => p.attendance === "absent_unexcused").length;
+        const exCount = s.participants.filter(p => p && p.attendance === "absent_excused").length;
+        const unCount = s.participants.filter(p => p && p.attendance === "absent_unexcused").length;
         sub += ` · غياب: ${exCount} بعذر / ${unCount} بدون عذر`;
       }
 
       events.push({
-        ts: new Date(s.date).getTime(),
+        ts: isNaN(sDate.getTime()) ? Date.now() : sDate.getTime(),
         name,
         sub,
         statusKey,
@@ -337,9 +337,6 @@
     }
   }
 
-  // ============================================================
-  // 7) حفظ الجلسات
-  // ============================================================
   function saveSession(sessionData) {
     const session = { id: `sess-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ...sessionData };
     if (!window.appState) window.appState = {};
@@ -440,17 +437,13 @@
     const init = isGroup ? '<i class="ph-bold ph-users-three"></i>' : escapeHtml(occ.name).substring(0, 2);
     const cardColorClass = isGroup ? "-amber" : occ.color;
 
-    // جلب التاريخ الفعلي
-    const exactDateStr = new Date(occ.dateStr).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+    const occDate = new Date(occ.dateStr);
+    const exactDateStr = isNaN(occDate.getTime()) ? "تاريخ غير معروف" : occDate.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
     const lateTag = kind === "late" ? `<span class="tag -red">متأخرة ${daysAgoLabel(occ.daysAgo)} (${exactDateStr})</span>` : "";
     const encodedTask = encodeURIComponent(JSON.stringify(occ));
 
-    // 🔥 معرفة هل الحلقة دي تبع شهر فات ولا لأ
-    const occDate = new Date(occ.dateStr);
     const now = new Date();
-    const isPreviousMonth = occDate.getFullYear() < now.getFullYear() || (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
-
-    // 🔥 زرار الحذف هيظهر بس لو الحلقة تبع شهر سابق
+    const isPreviousMonth = isNaN(occDate.getTime()) ? false : (occDate.getFullYear() < now.getFullYear() || (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth()));
     const deleteBtnHtml = isPreviousMonth ? `<button class="btn" style="background:#fee2e2; color:#ef4444; padding: 8px;" data-action="cancel_task" title="حذف وتجاهل المهمة لأنها من شهر سابق"><i class="ph-bold ph-trash"></i></button>` : '';
 
     let actionsHtml;
@@ -489,9 +482,10 @@
   }
 
   function renderReportCard(s) {
+    if (!s) return "";
     const isGroup = !!s.groupId;
     const name = isGroup ? `مجموعة: ${s.groupName || ""}` : getStudentName(s.studentId);
-    const dateLabel = formatDateLabel(new Date(s.date));
+    const dateLabel = formatDateLabel(new Date(s.date || Date.now()));
     const lockedAttr = s._locked ? "disabled" : "";
     const lockedTitle = s._locked ? `title="يجب تسجيل الأقدم أولاً"` : "";
 
@@ -509,10 +503,11 @@
   }
 
   function renderLogItem(evt) {
+    if (!evt) return "";
     const meta = STATUS_META[evt.statusKey] || STATUS_META.scheduled;
     const dateObj = new Date(evt.ts);
-    const timeStr = formatClock(dateObj);
-    const exactDateStr = dateObj.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = isNaN(dateObj.getTime()) ? "--:--" : formatClock(dateObj);
+    const exactDateStr = isNaN(dateObj.getTime()) ? "تاريخ غير معروف" : dateObj.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
 
     return `
       <div class="t-item">
@@ -536,61 +531,30 @@
   const SECRETARY_STYLES = `
   <style>
     :root{
-      --bg:#F5F5F7;
-      --surface:#FFFFFF;
-      --surface-2:#FBFBFD;
-      --ink:#1D1D1F;
-      --ink-2:#6E6E73;
-      --ink-3:#AEAEB2;
-      --border:rgba(0,0,0,.07);
-      --border-soft:rgba(0,0,0,.045);
-
-      --accent:#0ea5e9;
-      --accent-soft:rgba(14,165,233,.1);
-      --accent-ink:#0369a1;
-
-      --red:#ef4444;
-      --red-soft:rgba(239,68,68,.1);
-      --red-ink:#b91c1c;
-
-      --amber:#f59e0b;
-      --amber-soft:rgba(245,158,11,.12);
-      --amber-ink:#b45309;
-
-      --green:#10b981;
-      --green-soft:rgba(16,185,129,.12);
-      --green-ink:#047857;
-
-      --violet:#8b5cf6;
-      --violet-soft:rgba(139,92,246,.12);
-      --violet-ink:#6d28d9;
-
+      --bg:#F5F5F7; --surface:#FFFFFF; --surface-2:#FBFBFD;
+      --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#AEAEB2;
+      --border:rgba(0,0,0,.07); --border-soft:rgba(0,0,0,.045);
+      --accent:#0ea5e9; --accent-soft:rgba(14,165,233,.1); --accent-ink:#0369a1;
+      --red:#ef4444; --red-soft:rgba(239,68,68,.1); --red-ink:#b91c1c;
+      --amber:#f59e0b; --amber-soft:rgba(245,158,11,.12); --amber-ink:#b45309;
+      --green:#10b981; --green-soft:rgba(16,185,129,.12); --green-ink:#047857;
+      --violet:#8b5cf6; --violet-soft:rgba(139,92,246,.12); --violet-ink:#6d28d9;
       --shadow-xs:0 1px 2px rgba(0,0,0,.04);
       --shadow-sm:0 2px 8px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.04);
       --shadow-md:0 8px 24px rgba(0,0,0,.07), 0 2px 6px rgba(0,0,0,.04);
-
-      --r-sm:10px;
-      --r-md:16px;
-      --r-lg:22px;
-      --r-pill:999px;
-
+      --r-sm:10px; --r-md:16px; --r-lg:22px; --r-pill:999px;
       --font-display: 'Cairo', system-ui, sans-serif;
       --font-body: 'Cairo', system-ui, sans-serif;
-      --font-mono: ui-monospace, monospace;
-      --ease:cubic-bezier(.4,0,.2,1);
+      --font-mono: ui-monospace, monospace; --ease:cubic-bezier(.4,0,.2,1);
     }
-
     .sec-wrap { max-width: 1120px; margin: 0 auto; padding: 20px 0 80px; direction: rtl; font-family: var(--font-body); color: var(--ink); }
     .sec-wrap * { box-sizing: border-box; }
     .sec-wrap button { font-family: inherit; }
-
     .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 32px; flex-wrap: wrap; }
     .page-head h1 { font-family: var(--font-display); font-size: 26px; font-weight: 800; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
     .page-head h1 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); flex-shrink: 0; }
     .page-head p { margin: 0; color: var(--ink-2); font-size: 14px; font-weight:bold;}
-
     .clock-chip { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-pill); padding: 8px 16px; font-family: var(--font-mono); font-size: 14px; color: var(--ink-2); box-shadow: var(--shadow-xs); display: flex; align-items: center; gap: 8px; font-weight:bold; direction:ltr; }
-
     .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 34px; }
     .kpi { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden; transition: transform .3s var(--ease), box-shadow .3s var(--ease); }
     .kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
@@ -601,28 +565,21 @@
     .kpi.-green .icon { background: var(--green-soft); color: var(--green-ink); }
     .kpi.-red .icon { background: var(--red-soft); color: var(--red-ink); }
     .kpi.-violet .icon { background: var(--violet-soft); color: var(--violet-ink); }
-
     .kpi .value { font-family: var(--font-display); font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
     .kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
-
     .tabs-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 14px; }
     .subtabs-row { display: flex; justify-content: flex-start; margin-bottom: 18px; }
-
     .segmented { position: relative; display: inline-flex; background: rgba(118,118,128,.12); border-radius: var(--r-pill); padding: 4px; gap: 2px; }
     .segmented .pill { position: absolute; top: 4px; bottom: 4px; right: 4px; width: 120px; background: var(--surface); border-radius: var(--r-pill); box-shadow: 0 2px 6px rgba(0,0,0,.12); transition: transform .3s var(--ease), width .3s var(--ease); }
     .segmented button { position: relative; z-index: 1; border: none; background: transparent; padding: 8px 18px; font-size: 13px; font-weight: 800; color: var(--ink-2); border-radius: var(--r-pill); cursor: pointer; transition: color .3s var(--ease); white-space: nowrap; display:inline-flex; align-items:center; gap:6px; }
     .segmented button.active { color: var(--ink); }
     .segmented.-sub button { padding: 7px 14px; font-size: 12px; }
-
     .count-badge { background: rgba(118,118,128,.18); color: var(--ink-2); font-size: 10px; font-weight: 800; padding: 1px 7px; border-radius: var(--r-pill); }
     .segmented button.active .count-badge { background: var(--accent-soft); color: var(--accent-ink); }
-
     .panel { display: none; }
     .panel.active { display: block; animation: fadeIn .4s var(--ease); }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
     .cards { display: flex; flex-direction: column; gap: 10px; }
-
     .card { position: relative; display: flex; align-items: center; gap: 16px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r-md); padding: 16px; box-shadow: var(--shadow-xs); transition: box-shadow .3s var(--ease), transform .3s var(--ease), opacity .4s var(--ease); overflow: hidden; flex-wrap:wrap;}
     .card:hover { box-shadow: var(--shadow-sm); }
     .card::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; }
@@ -632,20 +589,16 @@
     .card.-green::before { background: var(--green); }
     .card.-locked { opacity: .55; }
     .card.-resolved { opacity: .55; transform: scale(.99); }
-
     .avatar { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; background: linear-gradient(150deg, var(--av1), var(--av2)); }
-
     .card-body { flex: 1; min-width: 150px; }
     .card-body .name { font-weight: 800; font-size: 14px; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .card-body .meta { font-size: 12px; color: var(--ink-2); font-weight:600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .card-body .meta .time { font-family: var(--font-mono); color: var(--ink); font-weight: 600; }
     .card-body .meta .sep { color: var(--ink-3); }
-
     .tag { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: var(--r-pill); letter-spacing: .02em; }
     .tag.-amber { background: var(--amber-soft); color: var(--amber-ink); }
     .tag.-red { background: var(--red-soft); color: var(--red-ink); }
     .tag.-blue { background: var(--accent-soft); color: var(--accent-ink); }
-
     .card-actions { display: flex; gap: 8px; flex-shrink: 0; }
     .btn { border: none; cursor: pointer; font-weight: 800; font-size: 12px; padding: 8px 14px; border-radius: var(--r-sm); display: inline-flex; align-items: center; gap: 6px; transition: transform .15s var(--ease), filter .2s var(--ease); white-space: nowrap; }
     .btn:active { transform: scale(.95); }
@@ -655,11 +608,9 @@
     .btn.-ghost { background: rgba(118,118,128,.12); color: var(--ink-2); }
     .btn:disabled { opacity: .4; cursor: not-allowed; }
     .btn:disabled:active { transform: none; }
-
     .status-badge { font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: var(--r-pill); display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .status-badge.-green { background: var(--green-soft); color: var(--green-ink); }
     .status-badge.-red { background: var(--red-soft); color: var(--red-ink); }
-
     .absence-card { flex-direction: column; align-items: stretch; }
     .absence-head { margin-bottom: 12px; }
     .absence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -668,18 +619,15 @@
     .absence-col-title.-present { color: var(--green-ink); }
     .absence-col-body { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
     .absence-pool { background: var(--surface-2); border-radius: var(--r-md); padding: 10px; margin-top: 10px; }
-
     .chip { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: var(--r-pill); cursor: pointer; user-select: none; transition: filter .2s var(--ease); border: 1px solid transparent; }
     .chip:hover { filter: brightness(.97); }
     .chip.-present { background: var(--green-soft); color: var(--green-ink); border-color: rgba(16,185,129,.25); }
     .chip.-excused { background: var(--amber-soft); color: var(--amber-ink); border-color: rgba(245,158,11,.3); }
     .chip.-unexcused { background: var(--red-soft); color: var(--red-ink); border-color: rgba(239,68,68,.3); }
     .chip-empty { font-size: 11px; color: var(--ink-3); font-weight: 600; padding: 5px 4px; }
-
     .log-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
     .log-filter-btn { border: 1px solid var(--border-soft); background: var(--surface); color: var(--ink-2); font-size: 12px; font-weight: 800; padding: 7px 14px; border-radius: var(--r-pill); cursor: pointer; transition: all .2s var(--ease); }
     .log-filter-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-
     .timeline { position: relative; padding-right: 28px; }
     .timeline::before { content: ""; position: absolute; right: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--border); border-radius: 2px; }
     .t-item { position: relative; padding-bottom: 22px; }
@@ -689,9 +637,8 @@
     .t-title { font-weight: 800; font-size: 13px; margin-bottom: 3px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .t-sub { font-size: 12px; color: var(--ink-2); font-weight:600; }
     .t-time { font-family: var(--font-mono); font-size: 11px; font-weight:bold; color: var(--ink-3); white-space: nowrap; padding-top: 2px; direction:ltr; }
-
     .empty { text-align:center; padding: 34px 10px; color: var(--ink-3); font-size: 13px; font-weight: 700; }
-
+    
     .previous-months-toggle { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px 16px; border-radius: 10px; cursor: pointer; margin: 15px 0 10px 0; font-weight: bold; color: #64748b; transition: all 0.2s ease; }
     .previous-months-toggle:hover { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
     .previous-months-container { border-right: 3px solid #cbd5e1; padding-right: 15px; margin-bottom: 20px; display: none; flex-direction: column; gap: 10px; }
@@ -710,138 +657,146 @@
   `;
 
   // ============================================================
-  // 10) رندرة الصفحة
+  // 10) رندرة الصفحة (محمية بـ Try Catch)
   // ============================================================
   window.renderSecretaryPage = function () {
-    const now = new Date();
-    const todayLabel = formatDateLabel(now);
+    try {
+      const now = new Date();
+      const todayLabel = formatDateLabel(now);
 
-    const tasks = generateOccurrences();
-    lastTasks = tasks;
-    const pendingReports = getPendingReportSessions();
-    const kpis = computeKPIs(tasks, pendingReports);
-    const logEventsAll = buildLogEvents(tasks);
-    const logEvents = filterLogEvents(logEventsAll, activeLogFilter);
+      const tasks = generateOccurrences();
+      lastTasks = tasks;
+      const pendingReports = getPendingReportSessions();
+      const kpis = computeKPIs(tasks, pendingReports);
+      const logEventsAll = buildLogEvents(tasks);
+      const logEvents = filterLogEvents(logEventsAll, activeLogFilter);
 
-    const currentMonthLateTasks = [];
-    const previousMonthsLateTasks = [];
+      const currentMonthLateTasks = [];
+      const previousMonthsLateTasks = [];
 
-    tasks.late.forEach(occ => {
-      const occDate = new Date(occ.dateStr);
-      const isPrevious = occDate.getFullYear() < now.getFullYear() || 
-                         (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
-      if (isPrevious) {
-        previousMonthsLateTasks.push(occ);
+      tasks.late.forEach(occ => {
+        const occDate = new Date(occ.dateStr);
+        const isPrevious = isNaN(occDate.getTime()) ? false : (occDate.getFullYear() < now.getFullYear() || 
+                           (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth()));
+        if (isPrevious) {
+          previousMonthsLateTasks.push(occ);
+        } else {
+          currentMonthLateTasks.push(occ);
+        }
+      });
+
+      const subtabCounts = {
+        current: tasks.current.length,
+        upcoming: tasks.upcoming.length,
+        reports: pendingReports.length,
+        late: tasks.late.length 
+      };
+
+      let subPanelHtml = "";
+      if (activeSubTab === "upcoming") {
+        subPanelHtml = tasks.upcoming.length
+          ? tasks.upcoming.map(o => renderTaskCard(o, "upcoming")).join("")
+          : emptyState("ph-calendar-blank", "لا توجد حلقات قادمة اليوم", "var(--accent)");
+      } else if (activeSubTab === "reports") {
+        subPanelHtml = pendingReports.length
+          ? pendingReports.map(renderReportCard).join("")
+          : emptyState("ph-file-check", "لا توجد تقارير معلقة", "var(--violet)");
+      } else if (activeSubTab === "late") {
+        if (currentMonthLateTasks.length > 0) {
+          subPanelHtml += currentMonthLateTasks.map(o => renderTaskCard(o, "late")).join("");
+        } else if (previousMonthsLateTasks.length === 0) {
+          subPanelHtml = emptyState("ph-check-circle", "لا توجد مهام متأخرة، عمل ممتاز!", "var(--green)");
+        }
+
+        if (previousMonthsLateTasks.length > 0) {
+          subPanelHtml += `
+            <div class="previous-months-toggle" data-action="toggle_previous_months">
+              <span style="display:flex; align-items:center; gap:8px;">
+                <i class="ph-bold ph-hourglass-high" style="color:#f59e0b;"></i>
+                مهام متأخرة من شهور سابقة (${previousMonthsLateTasks.length})
+              </span>
+              <i class="ph-bold ph-caret-down icon-chevron"></i>
+            </div>
+            <div class="previous-months-container" id="previousMonthsContainer">
+              ${previousMonthsLateTasks.map(o => renderTaskCard(o, "late")).join("")}
+            </div>
+          `;
+        }
       } else {
-        currentMonthLateTasks.push(occ);
-      }
-    });
-
-    const subtabCounts = {
-      current: tasks.current.length,
-      upcoming: tasks.upcoming.length,
-      reports: pendingReports.length,
-      late: tasks.late.length 
-    };
-
-    let subPanelHtml = "";
-    if (activeSubTab === "upcoming") {
-      subPanelHtml = tasks.upcoming.length
-        ? tasks.upcoming.map(o => renderTaskCard(o, "upcoming")).join("")
-        : emptyState("ph-calendar-blank", "لا توجد حلقات قادمة اليوم", "var(--accent)");
-    } else if (activeSubTab === "reports") {
-      subPanelHtml = pendingReports.length
-        ? pendingReports.map(renderReportCard).join("")
-        : emptyState("ph-file-check", "لا توجد تقارير معلقة", "var(--violet)");
-    } else if (activeSubTab === "late") {
-      
-      if (currentMonthLateTasks.length > 0) {
-        subPanelHtml += currentMonthLateTasks.map(o => renderTaskCard(o, "late")).join("");
-      } else if (previousMonthsLateTasks.length === 0) {
-        subPanelHtml = emptyState("ph-check-circle", "لا توجد مهام متأخرة، عمل ممتاز!", "var(--green)");
+        subPanelHtml = tasks.current.length
+          ? tasks.current.map(o => renderTaskCard(o, "current")).join("")
+          : emptyState("ph-check-circle", "لا توجد حلقات بانتظار التأكيد", "var(--green)");
       }
 
-      if (previousMonthsLateTasks.length > 0) {
-        subPanelHtml += `
-          <div class="previous-months-toggle" data-action="toggle_previous_months">
-            <span style="display:flex; align-items:center; gap:8px;">
-              <i class="ph-bold ph-hourglass-high" style="color:#f59e0b;"></i>
-              مهام متأخرة من شهور سابقة (${previousMonthsLateTasks.length})
-            </span>
-            <i class="ph-bold ph-caret-down icon-chevron"></i>
-          </div>
-          <div class="previous-months-container" id="previousMonthsContainer">
-            ${previousMonthsLateTasks.map(o => renderTaskCard(o, "late")).join("")}
-          </div>
-        `;
-      }
-    } else {
-      subPanelHtml = tasks.current.length
-        ? tasks.current.map(o => renderTaskCard(o, "current")).join("")
-        : emptyState("ph-check-circle", "لا توجد حلقات بانتظار التأكيد", "var(--green)");
-    }
+      const logHtml = logEvents.length
+        ? `<div class="timeline">${logEvents.map(renderLogItem).join("")}</div>`
+        : emptyState("ph-clock-counter-clockwise", "لا يوجد نشاط مطابق للفلتر", "var(--ink-3)");
 
-    const logHtml = logEvents.length
-      ? `<div class="timeline">${logEvents.map(renderLogItem).join("")}</div>`
-      : emptyState("ph-clock-counter-clockwise", "لا يوجد نشاط مطابق للفلتر", "var(--ink-3)");
-
-    return `
-      ${SECRETARY_STYLES}
-      <div class="sec-wrap exec-animate" id="secretaryRoot" style="--stagger: 1;">
-
-        <div class="page-head">
-          <div>
-            <h1><span class="dot"></span>السكرتير الذكي</h1>
-            <p>مركز القيادة اليومي · <span>${todayLabel}</span></p>
-          </div>
-          <div class="clock-chip">
-            <i class="ph-duotone ph-clock"></i>
-            <span id="sec-clock">${formatClock(now)}</span>
-          </div>
-        </div>
-
-        <div class="kpis">
-          ${kpiCard("ph-hourglass", "-amber", kpis.current, "مهام حالية")}
-          ${kpiCard("ph-file-text", "-violet", kpis.unrecordedReports, "تقارير غير مسجلة")}
-          ${kpiCard("ph-calendar-plus", "-blue", kpis.upcoming, "حلقات قادمة")}
-          ${kpiCard("ph-warning", "-red", kpis.late, "متأخرة")}
-          ${kpiCard("ph-check-circle", "-green", kpis.completedThisMonth, "مكتملة هذا الشهر")}
-        </div>
-
-        <div class="tabs-row">
-          <div class="segmented" data-segmented="main">
-            <div class="pill"></div>
-            <button data-tab="tasks" class="${activeMainTab === "tasks" ? "active" : ""}">مهام اليوم</button>
-            <button data-tab="log" class="${activeMainTab === "log" ? "active" : ""}">سجل النشاط</button>
-          </div>
-        </div>
-
-        <div class="panel ${activeMainTab === "tasks" ? "active" : ""}">
-          <div class="subtabs-row">
-            <div class="segmented -sub" data-segmented="sub">
-              <div class="pill"></div>
-              <button data-subtab="current" class="${activeSubTab === "current" ? "active" : ""}">حالية <span class="count-badge">${subtabCounts.current}</span></button>
-              <button data-subtab="upcoming" class="${activeSubTab === "upcoming" ? "active" : ""}">قادمة <span class="count-badge">${subtabCounts.upcoming}</span></button>
-              <button data-subtab="reports" class="${activeSubTab === "reports" ? "active" : ""}">تقارير معلقة <span class="count-badge">${subtabCounts.reports}</span></button>
-              <button data-subtab="late" class="${activeSubTab === "late" ? "active" : ""}">متأخرة <span class="count-badge">${subtabCounts.late}</span></button>
+      return `
+        ${SECRETARY_STYLES}
+        <div class="sec-wrap exec-animate" id="secretaryRoot" style="--stagger: 1;">
+          <div class="page-head">
+            <div>
+              <h1><span class="dot"></span>السكرتير الذكي</h1>
+              <p>مركز القيادة اليومي · <span>${todayLabel}</span></p>
+            </div>
+            <div class="clock-chip">
+              <i class="ph-duotone ph-clock"></i>
+              <span id="sec-clock">${formatClock(now)}</span>
             </div>
           </div>
-          <div class="cards">${subPanelHtml}</div>
-        </div>
 
-        <div class="panel ${activeMainTab === "log" ? "active" : ""}">
-          <div class="log-filters">
-            ${logFilterBtn("all", "الكل")}
-            ${logFilterBtn("completed", "المكتملة")}
-            ${logFilterBtn("incomplete", "غير المكتملة")}
-            ${logFilterBtn("late_reports", "التقارير المتأخرة")}
-            ${logFilterBtn("absence", "الغياب")}
+          <div class="kpis">
+            ${kpiCard("ph-hourglass", "-amber", kpis.current, "مهام حالية")}
+            ${kpiCard("ph-file-text", "-violet", kpis.unrecordedReports, "تقارير غير مسجلة")}
+            ${kpiCard("ph-calendar-plus", "-blue", kpis.upcoming, "حلقات قادمة")}
+            ${kpiCard("ph-warning", "-red", kpis.late, "متأخرة")}
+            ${kpiCard("ph-check-circle", "-green", kpis.completedThisMonth, "مكتملة هذا الشهر")}
           </div>
-          ${logHtml}
-        </div>
 
-      </div>
-    `;
+          <div class="tabs-row">
+            <div class="segmented" data-segmented="main">
+              <div class="pill"></div>
+              <button data-tab="tasks" class="${activeMainTab === "tasks" ? "active" : ""}">مهام اليوم</button>
+              <button data-tab="log" class="${activeMainTab === "log" ? "active" : ""}">سجل النشاط</button>
+            </div>
+          </div>
+
+          <div class="panel ${activeMainTab === "tasks" ? "active" : ""}">
+            <div class="subtabs-row">
+              <div class="segmented -sub" data-segmented="sub">
+                <div class="pill"></div>
+                <button data-subtab="current" class="${activeSubTab === "current" ? "active" : ""}">حالية <span class="count-badge">${subtabCounts.current}</span></button>
+                <button data-subtab="upcoming" class="${activeSubTab === "upcoming" ? "active" : ""}">قادمة <span class="count-badge">${subtabCounts.upcoming}</span></button>
+                <button data-subtab="reports" class="${activeSubTab === "reports" ? "active" : ""}">تقارير معلقة <span class="count-badge">${subtabCounts.reports}</span></button>
+                <button data-subtab="late" class="${activeSubTab === "late" ? "active" : ""}">متأخرة <span class="count-badge">${subtabCounts.late}</span></button>
+              </div>
+            </div>
+            <div class="cards">${subPanelHtml}</div>
+          </div>
+
+          <div class="panel ${activeMainTab === "log" ? "active" : ""}">
+            <div class="log-filters">
+              ${logFilterBtn("all", "الكل")}
+              ${logFilterBtn("completed", "المكتملة")}
+              ${logFilterBtn("incomplete", "غير المكتملة")}
+              ${logFilterBtn("late_reports", "التقارير المتأخرة")}
+              ${logFilterBtn("absence", "الغياب")}
+            </div>
+            ${logHtml}
+          </div>
+        </div>
+      `;
+    } catch (error) {
+      console.error("Secretary Critical Error:", error);
+      return `
+        <div style="padding: 50px 20px; text-align: center; color: #b91c1c; background: #fee2e2; border-radius: 12px; margin: 20px;">
+          <h3 style="margin-bottom: 10px; font-weight: bold;"><i class="ph-bold ph-warning-circle"></i> حدث خطأ داخلي أثناء تحميل السكرتير</h3>
+          <p dir="ltr" style="font-family: monospace; font-size: 12px;">${error.message}</p>
+          <p style="font-size: 13px; margin-top: 15px; color: #7f1d1d;">يرجى تصوير هذه الشاشة وإرسالها للمطور.</p>
+        </div>
+      `;
+    }
   };
 
   // ============================================================
