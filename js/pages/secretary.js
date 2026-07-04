@@ -367,7 +367,7 @@
   function filterLogEvents(events, filter) {
     switch (filter) {
       case "completed": return events.filter(e => e.statusKey === "completed");
-      case "incomplete": return events.filter(e => e.statusKey !== "completed" && e.statusKey !== "cancelled");
+      case "incomplete": return events.filter(e => e.statusKey === "pending_confirmation");
       case "late_reports": return events.filter(e => e.isLateReport);
       case "absence": return events.filter(e => e.statusKey === "absent_excused" || e.statusKey === "absent_unexcused" || e.hasPartialAbsence);
       default: return events;
@@ -476,23 +476,36 @@
     const avColor2 = isGroup ? "#fef3c7" : (isFemale ? "#fbcfe8" : "#bae6fd");
     const init = isGroup ? '<i class="ph-bold ph-users-three"></i>' : escapeHtml(occ.name).substring(0, 2);
     const cardColorClass = isGroup ? "-amber" : occ.color;
-    const lateTag = kind === "late" ? `<span class="tag -red">متأخرة ${daysAgoLabel(occ.daysAgo)}</span>` : "";
+
+    // جلب التاريخ الفعلي
+    const exactDateStr = new Date(occ.dateStr).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+    const lateTag = kind === "late" ? `<span class="tag -red">متأخرة ${daysAgoLabel(occ.daysAgo)} (${exactDateStr})</span>` : "";
     const encodedTask = encodeURIComponent(JSON.stringify(occ));
+
+    // 🔥 معرفة هل الحلقة دي تبع شهر فات ولا لأ
+    const occDate = new Date(occ.dateStr);
+    const now = new Date();
+    const isPreviousMonth = occDate.getFullYear() < now.getFullYear() || (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
+
+    // 🔥 زرار الحذف هيظهر بس لو الحلقة تبع شهر سابق
+    const deleteBtnHtml = isPreviousMonth ? `<button class="btn" style="background:#fee2e2; color:#ef4444; padding: 8px;" data-action="cancel_task" title="حذف وتجاهل المهمة لأنها من شهر سابق"><i class="ph-bold ph-trash"></i></button>` : '';
 
     let actionsHtml;
     if (kind === "upcoming") {
-      actionsHtml = `<div class="card-actions" style="color:var(--ink-3); font-weight:bold; font-size:12px;">قادمة لاحقاً</div>`;
+      actionsHtml = `<div class="card-actions" style="color:var(--ink-3); font-weight:bold; font-size:12px;">مجدولة: ${exactDateStr}</div>`;
     } else if (isGroup) {
       actionsHtml = `
         <div class="card-actions action-buttons">
-          <button class="btn -green" data-action="group_full"><i class="ph-bold ph-check"></i>تمت بالكامل</button>
-          <button class="btn -red-ghost" data-action="group_partial"><i class="ph-bold ph-users"></i>يوجد غياب</button>
+          <button class="btn -green" data-action="group_full"><i class="ph-bold ph-check"></i>تمت</button>
+          <button class="btn -red-ghost" data-action="group_partial"><i class="ph-bold ph-users"></i>غياب</button>
+          ${deleteBtnHtml}
         </div>`;
     } else {
       actionsHtml = `
         <div class="card-actions action-buttons">
-          <button class="btn -green" data-action="ind_done"><i class="ph-bold ph-check"></i>تمت الحلقة</button>
-          <button class="btn -red-ghost" data-action="ind_absent_prompt"><i class="ph-bold ph-x"></i>لم تتم - غياب</button>
+          <button class="btn -green" data-action="ind_done"><i class="ph-bold ph-check"></i>تمت</button>
+          <button class="btn -red-ghost" data-action="ind_absent_prompt"><i class="ph-bold ph-x"></i>غياب</button>
+          ${deleteBtnHtml}
         </div>
         <div class="card-actions action-absent-options" style="display:none; width:100%; justify-content:flex-end;">
           <button class="btn" style="background:#f1f5f9; color:#475569;" data-action="ind_absent_excused">بعذر</button>
@@ -500,6 +513,17 @@
           <button class="btn" style="background:transparent; color:#94a3b8; padding:8px; font-size:16px;" data-action="ind_cancel_absent"><i class="ph-bold ph-x"></i></button>
         </div>`;
     }
+
+    return `
+      <div class="card ${kind === "late" ? "-red" : cardColorClass}" data-key="${key}" data-task="${encodedTask}">
+        <div class="avatar" style="--av1:${avColor1};--av2:${avColor2}">${init}</div>
+        <div class="card-body">
+          <div class="name">${escapeHtml(occ.name)} <span class="tag ${isGroup ? "-amber" : "-blue"}">${isGroup ? "مجموعة" : "فردي"}</span> ${lateTag}</div>
+          <div class="meta"><span class="time" dir="ltr">${occ.time}</span><span class="sep">·</span>حصة ${occ.type}</div>
+        </div>
+        ${actionsHtml}
+      </div>`;
+  }
 
     return `
       <div class="card ${kind === "late" ? "-red" : cardColorClass}" data-key="${key}" data-task="${encodedTask}">
@@ -534,7 +558,11 @@
 
   function renderLogItem(evt) {
     const meta = STATUS_META[evt.statusKey] || STATUS_META.scheduled;
-    const timeStr = formatClock(new Date(evt.ts));
+    const dateObj = new Date(evt.ts);
+    const timeStr = formatClock(dateObj);
+    // جلب التاريخ الفعلي للسجل
+    const exactDateStr = dateObj.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', year: 'numeric' });
+
     return `
       <div class="t-item">
         <div class="t-dot" style="--dot-color:${meta.color}"></div>
@@ -543,7 +571,10 @@
             <div class="t-title">${escapeHtml(evt.name)} <span class="tag" style="background:${meta.color}22; color:${meta.color};">${meta.label}</span></div>
             <div class="t-sub">${escapeHtml(evt.sub)}</div>
           </div>
-          <div class="t-time">${timeStr}</div>
+          <div class="t-time" style="text-align: left; line-height: 1.5;">
+            <span style="color: var(--ink-2); font-size: 11px;">${exactDateStr}</span><br>
+            <span>${timeStr}</span>
+          </div>
         </div>
       </div>`;
   }
@@ -720,6 +751,13 @@
       .card { flex-wrap: wrap; }
       .page-head { flex-direction: column; align-items: flex-start; }
     }
+    /* تصميم بار الشهور السابقة الذكي */
+    .previous-months-toggle { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; border: 1px dashed #cbd5e1; padding: 12px 16px; border-radius: 10px; cursor: pointer; margin: 15px 0 10px 0; font-weight: bold; color: #64748b; transition: all 0.2s ease; }
+    .previous-months-toggle:hover { background: #f1f5f9; color: #475569; border-color: #94a3b8; }
+    .previous-months-container { border-right: 3px solid #cbd5e1; padding-right: 15px; margin-bottom: 20px; display: none; flex-direction: column; gap: 10px; }
+    .previous-months-container.is-active { display: flex; animation: fadeIn .4s var(--ease); }
+    .previous-months-toggle .icon-chevron { transition: transform 0.2s ease; }
+    .previous-months-toggle.is-active .icon-chevron { transform: rotate(180deg); }
   </style>
   `;
 
@@ -754,9 +792,45 @@
         ? pendingReports.map(renderReportCard).join("")
         : emptyState("ph-file-check", "لا توجد تقارير معلقة", "var(--violet)");
     } else if (activeSubTab === "late") {
-      subPanelHtml = tasks.late.length
-        ? tasks.late.map(o => renderTaskCard(o, "late")).join("")
-        : emptyState("ph-check-circle", "لا توجد مهام متأخرة، عمل ممتاز!", "var(--green)");
+      // 🔥 اللوجيك الجديد: تقسيم المهام المتأخرة لشهر حالي وشهور سابقة
+      const currentMonthLateTasks = [];
+      const previousMonthsLateTasks = [];
+      
+      const now = new Date();
+      
+      tasks.late.forEach(occ => {
+        const occDate = new Date(occ.dateStr);
+        const isPrevious = occDate.getFullYear() < now.getFullYear() || 
+                           (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth());
+        if (isPrevious) {
+          previousMonthsLateTasks.push(occ);
+        } else {
+          currentMonthLateTasks.push(occ);
+        }
+      });
+
+      // بناء الـ HTML الخاص بالشهر الحالي
+      if (currentMonthLateTasks.length > 0) {
+        subPanelHtml += currentMonthLateTasks.map(o => renderTaskCard(o, "late")).join("");
+      } else if (previousMonthsLateTasks.length === 0) {
+        subPanelHtml = emptyState("ph-check-circle", "لا توجد مهام متأخرة، عمل ممتاز!", "var(--green)");
+      }
+
+      // بناء الأكورديون الخاص بالشهور السابقة (لو فيه)
+      if (previousMonthsLateTasks.length > 0) {
+        subPanelHtml += `
+          <div class="previous-months-toggle" data-action="toggle_previous_months">
+            <span style="display:flex; align-items:center; gap:8px;">
+              <i class="ph-bold ph-hourglass-high" style="color:#f59e0b;"></i>
+              مهام متأخرة من شهور سابقة (${previousMonthsLateTasks.length})
+            </span>
+            <i class="ph-bold ph-caret-down icon-chevron"></i>
+          </div>
+          <div class="previous-months-container" id="previousMonthsContainer">
+            ${previousMonthsLateTasks.map(o => renderTaskCard(o, "late")).join("")}
+          </div>
+        `;
+      }
     } else {
       subPanelHtml = tasks.current.length
         ? tasks.current.map(o => renderTaskCard(o, "current")).join("")
@@ -873,6 +947,16 @@
     const btn = e.target.closest("button[data-action]");
     if (!btn || btn.disabled) return;
     const action = btn.dataset.action;
+    // 🔥 كود فتح وقفل أرشيف الشهور السابقة
+    const toggleBtn = e.target.closest("[data-action='toggle_previous_months']");
+    if (toggleBtn) {
+      toggleBtn.classList.toggle('is-active');
+      const container = document.getElementById("previousMonthsContainer");
+      if (container) {
+        container.classList.toggle('is-active');
+      }
+      return;
+    }
     const key = btn.dataset.key;
     const card = btn.closest(".card");
 
@@ -887,6 +971,25 @@
       return;
     }
 
+    if (action === "cancel_task") {
+      const occ = JSON.parse(decodeURIComponent(card.dataset.task));
+      saveSession({
+        mode: occ.mode,
+        studentId: occ.mode === "individual" ? occ.id : undefined,
+        groupId: occ.mode === "group" ? occ.id : undefined,
+        groupName: occ.mode === "group" ? occ.name.replace("مجموعة: ", "") : undefined,
+        sessionType: occ.sessionType,
+        attendance: "cancelled", // حالة مخصصة بتمنعها من التأثير على الشيت
+        cancelled: true,
+        isReportPending: false, // مفيش تقرير هيتكتب ليها
+        rating: 0,
+        notes: "تم إلغاء وتجاهل المهمة (تخص شهر سابق)",
+        date: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).toISOString()
+      });
+      refresh();
+      return;
+    }
+    
     if (action === "ind_done") {
       const occ = JSON.parse(decodeURIComponent(card.dataset.task));
       const session = saveSession({
