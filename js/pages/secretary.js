@@ -525,17 +525,6 @@
       </div>`;
   }
 
-    return `
-      <div class="card ${kind === "late" ? "-red" : cardColorClass}" data-key="${key}" data-task="${encodedTask}">
-        <div class="avatar" style="--av1:${avColor1};--av2:${avColor2}">${init}</div>
-        <div class="card-body">
-          <div class="name">${escapeHtml(occ.name)} <span class="tag ${isGroup ? "-amber" : "-blue"}">${isGroup ? "مجموعة" : "فردي"}</span> ${lateTag}</div>
-          <div class="meta"><span class="time" dir="ltr">${occ.time}</span><span class="sep">·</span>حصة ${occ.type}</div>
-        </div>
-        ${actionsHtml}
-      </div>`;
-  }
-
   function renderReportCard(s) {
     const isGroup = !!s.groupId;
     const name = isGroup ? `مجموعة: ${s.groupName || ""}` : getStudentName(s.studentId);
