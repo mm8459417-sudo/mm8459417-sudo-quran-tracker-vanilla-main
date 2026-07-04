@@ -1,6 +1,6 @@
 // ==========================================================
-// شاشة السكرتير الذكي — مركز القيادة المتكامل (v3.1)
-// Smart Secretary Command Center - Bulletproof Version
+// شاشة السكرتير الذكي — مركز القيادة المتكامل (v3.2)
+// Smart Secretary Command Center - With Postpone & Badge System
 // ==========================================================
 (function () {
   "use strict";
@@ -100,15 +100,16 @@
   }
 
   // ============================================================
-  // 2) محرك البيانات (محمي ضد الداتا التالفة)
+  // 2) محرك البيانات (محمي ضد الداتا التالفة + الحلقات التعويضية)
   // ============================================================
   function getScheduleEntries() {
     const entries = [];
     const students = window.appState?.students || [];
     const groups = window.appState?.groups || [];
 
+    // إضافة الحلقات الثابتة للطلاب
     students.forEach(student => {
-      if (!student) return; // حماية لو فيه طالب Null
+      if (!student) return;
       const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
       const iEnabled = student.islamicEnabled !== undefined ? student.islamicEnabled : ((student.islamicLimit || 0) > 0);
       let schedules = [];
@@ -123,7 +124,7 @@
       }
 
       schedules.forEach(sched => {
-        if (!sched || !sched.day || !sched.time) return; // حماية
+        if (!sched || !sched.day || !sched.time) return;
         entries.push({
           mode: "individual",
           id: student.id,
@@ -139,8 +140,9 @@
       });
     });
 
+    // إضافة الحلقات الثابتة للمجموعات
     groups.forEach(group => {
-      if (!group) return; // حماية لو جروب Null
+      if (!group) return;
       if (Array.isArray(group.schedule)) {
         group.schedule.forEach(sched => {
           if (!sched || !sched.day || !sched.time) return;
@@ -180,11 +182,13 @@
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const occurrences = [];
 
+    // البحث في الأيام السابقة (الحلقات الأساسية والمؤجلة)
     for (let back = 0; back <= OCCURRENCE_LOOKBACK_DAYS; back++) {
       const occDate = addDays(now, -back);
       const occDateStr = dateToStr(occDate);
       const dayName = DAYS_AR[occDate.getDay()];
 
+      // 1- رصد الحلقات الأساسية في هذا اليوم
       entries.forEach(entry => {
         if (normalizeArabic(entry.day) !== normalizeArabic(dayName)) return;
         if (findSessionForOccurrence(entry.mode, entry.id, occDateStr)) return;
@@ -199,6 +203,34 @@
           isToday: back === 0
         });
       });
+
+      // 2- رصد الحلقات التعويضية المؤقتة (إن وجدت في هذا اليوم)
+      if (Array.isArray(window.appState?.tempSchedules)) {
+        window.appState.tempSchedules.forEach((tempSched, index) => {
+          if (tempSched.tempDateStr !== occDateStr) return; // بنستدعيها في تاريخ التأجيل فقط
+          if (findSessionForOccurrence(tempSched.mode, tempSched.id, occDateStr)) return; // لو اتعملت خلاص مبتظهرش
+
+          const sessionMinutes = timeToMinutes(tempSched.tempTimeStr);
+          occurrences.push({
+            mode: tempSched.mode,
+            id: tempSched.id,
+            name: tempSched.name + " (تعويضية ⏳)",
+            gender: tempSched.gender,
+            day: dayName,
+            time: tempSched.tempTimeStr,
+            type: tempSched.type,
+            sessionType: tempSched.sessionType,
+            icon: tempSched.icon,
+            color: tempSched.color,
+            participants: tempSched.participants || [],
+            dateStr: occDateStr,
+            minutes: sessionMinutes,
+            daysAgo: back,
+            taskKey: `temp-${tempSched.mode}-${tempSched.id}-${occDateStr}`,
+            isToday: back === 0
+          });
+        });
+      }
     }
 
     const upcoming = [];
@@ -248,7 +280,7 @@
     completed:            { label: "مكتملة",             color: "var(--green)" },
     absent_excused:       { label: "غياب بعذر",          color: "var(--amber)" },
     absent_unexcused:     { label: "غياب بدون عذر",       color: "var(--red)" },
-    cancelled:            { label: "ملغاة",              color: "var(--ink-3)" }
+    cancelled:            { label: "ملغاة/مؤجلة",        color: "var(--ink-3)" }
   };
 
   function computeKPIs(tasks, pendingReports) {
@@ -351,7 +383,7 @@
   }
 
   // ============================================================
-  // 8) واجهة المستخدم
+  // 8) واجهة المستخدم وبناء الكروت
   // ============================================================
   function emptyState(icon, text, color) {
     return `<div class="empty"><i class="ph-duotone ${icon}" style="font-size:32px;color:${color};margin-bottom:8px;display:block;"></i><br><span>${text}</span></div>`;
@@ -417,7 +449,9 @@
           <div class="absence-col-title -present"><i class="ph-bold ph-check-circle"></i>حاضر (الافتراضي)</div>
           <div class="absence-col-body">${presentChips}</div>
         </div>
-        <div class="card-actions" style="width:100%; justify-content:flex-end; margin-top:12px;">
+        <div class="card-actions" style="width:100%; justify-content:flex-end; margin-top:12px; gap:8px;">
+          <!-- زرار اعتذار المعلم للمجموعة كلها -->
+          <button class="btn" style="background:#fee2e2; color:#b91c1c; margin-left:auto;" data-action="group_teacher_excused" data-key="${key}"><i class="ph-bold ph-user-minus"></i>اعتذر المعلم</button>
           <button class="btn -ghost" data-action="cancel_group_absence" data-key="${key}">إلغاء</button>
           <button class="btn -green" data-action="save_group_absence" data-key="${key}"><i class="ph-bold ph-check"></i>حفظ</button>
         </div>
@@ -446,6 +480,16 @@
     const isPreviousMonth = isNaN(occDate.getTime()) ? false : (occDate.getFullYear() < now.getFullYear() || (occDate.getFullYear() === now.getFullYear() && occDate.getMonth() < now.getMonth()));
     const deleteBtnHtml = isPreviousMonth ? `<button class="btn" style="background:#fee2e2; color:#ef4444; padding: 8px;" data-action="cancel_task" title="حذف وتجاهل المهمة لأنها من شهر سابق"><i class="ph-bold ph-trash"></i></button>` : '';
 
+    // قائمة إدخال بيانات التأجيل (مدمجة هنا عشان تظهر في الفردي والمجموعة)
+    const postponeHtml = `
+      <div class="card-actions action-postpone-options" style="display:none; width:100%; justify-content:flex-end; gap:5px; align-items:center; margin-top: 10px;">
+        <span style="font-size:11px; color:var(--ink-2); font-weight:bold;">اختر موعد التعويضي:</span>
+        <input type="datetime-local" class="postpone-date-input" style="padding: 6px; border: 1px solid var(--border-soft); border-radius: var(--r-sm); font-size: 12px; font-family: var(--font-body); background: var(--surface-2); outline: none;">
+        <button class="btn -blue" data-action="save_postpone"><i class="ph-bold ph-check"></i>تأكيد</button>
+        <button class="btn" style="background:transparent; color:#94a3b8; padding:8px; font-size:16px;" data-action="cancel_postpone"><i class="ph-bold ph-x"></i></button>
+      </div>
+    `;
+
     let actionsHtml;
     if (kind === "upcoming") {
       actionsHtml = `<div class="card-actions" style="color:var(--ink-3); font-weight:bold; font-size:12px;">مجدولة: ${exactDateStr}</div>`;
@@ -453,21 +497,27 @@
       actionsHtml = `
         <div class="card-actions action-buttons">
           <button class="btn -green" data-action="group_full"><i class="ph-bold ph-check"></i>تمت</button>
-          <button class="btn -red-ghost" data-action="group_partial"><i class="ph-bold ph-users"></i>غياب</button>
+          <button class="btn -red-ghost" data-action="group_partial"><i class="ph-bold ph-users"></i>غياب/إلغاء</button>
+          <button class="btn" style="background:#e0f2fe; color:#0284c7;" data-action="postpone_prompt"><i class="ph-bold ph-calendar-plus"></i>تأجيل</button>
           ${deleteBtnHtml}
-        </div>`;
+        </div>
+        ${postponeHtml}`;
     } else {
       actionsHtml = `
         <div class="card-actions action-buttons">
           <button class="btn -green" data-action="ind_done"><i class="ph-bold ph-check"></i>تمت</button>
-          <button class="btn -red-ghost" data-action="ind_absent_prompt"><i class="ph-bold ph-x"></i>غياب</button>
+          <button class="btn -red-ghost" data-action="ind_absent_prompt"><i class="ph-bold ph-x"></i>غياب/إلغاء</button>
+          <button class="btn" style="background:#e0f2fe; color:#0284c7;" data-action="postpone_prompt"><i class="ph-bold ph-calendar-plus"></i>تأجيل</button>
           ${deleteBtnHtml}
         </div>
         <div class="card-actions action-absent-options" style="display:none; width:100%; justify-content:flex-end;">
           <button class="btn" style="background:#f1f5f9; color:#475569;" data-action="ind_absent_excused">بعذر</button>
           <button class="btn -red-ghost" data-action="ind_absent_unexcused">بدون عذر</button>
+          <!-- زرار اعتذار المعلم الجديد -->
+          <button class="btn" style="background:#fee2e2; color:#b91c1c;" data-action="teacher_excused"><i class="ph-bold ph-user-minus"></i>اعتذر المعلم</button>
           <button class="btn" style="background:transparent; color:#94a3b8; padding:8px; font-size:16px;" data-action="ind_cancel_absent"><i class="ph-bold ph-x"></i></button>
-        </div>`;
+        </div>
+        ${postponeHtml}`;
     }
 
     return `
@@ -646,6 +696,31 @@
     .previous-months-toggle .icon-chevron { transition: transform 0.2s ease; }
     .previous-months-toggle.is-active .icon-chevron { transform: rotate(180deg); }
 
+    /* ستايلات الـ Badge بتاع القائمة الجانبية */
+    .sec-badge-pill {
+        background-color: #ef4444; 
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: auto;
+        margin-left: 5px;
+        padding: 0 6px;
+        box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+        font-family: system-ui, -apple-system, sans-serif;
+        transition: transform 0.2s ease;
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
     @media (max-width: 980px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 640px) {
       .kpis { grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -819,6 +894,9 @@
     root.outerHTML = window.renderSecretaryPage();
     mount();
     window.scrollTo(0, scrollY);
+    
+    // تحديث رقم الإشعارات في القائمة الجانبية فورياً
+    if (typeof window.updateSecretaryBadge === "function") window.updateSecretaryBadge();
   }
 
   function onSecretaryClick(e) {
@@ -859,16 +937,127 @@
     const key = btn.dataset.key;
     const card = btn.closest(".card");
 
+    // ===== أوامر إلغاء/غياب وتأجيل الجلسة =====
     if (action === "ind_absent_prompt") {
       card.querySelector(".action-buttons").style.display = "none";
+      const postponeOpts = card.querySelector(".action-postpone-options");
+      if (postponeOpts) postponeOpts.style.display = "none";
       card.querySelector(".action-absent-options").style.display = "flex";
       return;
     }
+    
+    if (action === "postpone_prompt") {
+      card.querySelector(".action-buttons").style.display = "none";
+      const absentOpts = card.querySelector(".action-absent-options");
+      if (absentOpts) absentOpts.style.display = "none";
+      const postponeOpts = card.querySelector(".action-postpone-options");
+      if (postponeOpts) postponeOpts.style.display = "flex";
+      return;
+    }
+
     if (action === "ind_cancel_absent") {
       card.querySelector(".action-buttons").style.display = "flex";
       card.querySelector(".action-absent-options").style.display = "none";
       return;
     }
+
+    if (action === "cancel_postpone") {
+      card.querySelector(".action-buttons").style.display = "flex";
+      card.querySelector(".action-postpone-options").style.display = "none";
+      return;
+    }
+
+    // حفظ عملية التأجيل لموعد آخر
+    if (action === "save_postpone") {
+      const dateInput = card.querySelector(".postpone-date-input").value;
+      if (!dateInput) {
+        showToastSafe("يرجى اختيار الموعد الجديد لتأجيل الحلقة.");
+        return;
+      }
+      
+      const occ = JSON.parse(decodeURIComponent(card.dataset.task));
+      const newDateObj = new Date(dateInput);
+      
+      // نقفل الحلقة الحالية (مؤجلة/ملغاة)
+      saveSession({
+        mode: occ.mode,
+        studentId: occ.mode === "individual" ? occ.id : undefined,
+        groupId: occ.mode === "group" ? occ.id : undefined,
+        groupName: occ.mode === "group" ? occ.name.replace("مجموعة: ", "") : undefined,
+        sessionType: occ.sessionType,
+        attendance: "cancelled", 
+        cancelled: true,
+        isReportPending: false,
+        rating: 0,
+        notes: `تم تأجيل الحلقة إلى موعد تعويضي (${newDateObj.toLocaleString('ar-EG')})`,
+        date: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).toISOString()
+      });
+
+      // إضافة الموعد التعويضي (يظهر مؤقتاً لحد ما يتعمل)
+      if (!window.appState) window.appState = {};
+      if (!window.appState.tempSchedules) window.appState.tempSchedules = [];
+      window.appState.tempSchedules.push({
+        mode: occ.mode,
+        id: occ.id,
+        name: occ.name,
+        gender: occ.gender,
+        type: occ.type,
+        sessionType: occ.sessionType,
+        icon: occ.icon,
+        color: occ.color,
+        participants: occ.participants,
+        tempDateStr: dateToStr(newDateObj),
+        tempTimeStr: formatClock(newDateObj)
+      });
+
+      showToastSafe("تم تأجيل الحلقة وجدولتها تعويضياً بنجاح.");
+      refresh();
+      return;
+    }
+
+    // اعتذر المعلم (حلقة فردية)
+    if (action === "teacher_excused") {
+      const occ = JSON.parse(decodeURIComponent(card.dataset.task));
+      saveSession({
+        mode: occ.mode,
+        studentId: occ.mode === "individual" ? occ.id : undefined,
+        groupId: occ.mode === "group" ? occ.id : undefined,
+        groupName: occ.mode === "group" ? occ.name.replace("مجموعة: ", "") : undefined,
+        sessionType: occ.sessionType,
+        attendance: "cancelled",
+        cancelled: true,
+        isReportPending: false,
+        rating: 0,
+        notes: "اعتذر المعلم عن حضور الحلقة (تم الإلغاء)",
+        date: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).toISOString()
+      });
+      refresh();
+      return;
+    }
+
+    // اعتذر المعلم (مجموعة كاملة)
+    if (action === "group_teacher_excused") {
+      const allOcc = [...lastTasks.current, ...lastTasks.late, ...lastTasks.upcoming];
+      const occ = allOcc.find(o => o.taskKey === key);
+      if (!occ) return;
+      saveSession({
+        mode: "group",
+        groupId: occ.id,
+        groupName: occ.name.replace("مجموعة: ", ""),
+        sessionType: occ.sessionType,
+        attendance: "cancelled",
+        cancelled: true,
+        isReportPending: false,
+        rating: 0,
+        notes: "اعتذر المعلم عن حضور مجموعة الحلقة (تم الإلغاء)",
+        date: new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).toISOString()
+      });
+      expandedAbsence = null;
+      delete absenceDrafts[key];
+      refresh();
+      return;
+    }
+    // ===========================================
 
     if (action === "cancel_task") {
       const occ = JSON.parse(decodeURIComponent(card.dataset.task));
@@ -1028,4 +1217,50 @@
 
   window.refreshSecretaryPage = refresh;
 
+  // ============================================================
+  // 12) محرك الإشعارات للقائمة الجانبية (Sidebar Badge)
+  // ============================================================
+  window.updateSecretaryBadge = function() {
+    if (!window.appState) return; 
+    try {
+      const tasks = generateOccurrences();
+      const pendingReports = getPendingReportSessions();
+      
+      const totalPending = tasks.current.length + tasks.late.length + pendingReports.length;
+
+      const menuItems = document.querySelectorAll('a, button, li, .nav-item, div');
+      let targetMenu = null;
+      
+      for (let el of menuItems) {
+        if (el.textContent.trim().includes("السكرتير الذكي") && !el.closest('#secretaryRoot') && el.children.length < 5) {
+          targetMenu = el;
+          break;
+        }
+      }
+
+      if (targetMenu) {
+        targetMenu.style.display = 'flex';
+        targetMenu.style.alignItems = 'center';
+
+        let badge = targetMenu.querySelector('.sec-badge-pill');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'sec-badge-pill';
+          targetMenu.appendChild(badge);
+        }
+
+        if (totalPending > 0) {
+          badge.textContent = totalPending > 99 ? "+99" : totalPending;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch(e) {
+      console.error("خطأ في تحديث إشعارات السكرتير: ", e);
+    }
+  };
+
+  // تشغيل المحرك بعد ثانية من فتح الموقع
+  setTimeout(window.updateSecretaryBadge, 1000);
 })();
