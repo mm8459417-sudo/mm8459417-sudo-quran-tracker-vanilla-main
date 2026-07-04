@@ -1217,17 +1217,51 @@
 
   window.refreshSecretaryPage = refresh;
 
-  // ============================================================
-  // 12) محرك الإشعارات للقائمة الجانبية (Sidebar Badge)
+ // ============================================================
+  // 12) محرك الإشعارات للقائمة الجانبية (Sidebar Badge) - الإصدار العالمي
   // ============================================================
   window.updateSecretaryBadge = function() {
     if (!window.appState) return; 
     try {
+      // 1. حقن الستايل بشكل عام (Global) عشان يشتغل في كل الشاشات
+      if (!document.getElementById('sec-badge-style')) {
+        const style = document.createElement('style');
+        style.id = 'sec-badge-style';
+        style.innerHTML = `
+          .sec-badge-pill {
+            background-color: #ef4444 !important; 
+            color: #ffffff !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            min-width: 20px !important;
+            height: 20px !important;
+            border-radius: 10px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-right: auto !important;
+            margin-left: 5px !important;
+            padding: 0 6px !important;
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4) !important;
+            font-family: system-ui, -apple-system, sans-serif !important;
+            transition: transform 0.2s ease !important;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+            z-index: 9999 !important;
+          }
+          @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // 2. حساب الأرقام
       const tasks = generateOccurrences();
       const pendingReports = getPendingReportSessions();
-      
       const totalPending = tasks.current.length + tasks.late.length + pendingReports.length;
 
+      // 3. البحث عن زرار السكرتير في القائمة
       const menuItems = document.querySelectorAll('a, button, li, .nav-item, div');
       let targetMenu = null;
       
@@ -1238,6 +1272,7 @@
         }
       }
 
+      // 4. رسم وتحديث البادج
       if (targetMenu) {
         targetMenu.style.display = 'flex';
         targetMenu.style.alignItems = 'center';
@@ -1251,9 +1286,10 @@
 
         if (totalPending > 0) {
           badge.textContent = totalPending > 99 ? "+99" : totalPending;
-          badge.style.display = 'inline-flex';
+          // استخدام flex بدل inline-flex عشان الـ !important
+          badge.style.setProperty('display', 'inline-flex', 'important'); 
         } else {
-          badge.style.display = 'none';
+          badge.style.setProperty('display', 'none', 'important');
         }
       }
     } catch(e) {
@@ -1261,6 +1297,9 @@
     }
   };
 
-  // تشغيل المحرك بعد ثانية من فتح الموقع
+  // تشغيل المحرك بعد ثانية من فتح الموقع، وبعد كل تغيير في الـ Route
   setTimeout(window.updateSecretaryBadge, 1000);
+  
+  // لضمان ظهور البادج لو المستخدم تنقل بين الصفحات (Router)
+  window.addEventListener('popstate', () => setTimeout(window.updateSecretaryBadge, 500));
 })();
