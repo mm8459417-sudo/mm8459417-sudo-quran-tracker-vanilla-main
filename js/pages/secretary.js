@@ -1218,12 +1218,12 @@
   window.refreshSecretaryPage = refresh;
 
  // ============================================================
-  // 12) محرك الإشعارات للقائمة الجانبية (Sidebar Badge) - الإصدار العالمي
+  // 12) محرك الإشعارات للقائمة الجانبية (Sidebar Badge) - الإصدار الدائم
   // ============================================================
   window.updateSecretaryBadge = function() {
     if (!window.appState) return; 
     try {
-      // 1. حقن الستايل بشكل عام (Global) عشان يشتغل في كل الشاشات
+      // 1. حقن الستايل (Global) عشان يشتغل في كل الشاشات ويفضل محافظ على لونه
       if (!document.getElementById('sec-badge-style')) {
         const style = document.createElement('style');
         style.id = 'sec-badge-style';
@@ -1256,50 +1256,59 @@
         document.head.appendChild(style);
       }
 
-      // 2. حساب الأرقام
+      // 2. حساب الأرقام بناءً على المهام الفعلية
       const tasks = generateOccurrences();
       const pendingReports = getPendingReportSessions();
       const totalPending = tasks.current.length + tasks.late.length + pendingReports.length;
 
-      // 3. البحث عن زرار السكرتير في القائمة
+      // 3. البحث عن زرار "السكرتير الذكي" في القائمة الجانبية بحرص
       const menuItems = document.querySelectorAll('a, button, li, .nav-item, div');
       let targetMenu = null;
       
       for (let el of menuItems) {
-        if (el.textContent.trim().includes("السكرتير الذكي") && !el.closest('#secretaryRoot') && el.children.length < 5) {
+        // استبعاد أي حاجة جوه عنوان الصفحة أو الهيدر عشان منبوظش شاشة السكرتير نفسها
+        if (el.closest('.page-head') || el.closest('h1')) continue;
+
+        if (el.textContent.includes("السكرتير الذكي") && el.children.length < 5) {
           targetMenu = el;
           break;
         }
       }
 
-      // 4. رسم وتحديث البادج
+      // 4. رسم وتحديث البادج (ومراقبة اختفائه)
       if (targetMenu) {
         targetMenu.style.display = 'flex';
         targetMenu.style.alignItems = 'center';
 
         let badge = targetMenu.querySelector('.sec-badge-pill');
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'sec-badge-pill';
-          targetMenu.appendChild(badge);
-        }
 
         if (totalPending > 0) {
+          // لو المنصة مسحت البادج (بسبب الـ Navigation)، نرجعه تاني
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'sec-badge-pill';
+            targetMenu.appendChild(badge);
+          }
+          // نحدث الرقم ونظهره
           badge.textContent = totalPending > 99 ? "+99" : totalPending;
-          // استخدام flex بدل inline-flex عشان الـ !important
           badge.style.setProperty('display', 'inline-flex', 'important'); 
         } else {
-          badge.style.setProperty('display', 'none', 'important');
+          // لو الرقم بقى صفر، نخفيه تماماً
+          if (badge) {
+            badge.style.setProperty('display', 'none', 'important');
+          }
         }
       }
     } catch(e) {
-      console.error("خطأ في تحديث إشعارات السكرتير: ", e);
+      // صمت عشان ميملاش الكونسول
     }
   };
 
-  // تشغيل المحرك بعد ثانية من فتح الموقع، وبعد كل تغيير في الـ Route
-  setTimeout(window.updateSecretaryBadge, 1000);
-  
-  // لضمان ظهور البادج لو المستخدم تنقل بين الصفحات (Router)
-  window.addEventListener('popstate', () => setTimeout(window.updateSecretaryBadge, 500));
-})();
+  // 5. التشغيل المستمر (Heartbeat): 
+  // ده اللي هيحل المشكلة اللي في الفيديو.. الكود هيشتغل كل ثانية يتأكد إن البادج في مكانه
+  if (!window.badgeIntervalStarted) {
+    window.badgeIntervalStarted = true;
+    setInterval(window.updateSecretaryBadge, 1000);
+  }
+
+})(); // قفلة الدالة الأساسية للملف
