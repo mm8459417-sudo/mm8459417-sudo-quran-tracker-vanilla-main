@@ -263,7 +263,7 @@
         <div class="d-flex gap-3" style="flex-wrap:wrap;">
           <select class="form-select" style="flex:1;min-width:180px;" onchange="setAnalysisStudent(this.value)">
             <option value="all" ${selectedId === "all" ? "selected" : ""}>جميع الطلاب</option>
-            ${appState.students.map((s) => `<option value="${s.id}" ${s.id === selectedId ? "selected" : ""}>${s.name}</option>`).join("")}
+            ${(appState.students || []).filter((s) => !s.archived).map((s) => `<option value="${s.id}" ${s.id === selectedId ? "selected" : ""}>${s.name}</option>`).join("")}
           </select>
           ${modeButtons}
         </div>

@@ -27,7 +27,8 @@
     const teacherName = appState.settings?.teacherName || "المعلم";
     const todayLabel = typeof formatArDate === "function" ? formatArDate(new Date().toISOString()) : new Date().toLocaleDateString('ar-EG');
     
-    // حساب إجمالي الجلسات التراكمي المنجزة من مجموع استهلاك الطلاب
+    // حساب إجمالي الجلسات التراكمي المنجزة من مجموع استهلاك الطلاب النشطين
+    const activeStudents = (appState.students || []).filter((s) => !s.archived);
     const totalCompletedSessions = (appState.students || []).reduce((sum, s) => sum + (typeof s.totalConsumedSessions === "number" ? s.totalConsumedSessions : 0), 0);
 
     // الشرط ده بيعرف المنصة إحنا في الشاشة الرئيسية ولا لأ
@@ -77,7 +78,7 @@
                 <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; color: white;">
                    <i class="ph-duotone ph-users-three" style="color: #34d399; font-size: 15px;"></i>
                    <span style="font-size: 11px; opacity: 0.9;">الطلاب:</span>
-                   <span style="font-weight: bold; font-size: 13px;" dir="ltr">${appState.students ? appState.students.length : 0}</span>
+                   <span style="font-weight: bold; font-size: 13px;" dir="ltr">${activeStudents.length}</span>
                 </div>
                 <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; color: white;">
                    <i class="ph-duotone ph-books" style="color: #fbbf24; font-size: 15px;"></i>
@@ -109,7 +110,7 @@
                 <div class="stat-icon emerald"><i class="ph-duotone ph-users-three"></i></div>
                 <div class="stat-info">
                   <div class="stat-lbl">إجمالي الطلاب</div>
-                  <div class="stat-val" dir="ltr">${appState.students ? appState.students.length : 0}</div>
+                  <div class="stat-val" dir="ltr">${activeStudents.length}</div>
                 </div>
               </div>
               <div class="premium-stat-card float-delayed">

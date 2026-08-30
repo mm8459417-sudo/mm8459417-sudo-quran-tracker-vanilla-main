@@ -146,7 +146,8 @@
   };
 
   function renderStudentList() {
-    if (!appState.students.length) {
+    const activeStudents = (appState.students || []).filter((s) => !s.archived);
+    if (!activeStudents.length) {
       return `
         <div class="elite-empty-state">
           <div class="elite-empty-icon"><i class="ph-duotone ph-users-three"></i></div>
@@ -156,7 +157,7 @@
       `;
     }
 
-    return `<div style="display:flex;flex-direction:column;gap:var(--sp-3);">${appState.students
+    return `<div style="display:flex;flex-direction:column;gap:var(--sp-3);">${activeStudents
       .map((s) => {
         const defaultLimit = appState.settings?.defaultLimit || 12;
         const summary = window.reportService

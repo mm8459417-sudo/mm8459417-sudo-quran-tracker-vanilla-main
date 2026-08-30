@@ -102,7 +102,7 @@
       const entries = [];
 
       (students || []).forEach(student => {
-        if (!student) return;
+        if (!student || student.archived) return;
         const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
         const iEnabled = student.islamicEnabled !== undefined ? student.islamicEnabled : ((student.islamicLimit || 0) > 0);
         let schedules = [];
@@ -134,7 +134,7 @@
       });
 
       (groups || []).forEach(group => {
-        if (!group) return;
+        if (!group || group.archived) return;
         if (Array.isArray(group.schedule)) {
           group.schedule.forEach(sched => {
             if (!sched || !sched.day || !sched.time) return;

@@ -1179,18 +1179,20 @@ window.sendReportWhatsApp = async function () {
     const query = appState.ui.searchQuery.toLowerCase();
     const gender = appState.ui.searchGender;
 
-    const students = appState.students.filter((s) => {
-      const matchesName = s.name.toLowerCase().includes(query);
+    const students = (appState.students || []).filter((s) => {
+      if (s.archived) return false;
+      const matchesName = (s.name || "").toLowerCase().includes(query);
       const matchesGender = gender === "all" ? true : s.gender === gender;
       return matchesName && matchesGender;
     });
 
-    const groups = appState.groups.filter((g) => {
+    const groups = (appState.groups || []).filter((g) => {
+      if (g.archived) return false;
       const groupName = (g.name || "").toLowerCase();
       const matchesGroup = groupName.includes(query);
-      const memberNames = appState.students
-        .filter((s) => g.studentIds?.includes(s.id))
-        .map((s) => s.name.toLowerCase())
+      const memberNames = (appState.students || [])
+        .filter((s) => !s.archived && g.studentIds?.includes(s.id))
+        .map((s) => (s.name || "").toLowerCase())
         .join(" ");
       return matchesGroup || memberNames.includes(query);
     });

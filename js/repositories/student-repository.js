@@ -83,7 +83,10 @@
       const ref = this.getStudentsCollection().doc();
       const payload = {
         id: ref.id,
+        schemaVersion: 2,
+        archived: false,
         createdAt: Date.now(),
+        updatedAt: Date.now(),
         ...data,
       };
       await ref.set(payload);
@@ -94,6 +97,7 @@
     async updateStudent(id, updates) {
       if (!id) throw new Error("معرف الطالب مطلوب للتحديث");
       const sanitizedUpdates = {
+        schemaVersion: 2,
         ...updates,
         updatedAt: Date.now(),
       };
@@ -101,35 +105,36 @@
       return { id, ...sanitizedUpdates };
     }
 
-    // حذف طالب مع متعلقاته (جلسات ومجموعات)
+    // أرشفة طالب بأمان (Safe Archive) دون المساس بالجلسات التاريخية
+    async archiveStudent(id) {
+      if (!id) throw new Error("معرف الطالب مطلوب للأرشفة");
+      const timestamp = Date.now();
+      const updates = {
+        archived: true,
+        archivedAt: new Date(timestamp).toISOString(),
+        archivedAtTimestamp: timestamp,
+        updatedAt: timestamp,
+      };
+      await this.getStudentsCollection().doc(id).update(updates);
+      return { id, ...updates };
+    }
+
+    // استعادة طالب من الأرشيف
+    async restoreStudent(id) {
+      if (!id) throw new Error("معرف الطالب مطلوب للاستعادة");
+      const timestamp = Date.now();
+      const updates = {
+        archived: false,
+        restoredAt: new Date(timestamp).toISOString(),
+        updatedAt: timestamp,
+      };
+      await this.getStudentsCollection().doc(id).update(updates);
+      return { id, ...updates };
+    }
+
+    // حذف طالب (حذف آمن بالأرشفة للحفاظ على سجلات الجلسات والشيت المالي)
     async deleteStudent(id) {
-      if (!id) throw new Error("معرف الطالب مطلوب للحذف");
-      const teacherDoc = this.getTeacherDoc();
-
-      // حذف وثيقة الطالب
-      await teacherDoc.collection("students").doc(id).delete();
-
-      // حذف الجلسات التابعة وتحديث المجموعات دفعة واحدة
-      const sessionsSnap = await teacherDoc
-        .collection("sessions")
-        .where("studentId", "==", id)
-        .get();
-
-      const groupsSnap = await teacherDoc
-        .collection("groups")
-        .where("studentIds", "array-contains", id)
-        .get();
-
-      const batch = db.batch();
-      sessionsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-      groupsSnap.docs.forEach((doc) => {
-        const data = doc.data() || {};
-        const updated = (data.studentIds || []).filter((sid) => sid !== id);
-        batch.update(doc.ref, { studentIds: updated });
-      });
-
-      await batch.commit();
-      return { success: true, deletedId: id };
+      return await this.archiveStudent(id);
     }
   }
 

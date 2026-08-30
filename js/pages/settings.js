@@ -298,152 +298,89 @@
 
   window.saveStudentForm = async function () {
     const form = ensureStudentForm();
-    if (!form.name.trim()) {
-      showToast("اكتب اسم الطالب أولاً"); return;
-    }
-
-    if (form.quranEnabled && (!form.quranLimit || form.quranLimit <= 0)) {
-      showToast("يجب إدخال عدد حصص القرآن"); return;
-    }
-    if (form.islamicEnabled && (!form.islamicLimit || form.islamicLimit <= 0)) {
-      showToast("يجب إدخال عدد حصص التربية"); return;
-    }
-
-    const checkConflict = (scheduleArray, typeLabel) => {
-      for (let slot of scheduleArray) {
-        if (!slot.day || !slot.time) continue;
-        for (let student of window.appState.students) {
-          if (student.id === form.editId) continue; 
-          const qSched = student.quranSchedule || [];
-          const iSched = student.islamicSchedule || [];
-          const oldSched = student.schedule || []; 
-          const allSchedules = [...qSched, ...iSched, ...oldSched];
-          
-          for (let s of allSchedules) {
-            if (s.day === slot.day && s.time === slot.time) {
-              return `هذا الموعد (${slot.day} الساعة ${slot.time}) مستخدم بالفعل مع الطالب: ${student.name}`;
-            }
-          }
-        }
-      }
-      return null;
-    };
-
-    if (form.quranEnabled) {
-      let conflict = checkConflict(form.quranSchedule, 'القرآن');
-      if (conflict) { showToast(conflict); return; }
-    }
-    if (form.islamicEnabled) {
-      let conflict = checkConflict(form.islamicSchedule, 'التربية');
-      if (conflict) { showToast(conflict); return; }
-    }
-
+    const isEdit = !!form.editId;
     const packages = ensurePackagesExist();
-    const individualPackage = packages.find(p => p.id === form.individualPackageId);
-    const groupPackage = packages.find(p => p.id === form.groupPackageId);
-
-    const sessionPrice = individualPackage ? (parseFloat(individualPackage.price) || 0) : 70;
-    const groupSessionPrice = groupPackage ? (parseFloat(groupPackage.price) || 0) : 70;
-
-    const quranNum = form.quranEnabled ? parseInt(form.quranLimit, 10) : 0;
-    const islamicNum = form.islamicEnabled ? parseInt(form.islamicLimit, 10) : 0;
-    const absNum = parseInt(form.maxAbsenceAllowed, 10);
-
-    const payload = {
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      gender: form.gender,
-      individualPackageId: form.individualPackageId,
-      groupPackageId: form.groupPackageId,
-      packageId: form.individualPackageId || form.groupPackageId || "",
-      sessionPrice: sessionPrice,
-      groupSessionPrice: groupSessionPrice,
-      quranEnabled: form.quranEnabled,
-      islamicEnabled: form.islamicEnabled,
-      quranLimit: isNaN(quranNum) ? 0 : quranNum,
-      islamicLimit: isNaN(islamicNum) ? 0 : islamicNum,
-      quranSchedule: form.quranEnabled ? form.quranSchedule : [],
-      islamicSchedule: form.islamicEnabled ? form.islamicSchedule : [],
-      maxAbsenceAllowed: isNaN(absNum) ? 0 : absNum,
-      enableUnexcusedAbsence: form.enableUnexcusedAbsence,
-      sessionLimit: (isNaN(quranNum) ? 0 : quranNum) + (isNaN(islamicNum) ? 0 : islamicNum),
-      groupLink: "", 
-    };
-
-    let isEdit = !!form.editId;
-    let tempId = form.editId || `temp-${Date.now()}`;
-    
-    if (isEdit) {
-      const idx = window.appState.students.findIndex(s => s.id === form.editId);
-      if(idx !== -1) {
-        const existingStudent = window.appState.students[idx];
-        const oldLimit = existingStudent.sessionLimit || window.appState.settings?.defaultLimit || 12;
-        const newLimit = payload.sessionLimit;
-        
-        // عند تغيير سعة الباقة يتم إعادة ضبط موضع الجلسة الحالية وفق قواعد الـ Lifecycle
-        if (newLimit > 0 && oldLimit > 0 && newLimit !== oldLimit) {
-          const currentPos = existingStudent.currentPackageNum || 0;
-          if (currentPos > 0 && window.sessionLifecycle && typeof window.sessionLifecycle.calculatePositionUnderNewLimit === "function") {
-            payload.currentPackageNum = window.sessionLifecycle.calculatePositionUnderNewLimit(currentPos, newLimit);
-          }
-        }
-        
-        Object.assign(window.appState.students[idx], payload);
-      }
-    } else {
-      window.appState.students.push({ ...payload, id: tempId });
-    }
-
-    form.open = false;
-    showToast(isEdit ? "تم تحديث الطالب بنجاح" : "تم إضافة الطالب بنجاح");
-
-    // 🔥 الـ Shortcut السحري للرجوع للمجموعة
-    if (window.appState.ui.returnToGroupForm) {
-      window.appState.ui.returnToGroupForm = false;
-      const groupForm = ensureGroupForm();
-      if (!isEdit) {
-         // نعلم على الطالب الجديد إنه ينضم للمجموعة تلقائياً
-         if (!groupForm.studentIds) groupForm.studentIds = [];
-         groupForm.studentIds.push(tempId); // هنستخدم الآي دي المؤقت لحد ما الداتابيز ترد
-      }
-      groupForm.open = true;
-    }
-
-    router.render();
+    const allStudents = window.appState.students || [];
 
     try {
-      if (isEdit) {
-        await dbModule.updateStudent(form.editId, payload);
+      let res;
+      if (window.studentApplicationService) {
+        if (isEdit) {
+          const existingStudent = allStudents.find((s) => s.id === form.editId);
+          res = await window.studentApplicationService.updateStudent(
+            form.editId,
+            form,
+            existingStudent,
+            packages,
+            allStudents
+          );
+        } else {
+          res = await window.studentApplicationService.createStudent(
+            form,
+            packages,
+            allStudents
+          );
+        }
       } else {
-        const addedStudent = await dbModule.addStudent(payload);
-        if (addedStudent && addedStudent.id) {
-            const tempIdx = window.appState.students.findIndex(s => s.id === tempId);
-            if (tempIdx !== -1) window.appState.students[tempIdx].id = addedStudent.id;
-            
-            // تحديث الآي دي جوه المجموعة لو كان منضاف
-            const groupForm = ensureGroupForm();
-            if (groupForm.studentIds && groupForm.studentIds.includes(tempId)) {
-                groupForm.studentIds = groupForm.studentIds.map(id => id === tempId ? addedStudent.id : id);
-            }
+        if (isEdit) {
+          await dbModule.updateStudent(form.editId, form);
+          res = { success: true };
+        } else {
+          const created = await dbModule.addStudent(form);
+          res = { success: true, student: created };
         }
       }
+
+      if (res && res.success) {
+        form.open = false;
+        showToast(isEdit ? "تم تحديث الطالب بنجاح" : "تم إضافة الطالب بنجاح");
+
+        // 🔥 الـ Shortcut السحري للرجوع للمجموعة
+        if (window.appState.ui.returnToGroupForm) {
+          window.appState.ui.returnToGroupForm = false;
+          const groupForm = ensureGroupForm();
+          if (!isEdit && res.student && res.student.id) {
+            if (!groupForm.studentIds) groupForm.studentIds = [];
+            groupForm.studentIds.push(res.student.id);
+          }
+          groupForm.open = true;
+        }
+
+        router.render();
+      } else {
+        showToast(res?.error || "تعذر حفظ بيانات الطالب");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Save student error:", err);
+      showToast("حدث خطأ أثناء حفظ بيانات الطالب");
     }
   };
 
   window.deleteStudent = async function (id) {
-    const student = window.appState.students.find(s => s.id === id);
+    const student = (window.appState.students || []).find((s) => s.id === id);
     const stuName = student ? student.name : "هذا الطالب";
 
     window.showSafeDeleteModal(`الطالب (${stuName})`, async () => {
-      window.appState.students = window.appState.students.filter(s => s.id !== id);
-      router.render();
-      showToast("تم حذف الطالب بنجاح");
       try {
-        await dbModule.deleteStudent(id);
+        let res;
+        if (window.studentApplicationService) {
+          res = await window.studentApplicationService.archiveStudent(id, window.appState.groups || []);
+        } else if (window.studentRepository) {
+          res = await window.studentRepository.archiveStudent(id);
+        } else {
+          await dbModule.deleteStudent(id);
+          res = { success: true };
+        }
+
+        if (res && res.success !== false) {
+          showToast("تم أرشفة الطالب بنجاح");
+          router.render();
+        } else {
+          showToast(res?.error || "حدث خطأ أثناء أرشفة الطالب");
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Delete student error:", err);
+        showToast("حدث خطأ أثناء أرشفة الطالب");
       }
     });
   };
@@ -504,61 +441,70 @@
 
   window.saveGroupForm = async function () {
     const form = ensureGroupForm();
-    if (!form.name.trim()) {
-      showToast("اكتب اسم المجموعة أولاً");
-      return;
-    }
-    if (!form.studentIds || !form.studentIds.length) {
-      showToast("اختر طلاب المجموعة");
-      return;
-    }
-
-    const payload = {
-      name: form.name.trim(),
-      studentIds: form.studentIds,
-    };
-
-    let isEdit = !!form.editId;
-    let tempId = form.editId || `temp-grp-${Date.now()}`;
-
-    if (isEdit) {
-      const idx = window.appState.groups.findIndex(g => g.id === form.editId);
-      if(idx !== -1) Object.assign(window.appState.groups[idx], payload);
-    } else {
-      window.appState.groups.push({ ...payload, id: tempId });
-    }
-
-    form.open = false;
-    router.render();
-    showToast(isEdit ? "تم تحديث المجموعة" : "تم إنشاء المجموعة");
+    const isEdit = !!form.editId;
 
     try {
-      if (isEdit) {
-        await dbModule.updateGroup(form.editId, payload);
+      let res;
+      if (window.groupApplicationService) {
+        if (isEdit) {
+          res = await window.groupApplicationService.updateGroup(form.editId, {
+            name: form.name,
+            studentIds: form.studentIds,
+          });
+        } else {
+          res = await window.groupApplicationService.createGroup({
+            name: form.name,
+            studentIds: form.studentIds,
+          });
+        }
       } else {
-        const addedGroup = await dbModule.addGroup(payload);
-        if (addedGroup && addedGroup.id) {
-            const tempIdx = window.appState.groups.findIndex(g => g.id === tempId);
-            if (tempIdx !== -1) window.appState.groups[tempIdx].id = addedGroup.id;
+        if (isEdit) {
+          await dbModule.updateGroup(form.editId, { name: form.name, studentIds: form.studentIds });
+          res = { success: true };
+        } else {
+          const created = await dbModule.addGroup({ name: form.name, studentIds: form.studentIds });
+          res = { success: true, group: created };
         }
       }
+
+      if (res && res.success) {
+        form.open = false;
+        showToast(isEdit ? "تم تحديث المجموعة بنجاح" : "تم إنشاء المجموعة بنجاح");
+        router.render();
+      } else {
+        showToast(res?.error || "حدث خطأ أثناء حفظ المجموعة");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Save group error:", err);
+      showToast("حدث خطأ أثناء حفظ المجموعة");
     }
   };
 
   window.deleteGroup = async function (id) {
-    const group = window.appState.groups.find(g => g.id === id);
+    const group = (window.appState.groups || []).find((g) => g.id === id);
     const groupName = group ? group.name : "هذه المجموعة";
 
     window.showSafeDeleteModal(`المجموعة (${groupName})`, async () => {
-      window.appState.groups = window.appState.groups.filter(g => g.id !== id);
-      router.render();
-      showToast("تم حذف المجموعة بنجاح");
       try {
-        await dbModule.deleteGroup(id);
+        let res;
+        if (window.groupApplicationService) {
+          res = await window.groupApplicationService.archiveGroup(id);
+        } else if (window.groupRepository) {
+          res = await window.groupRepository.archiveGroup(id);
+        } else {
+          await dbModule.deleteGroup(id);
+          res = { success: true };
+        }
+
+        if (res && res.success !== false) {
+          showToast("تم أرشفة المجموعة بنجاح");
+          router.render();
+        } else {
+          showToast(res?.error || "حدث خطأ أثناء أرشفة المجموعة");
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Delete group error:", err);
+        showToast("حدث خطأ أثناء أرشفة المجموعة");
       }
     });
   };
@@ -578,6 +524,7 @@
         form.price = pkg.price !== undefined ? pkg.price : 70;
 
         form.studentIds = (window.appState.students || [])
+          .filter((s) => !s.archived)
           .filter((s) => {
             if (form.type === "group") return s.groupPackageId === pkg.id;
             return s.individualPackageId === pkg.id || (!s.individualPackageId && s.packageId === pkg.id);
@@ -1081,10 +1028,11 @@
         <div class="card-soft mb-4 exec-animate" style="--stagger: 4.5; background: rgba(240,253,244,0.5); border: 1px dashed rgba(16,185,129,0.4);">
           <div style="font-weight:var(--fw-bold);margin-bottom:16px;color:#065f46;"><i class="ph-duotone ph-users" style="margin-left:8px;"></i>ربط الطلاب بهذه الباقة (اختياري)</div>
           
-          ${(!window.appState.students || window.appState.students.length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
+          ${(!window.appState.students || window.appState.students.filter(s => !s.archived).length === 0) ? `<div style="font-size: 13px; color: #94a3b8;">لا يوجد طلاب مسجلين لإضافتهم.</div>` : ''}
           
           <div class="d-grid gap-2" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
             ${(window.appState.students || [])
+              .filter((s) => !s.archived)
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:10px;background:white;border-radius:10px;border:1px solid rgba(0,0,0,0.05);cursor:pointer;">
@@ -1338,6 +1286,7 @@
           
           <div class="d-grid gap-3" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
             ${(window.appState.students || [])
+              .filter((s) => !s.archived)
               .map(
                 (s) => `
               <label class="form-check" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.6);border-radius:12px;border:1px solid rgba(0,0,0,0.03);cursor:pointer;transition:all 0.2s;">
@@ -1361,6 +1310,8 @@
 
   function renderSettingsMain() {
     const packages = ensurePackagesExist();
+    const activeStudents = (window.appState.students || []).filter((s) => !s.archived);
+    const activeGroups = (window.appState.groups || []).filter((g) => !g.archived);
     
     return `
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 2; padding: 32px !important;">
@@ -1405,7 +1356,7 @@
           ${packages.map((p, index) => {
             const pkgType = p.type === "group" ? "group" : "individual";
             const isGroupPkg = pkgType === "group";
-            const stuCount = (window.appState.students || []).filter(s => 
+            const stuCount = activeStudents.filter(s => 
               isGroupPkg ? s.groupPackageId === p.id : (s.individualPackageId === p.id || (!s.individualPackageId && s.packageId === p.id))
             ).length;
             const cardBg = isGroupPkg ? '#f0f9ff' : '#f0fdf4';
@@ -1440,17 +1391,17 @@
       <div class="card-soft account-card mb-4 exec-animate" style="--stagger: 6; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${(window.appState.students || []).length})
+            <i class="ph-duotone ph-users" style="margin-left:8px;"></i>إدارة الطلاب (${activeStudents.length})
           </h3>
           <button type="button" class="btn btn-primary" onclick="openStudentForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>طالب جديد
           </button>
         </div>
         
-        ${(!window.appState.students || window.appState.students.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا يوجد طلاب مسجلين بعد.</div>` : ""}
+        ${(activeStudents.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا يوجد طلاب مسجلين بعد.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${(window.appState.students || [])
+          ${activeStudents
             .map(
               (s, index) => {
                 const individualPkg = packages.find(p => p.id === s.individualPackageId);
@@ -1489,19 +1440,19 @@
       <div class="card-soft account-card exec-animate" style="--stagger: 8; padding: 32px !important;">
         <div class="d-flex justify-content-between align-items-center mb-4" style="border-bottom: 2px solid rgba(212, 175, 55, 0.15); padding-bottom: 16px;">
           <h3 style="font-size:var(--fs-xl);font-weight:var(--fw-extrabold);color:var(--text-primary);margin:0;">
-            <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${(window.appState.groups || []).length})
+            <i class="ph-duotone ph-users-three" style="margin-left:8px;"></i>إدارة المجموعات (${activeGroups.length})
           </h3>
           <button type="button" class="btn btn-primary" onclick="openGroupForm()">
             <i class="ph-bold ph-plus" style="margin-left:4px;"></i>مجموعة جديدة
           </button>
         </div>
         
-        ${(!window.appState.groups || window.appState.groups.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد مجموعات حالياً.</div>` : ""}
+        ${(activeGroups.length === 0) ? `<div style="color:#94A3B8;text-align:center;padding:20px;font-size:15px;">لا توجد مجموعات حالياً.</div>` : ""}
         
         <div class="d-grid gap-3">
-          ${(window.appState.groups || [])
+          ${activeGroups
             .map((g, index) => {
-              const members = (window.appState.students || []).filter((s) => g.studentIds?.includes(s.id));
+              const members = activeStudents.filter((s) => g.studentIds?.includes(s.id));
               const names = members.map((m) => m.name).join("، ");
               return `
                 <div class="card-soft exec-animate" style="--stagger: ${9 + (index * 0.2)}; padding:16px; background: rgba(255, 255, 255, 0.6); border: 1px solid rgba(0,0,0,0.04); border-radius: 16px; transition: all 0.3s ease;">

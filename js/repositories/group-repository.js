@@ -83,7 +83,10 @@
       const ref = this.getGroupsCollection().doc();
       const payload = {
         id: ref.id,
+        schemaVersion: 2,
+        archived: false,
         createdAt: Date.now(),
+        updatedAt: Date.now(),
         ...data,
       };
       await ref.set(payload);
@@ -94,6 +97,7 @@
     async updateGroup(id, updates) {
       if (!id) throw new Error("معرف المجموعة مطلوب للتحديث");
       const sanitizedUpdates = {
+        schemaVersion: 2,
         ...updates,
         updatedAt: Date.now(),
       };
@@ -101,11 +105,36 @@
       return { id, ...sanitizedUpdates };
     }
 
-    // حذف مجموعة
+    // أرشفة مجموعة بأمان (Safe Archive) دون المساس بالجلسات التاريخية
+    async archiveGroup(id) {
+      if (!id) throw new Error("معرف المجموعة مطلوب للأرشفة");
+      const timestamp = Date.now();
+      const updates = {
+        archived: true,
+        archivedAt: new Date(timestamp).toISOString(),
+        archivedAtTimestamp: timestamp,
+        updatedAt: timestamp,
+      };
+      await this.getGroupsCollection().doc(id).update(updates);
+      return { id, ...updates };
+    }
+
+    // استعادة مجموعة من الأرشيف
+    async restoreGroup(id) {
+      if (!id) throw new Error("معرف المجموعة مطلوب للاستعادة");
+      const timestamp = Date.now();
+      const updates = {
+        archived: false,
+        restoredAt: new Date(timestamp).toISOString(),
+        updatedAt: timestamp,
+      };
+      await this.getGroupsCollection().doc(id).update(updates);
+      return { id, ...updates };
+    }
+
+    // حذف مجموعة (حذف آمن بالأرشفة للحفاظ على سجلات الجلسات)
     async deleteGroup(id) {
-      if (!id) throw new Error("معرف المجموعة مطلوب للحذف");
-      await this.getGroupsCollection().doc(id).delete();
-      return { success: true, deletedId: id };
+      return await this.archiveGroup(id);
     }
   }
 

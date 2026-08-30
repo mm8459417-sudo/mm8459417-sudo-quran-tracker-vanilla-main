@@ -50,7 +50,7 @@
     const DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
     let autoScheduleItems = [];
-    let students = window.appState?.students || [];
+    let students = (window.appState?.students || []).filter((s) => !s.archived);
 
     // سحب البيانات من الطلاب وفصل القرآن عن التربية
     students.forEach((student) => {
