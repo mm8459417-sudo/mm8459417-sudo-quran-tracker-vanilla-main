@@ -122,10 +122,17 @@
     }
 
     try {
-      await dbModule.saveSettings({ 
-        teacherName: newName,
-        teacherPhone: newPhone
-      });
+      if (window.teacherRepository) {
+        await window.teacherRepository.updateProfile({ 
+          teacherName: newName,
+          teacherPhone: newPhone
+        });
+      } else {
+        await dbModule.saveSettings({ 
+          teacherName: newName,
+          teacherPhone: newPhone
+        });
+      }
       showToast("تم حفظ البيانات بنجاح");
       setTimeout(() => router.render(), 300);
     } catch (err) {

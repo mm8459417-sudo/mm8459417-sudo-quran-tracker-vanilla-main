@@ -27,6 +27,9 @@
     const teacherName = appState.settings?.teacherName || "المعلم";
     const todayLabel = typeof formatArDate === "function" ? formatArDate(new Date().toISOString()) : new Date().toLocaleDateString('ar-EG');
     
+    // حساب إجمالي الجلسات التراكمي المنجزة من مجموع استهلاك الطلاب
+    const totalCompletedSessions = (appState.students || []).reduce((sum, s) => sum + (typeof s.totalConsumedSessions === "number" ? s.totalConsumedSessions : 0), 0);
+
     // الشرط ده بيعرف المنصة إحنا في الشاشة الرئيسية ولا لأ
     const isHomePage = !appState.activeTab || appState.activeTab === "form" || appState.activeTab === "dashboard";
 
@@ -79,7 +82,7 @@
                 <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 4px 10px; display: flex; align-items: center; gap: 6px; color: white;">
                    <i class="ph-duotone ph-books" style="color: #fbbf24; font-size: 15px;"></i>
                    <span style="font-size: 11px; opacity: 0.9;">الجلسات:</span>
-                   <span style="font-weight: bold; font-size: 13px;" dir="ltr">${appState.sessions ? appState.sessions.length : 0}</span>
+                   <span style="font-weight: bold; font-size: 13px;" dir="ltr">${totalCompletedSessions}</span>
                 </div>
               </div>
             </div>
@@ -113,7 +116,7 @@
                 <div class="stat-icon gold"><i class="ph-duotone ph-books"></i></div>
                 <div class="stat-info">
                   <div class="stat-lbl">جلسات مُنجزة</div>
-                  <div class="stat-val" dir="ltr">${appState.sessions ? appState.sessions.length : 0}</div>
+                  <div class="stat-val" dir="ltr">${totalCompletedSessions}</div>
                 </div>
               </div>
             </div>

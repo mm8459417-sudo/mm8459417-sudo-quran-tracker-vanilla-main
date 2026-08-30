@@ -11,6 +11,23 @@
   if (appState.ui.month === undefined) appState.ui.month = currentDateObj.getMonth() + 1;
   if (appState.ui.year === undefined) appState.ui.year = currentDateObj.getFullYear();
 
+  async function ensureMonthSessionsLoaded() {
+    if (!window.sessionRepository) return;
+    const year = appState.ui.year;
+    const month = appState.ui.month;
+    if (appState._loadedMonthKey === `${year}-${month}` && appState.currentMonthSessions) {
+      return;
+    }
+    try {
+      const sessions = await window.sessionRepository.getSessionsByMonth(year, month);
+      appState.currentMonthSessions = sessions;
+      appState._loadedMonthKey = `${year}-${month}`;
+      if (typeof router !== "undefined") router.render();
+    } catch (e) {
+      console.error("Failed to load month sessions:", e);
+    }
+  }
+
   window.prevMonth = function () {
     if (appState.ui.month === 1) {
       appState.ui.month = 12;
@@ -18,6 +35,8 @@
     } else {
       appState.ui.month -= 1;
     }
+    appState._loadedMonthKey = null;
+    ensureMonthSessionsLoaded();
     if (typeof router !== "undefined") router.render();
   };
 
@@ -28,6 +47,8 @@
     } else {
       appState.ui.month += 1;
     }
+    appState._loadedMonthKey = null;
+    ensureMonthSessionsLoaded();
     if (typeof router !== "undefined") router.render();
   };
 
@@ -41,46 +62,34 @@
   };
 
   function buildCounts() {
-    const map = {};
-    const sessionsList = appState.sessions || [];
-    sessionsList.forEach((s) => {
-      if (!s.date) return;
-      const d = new Date(s.date);
-      if (d.getFullYear() === appState.ui.year && d.getMonth() + 1 === appState.ui.month) {
-        if (s.mode === "group" && Array.isArray(s.participants)) {
-          s.participants
-            .filter((p) => p.present !== false && p.attendance !== "absent_excused" && p.attendance !== "absent_unexcused")
-            .forEach((p) => {
-              map[p.studentId] = (map[p.studentId] || 0) + 1;
-            });
-        } else if (s.studentId && s.attendance !== "absent_excused" && s.attendance !== "absent_unexcused") {
-          map[s.studentId] = (map[s.studentId] || 0) + 1;
-        }
-      }
-    });
-    return map;
+    if (window.reportService) {
+      const sessionsList = appState.currentMonthSessions || appState.sessions || [];
+      return window.reportService.buildMonthlyCountsMap(sessionsList, appState.ui.year, appState.ui.month);
+    }
+    return {};
   }
 
   window.copyMonthlySheet = function () {
     const counts = buildCounts();
     const studentsList = appState.students || [];
     const teacherName = (appState.settings && appState.settings.teacherName) ? appState.settings.teacherName : "غير محدد";
-    const lines = [
-      "📋 شيت حضور الحلقات",
-      `📅 ${appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month} / ${appState.ui.year}`,
-      `المعلم: ${teacherName}`,
-      "─────────────────────────",
-      ...studentsList
-        .filter(s => !(appState.tempAdjustments[s.id] && appState.tempAdjustments[s.id].printExcluded))
-        .map((s, i) => {
-          const c = counts[s.id] || 0;
-          // التوافق الرجعي لحساب الباقة الكلية
-          const lim = (s.quranLimit || 0) + (s.islamicLimit || 0) || s.sessionLimit || (appState.settings && appState.settings.defaultLimit) || 12;
-          return `${i + 1}. ${s.name}   ${c} / ${lim} حصة`;
-        }),
-    ];
+    const monthName = appState.ui.monthNames ? appState.ui.monthNames[appState.ui.month - 1] : appState.ui.month;
+    const defaultLimit = (appState.settings && appState.settings.defaultLimit) || 12;
+
+    const text = window.reportService
+      ? window.reportService.generateMonthlySheetText({
+          students: studentsList,
+          counts,
+          tempAdjustments: appState.tempAdjustments || {},
+          monthName,
+          year: appState.ui.year,
+          teacherName,
+          defaultLimit
+        })
+      : "";
+
     navigator.clipboard
-      .writeText(lines.join("\n"))
+      .writeText(text)
       .then(() => typeof showToast === 'function' && showToast("تم نسخ الشيت"))
       .catch(() => typeof showToast === 'function' && showToast("تعذر النسخ"));
   };
@@ -248,142 +257,31 @@
       const monthNames = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
       appState.ui.monthNames = monthNames;
 
-      const sessionsList = appState.sessions || [];
+      const sessionsList = appState.currentMonthSessions || appState.sessions || [];
       const studentsList = appState.students || [];
       const packagesList = appState.settings && appState.settings.packages ? appState.settings.packages : [];
 
-      const filteredSessions = sessionsList.filter(s => {
-        if (!s.date) return false;
-        const d = new Date(s.date);
-        if (appState.ui.sheetFilter === "week") {
-          const now = new Date();
-          const oneWeekAgo = new Date();
-          oneWeekAgo.setDate(now.getDate() - 7);
-          return d >= oneWeekAgo && d <= now;
-        } else {
-          return (d.getMonth() + 1) === appState.ui.month && d.getFullYear() === appState.ui.year;
-        }
-      });
+      const sheetCalculations = window.reportService
+        ? window.reportService.calculateMonthlySheetData({
+            students: studentsList,
+            sessions: sessionsList,
+            packagesList,
+            tempAdjustments: appState.tempAdjustments || {},
+            month: appState.ui.month,
+            year: appState.ui.year,
+            sheetFilter: appState.ui.sheetFilter
+          })
+        : { tableData: [], grandTotals: { grandTotalAmount: 0, grandTotalCalculatedSessions: 0, grandTotalQuran: 0, grandTotalIslamic: 0, grandTotalIndividual: 0, grandTotalGroup: 0 } };
 
-      let grandTotalAmount = 0;
-      let grandTotalCalculatedSessions = 0;
-      let grandTotalQuran = 0;
-      let grandTotalIslamic = 0;
-      let grandTotalIndividual = 0;
-      let grandTotalGroup = 0;
-
-      let tableData = studentsList.map(student => {
-        const stdSessions = filteredSessions.filter(s => {
-          if (s.mode === "individual" || !s.mode) {
-            return s.studentId === student.id;
-          } else if (s.mode === "group" && Array.isArray(s.participants)) {
-            return s.participants.some(p => p.studentId === student.id);
-          }
-          return false;
-        });
-
-        let quranCount = 0;
-        let islamicCount = 0;
-        let unexcusedAbsenceCount = 0;
-        let excusedAbsenceCount = 0;
-        let individualCount = 0;
-        let groupCount = 0;
-
-        stdSessions.forEach(s => {
-          let isPresent = true;
-          let attendanceStatus = "present";
-          
-          if (s.mode === "group" && Array.isArray(s.participants)) {
-            const p = s.participants.find(x => x.studentId === student.id);
-            if (p && p.present === false) {
-              isPresent = false;
-              attendanceStatus = p.attendance || "absent_unexcused"; 
-            } else if (p && p.attendance && p.attendance !== "present") {
-              isPresent = false;
-              attendanceStatus = p.attendance;
-            }
-          } else if (s.attendance && s.attendance !== "present") {
-            isPresent = false;
-            attendanceStatus = s.attendance;
-          }
-
-          if (isPresent) {
-            if (s.sessionType === "quran" || s.sessionType === "review") quranCount++;
-            if (s.sessionType === "islamic") islamicCount++;
-            
-            if (s.mode === "group") {
-              groupCount++;
-            } else {
-              individualCount++;
-            }
-          } else {
-            if (attendanceStatus === "absent_excused") {
-              excusedAbsenceCount++;
-            } else {
-              unexcusedAbsenceCount++;
-            }
-          }
-        });
-
-        // قراءة التعديلات اليدوية
-        if (!appState.tempAdjustments) appState.tempAdjustments = {};
-        const adj = appState.tempAdjustments[student.id] || {};
-        const printExcluded = adj.printExcluded || false; 
-
-        // تطبيق التعديلات اليدوية
-        quranCount = Math.max(0, quranCount + (adj.quran || 0));
-        islamicCount = Math.max(0, islamicCount + (adj.islamic || 0));
-        individualCount = Math.max(0, individualCount + (adj.individual || 0));
-        groupCount = Math.max(0, groupCount + (adj.group || 0));
-
-        // 🔥 جلب أسعار الباقات المنفصلة (فردي / جماعي)
-        const indPkg = packagesList.find(p => p.id === student.individualPackageId);
-        const grpPkg = packagesList.find(p => p.id === student.groupPackageId);
-        const fallbackPkg = packagesList.find(p => p.id === student.packageId); // للتوافق الرجعي
-
-        let sessionPriceInd = indPkg ? indPkg.price : (fallbackPkg ? fallbackPkg.price : (student.sessionPrice || 70));
-        let sessionPriceGrp = grpPkg ? grpPkg.price : (student.groupSessionPrice !== undefined ? student.groupSessionPrice : sessionPriceInd);
-        
-        const maxAbsenceAllowed = student.maxAbsenceAllowed !== undefined ? student.maxAbsenceAllowed : 1;
-        const enableUnexcusedAbsence = student.enableUnexcusedAbsence !== undefined ? student.enableUnexcusedAbsence : true;
-
-        let payableAbsences = 0;
-        if (enableUnexcusedAbsence) {
-          payableAbsences = Math.max(0, unexcusedAbsenceCount - maxAbsenceAllowed);
-        }
-
-        // الحلقات المحتسبة
-        let totalCalculatedSessions = individualCount + groupCount + payableAbsences;
-        
-        // 🔥 حساب الفلوس بدقة: الفردي بسعره + الجماعي بسعره + الغياب بيتحسب بسعر الفردي
-        let totalAmount = (individualCount * sessionPriceInd) + (groupCount * sessionPriceGrp) + (payableAbsences * sessionPriceInd);
-
-        if (!printExcluded) {
-          grandTotalAmount += totalAmount;
-          grandTotalCalculatedSessions += totalCalculatedSessions;
-          grandTotalQuran += quranCount;
-          grandTotalIslamic += islamicCount;
-          grandTotalIndividual += individualCount;
-          grandTotalGroup += groupCount;
-        }
-
-        return {
-          ...student,
-          quranCount,
-          islamicCount,
-          individualCount,
-          groupCount,
-          unexcusedAbsenceCount,
-          excusedAbsenceCount,
-          payableAbsences,
-          totalCalculatedSessions,
-          totalAmount,
-          sessionPriceInd,
-          sessionPriceGrp,
-          enableUnexcusedAbsence,
-          printExcluded
-        };
-      });
+      let tableData = sheetCalculations.tableData;
+      let {
+        grandTotalAmount,
+        grandTotalCalculatedSessions,
+        grandTotalQuran,
+        grandTotalIslamic,
+        grandTotalIndividual,
+        grandTotalGroup
+      } = sheetCalculations.grandTotals;
 
       tableData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
@@ -546,6 +444,6 @@
   };
 
   window.initMonthlySheetPage = function () {
-    return;
+    ensureMonthSessionsLoaded();
   };
 })();

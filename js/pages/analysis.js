@@ -2,7 +2,7 @@
   let chartInstance = null;
 
   // ==========================================
-  // أدوات مساعدة عامة (Helpers)
+  // أدوات مساعدة عامة (Helpers مفوضة لـ ReportService)
   // ==========================================
 
   function getCurrentMonthYear() {
@@ -13,170 +13,91 @@
   }
 
   function filterSessionsByMonth(sessions, month, year) {
-    return sessions.filter((s) => {
-      const d = new Date(s.date);
-      return d.getMonth() === month && d.getFullYear() === year;
-    });
+    return window.reportService ? window.reportService.filterSessionsByMonth(sessions, month, year) : sessions;
   }
 
   function calcAverage(sessions) {
-    if (!sessions.length) return 0;
-    return sessions.reduce((sum, s) => sum + (s.overall || 0), 0) / sessions.length;
+    return window.reportService ? window.reportService.calcAverage(sessions) : 0;
   }
 
   function buildChartData(sessions) {
-    return sessions.slice(-20).map((s, i) => ({ label: i + 1, value: s.overall || 0 }));
+    return window.reportService ? window.reportService.buildChartData(sessions) : [];
   }
 
   function normalizeStudentSessions(sessions) {
-    return sessions.map((s) => {
-      if (s.participant && typeof s.participant.overall === "number") {
-        return { ...s, overall: s.participant.overall };
-      }
-      return s;
-    });
+    return window.reportService ? window.reportService.normalizeStudentSessions(sessions) : sessions;
   }
 
   function getStudentQuranLimit(student) {
-    if (!student) return 0;
-    const raw = student.quranLimit !== undefined && student.quranLimit !== null
-      ? student.quranLimit
-      : student.sessionLimit;
-    return Number(raw) || 0;
+    return window.reportService ? window.reportService.getStudentQuranLimit(student) : 0;
   }
 
   function getStudentIslamicLimit(student) {
-    if (!student) return 0;
-    return Number(student.islamicLimit) || 0;
+    return window.reportService ? window.reportService.getStudentIslamicLimit(student) : 0;
   }
 
-  // خوارزمية الحد الأدنى للتحليل بناءً على حجم الباقة الشهرية
   function getMinimumThreshold(packageLimit) {
-    if (packageLimit >= 6) return 4;
-    if (packageLimit >= 3) return 3; // يغطي 3 و4 و5
-    return 0; // 1 أو 2 أو بدون باقة: لا يوجد حد أدنى، يمكن التحليل مباشرة
+    return window.reportService ? window.reportService.getMinimumThreshold(packageLimit) : 0;
   }
 
   function detectGender(student) {
-    if (!student) return false;
-    if (student.gender === "girl" || student.gender === "female") return true;
-    if (student.gender === "boy") return false;
-    const firstName = student.name.split(" ")[0];
-    const femaleEndings = ["ة", "اء", "ى"];
-    const femaleNames = ["مريم", "زينب", "هند", "سعاد", "ريم", "نور", "فاطمة", "عائشة", "خديجة", "آمنة", "سارة", "حفصة", "رقية"];
-    if (femaleEndings.some((end) => firstName.endsWith(end)) || femaleNames.includes(firstName)) {
-      return true;
-    }
-    return false;
+    return window.reportService ? window.reportService.detectGender(student) : false;
   }
 
   function getDefaultCertTexts(student) {
-    const isFemale = detectGender(student);
-    const genderSuffix = isFemale ? "ها" : "ه";
-    const defaultIntro = `تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز`;
-    const defaultReason = `وذلك لتميز${genderSuffix} الواضح وتفوق${genderSuffix} في حفظ كتاب الله\nسائلين المولى عز وجل أن يجعل${genderSuffix} من أهل القرآن`;
-    return { defaultIntro, defaultReason };
+    return window.reportService
+      ? window.reportService.getDefaultCertTexts(student)
+      : {
+          defaultIntro: `تتقدم إدارة حلقات الصحبة والمعلم بخالص الشكر والتقدير إلى الطالب المتميز`,
+          defaultReason: `وذلك لتميزه الواضح وتفوقه في حفظ كتاب الله\nسائلين المولى عز وجل أن يجعله من أهل القرآن`
+        };
+  }
+
+  async function ensureAnalysisSessionsLoaded() {
+    if (!window.sessionRepository) return;
+    const { month, year } = getCurrentMonthYear();
+    const actualMonth = month + 1;
+    if (appState._loadedAnalysisKey === `${year}-${actualMonth}` && appState.currentAnalysisSessions) {
+      return;
+    }
+    try {
+      const sessions = await window.sessionRepository.getSessionsByMonth(year, actualMonth);
+      appState.currentAnalysisSessions = sessions;
+      appState._loadedAnalysisKey = `${year}-${actualMonth}`;
+      if (typeof router !== "undefined") router.render();
+    } catch (e) {
+      console.error("Failed to load analysis sessions:", e);
+    }
   }
 
   // ==========================================
-  // حساب سياق التحليل الكامل (يُستخدم في العرض والرسم البياني معًا)
+  // حساب سياق التحليل الكامل (مفوض لـ ReportService)
   // ==========================================
   function computeAnalysisContext() {
-    if (appState.ui.analysisMode !== "quran" && appState.ui.analysisMode !== "islamic") {
-      appState.ui.analysisMode = "quran";
-    }
-
-    const selectedId = appState.ui.analysisStudentId || "all";
-    const student = selectedId === "all" ? null : appState.students.find((s) => s.id === selectedId);
-
     const { month, year } = getCurrentMonthYear();
+    const sourceSessions = (appState.currentAnalysisSessions && appState.currentAnalysisSessions.length > 0)
+      ? appState.currentAnalysisSessions
+      : (appState.currentMonthSessions || appState.sessions || []);
 
-    const baseSessions = selectedId === "all"
-      ? appState.sessions.slice()
-      : normalizeStudentSessions(getStudentSessions(selectedId)).sort(
-        (a, b) => new Date(a.date) - new Date(b.date)
-      );
-
-    const monthSessions = filterSessionsByMonth(baseSessions, month, year).sort(
-      (a, b) => new Date(a.date) - new Date(b.date)
-    );
-
-    const quranMonthSessions = monthSessions.filter((s) => s.sessionType !== "islamic");
-    const islamicMonthSessions = monthSessions.filter((s) => s.sessionType === "islamic");
-
-    let quranLimit = 0;
-    let islamicLimit = 0;
-    let canToggleMode = false;
-    let mode = appState.ui.analysisMode;
-    let hasNoPackage = false;
-
-    if (student) {
-      quranLimit = getStudentQuranLimit(student);
-      islamicLimit = getStudentIslamicLimit(student);
-
-      if (quranLimit > 0 && islamicLimit === 0) {
-        mode = "quran";
-      } else if (islamicLimit > 0 && quranLimit === 0) {
-        mode = "islamic";
-      } else if (quranLimit > 0 && islamicLimit > 0) {
-        canToggleMode = true;
-      } else {
-        hasNoPackage = true;
-        mode = "quran";
-      }
-      appState.ui.analysisMode = mode; // مزامنة الحالة مع الباقة الفعلية للطالب
-    } else {
-      canToggleMode = true; // في وضع "جميع الطلاب" يظل التبديل متاحًا دائمًا
+    if (window.reportService) {
+      const ctx = window.reportService.computeAnalysisContext({
+        students: appState.students || [],
+        sessions: sourceSessions,
+        selectedStudentId: appState.ui.analysisStudentId || "all",
+        analysisMode: appState.ui.analysisMode || "quran",
+        month,
+        year
+      });
+      appState.ui.analysisMode = ctx.mode;
+      return ctx;
     }
-
-    const targetSessions = mode === "quran" ? quranMonthSessions : islamicMonthSessions;
-    const packageLimit = student ? (mode === "quran" ? quranLimit : islamicLimit) : null;
-    const minThreshold = student && !hasNoPackage ? getMinimumThreshold(packageLimit) : null;
-
-    const executedCount = targetSessions.length;
-    const avgRatingNum = calcAverage(targetSessions);
-    const avgRating = avgRatingNum.toFixed(1);
-
-    let meetsMinimum = false;
-    if (student && !hasNoPackage) {
-      meetsMinimum = minThreshold === 0 ? executedCount >= 1 : executedCount >= minThreshold;
-    }
-
-    let status = null;
-    if (student && !hasNoPackage && executedCount > 0) {
-      if (!meetsMinimum) {
-        status = {
-          key: "waiting",
-          icon: "⏳",
-          title: "بانتظار استكمال الحد الأدنى",
-          detail: `تم تنفيذ ${executedCount} من أصل ${minThreshold} حلقات كحد أدنى مطلوب لبدء التحليل هذا الشهر.`,
-        };
-      } else if (avgRatingNum >= 4.0) {
-        status = {
-          key: "eligible",
-          icon: "✅",
-          title: "مؤهل لإصدار شهادة تفوق",
-          detail: `تم تنفيذ ${executedCount} حلقة بمتوسط تقييم ${avgRating} من 5.`,
-        };
-      } else {
-        status = {
-          key: "low",
-          icon: "❌",
-          title: "التقييم أقل من المطلوب",
-          detail: `تم تنفيذ ${executedCount} حلقة${minThreshold > 0 ? ` (الحد الأدنى ${minThreshold})` : ""}، لكن متوسط التقييم ${avgRating} أقل من 4.0 المطلوب لإصدار الشهادة.`,
-        };
-      }
-    }
-
-    const showReward = !!(student && !hasNoPackage && executedCount > 0 && meetsMinimum && avgRatingNum >= 4.0);
 
     return {
-      selectedId, student, mode, canToggleMode, hasNoPackage,
-      month, year,
-      quranLimit, islamicLimit, packageLimit, minThreshold,
-      monthSessions, quranMonthSessions, islamicMonthSessions,
-      targetSessions, executedCount, avgRating, avgRatingNum,
-      status, showReward,
+      selectedId: "all", student: null, mode: "quran", canToggleMode: true, hasNoPackage: false,
+      month, year, quranLimit: 0, islamicLimit: 0, packageLimit: null, minThreshold: null,
+      monthSessions: [], quranMonthSessions: [], islamicMonthSessions: [],
+      targetSessions: [], executedCount: 0, avgRating: "0.0", avgRatingNum: 0,
+      status: null, showReward: false
     };
   }
 
@@ -537,8 +458,9 @@
   };
 
   window.initAnalysisPage = function () {
+    ensureAnalysisSessionsLoaded();
     const canvas = document.getElementById("analysis-chart");
-    if (!canvas) return; // تم حل المشكلة هنا: الدالة هتقف لو الشاشة فاضية ومفيش Canvas
+    if (!canvas) return;
 
     const ctx = computeAnalysisContext();
     const data = buildChartData(ctx.targetSessions);

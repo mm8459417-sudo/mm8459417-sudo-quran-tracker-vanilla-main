@@ -115,7 +115,7 @@ window.getGroupMembers = function (groupId) {
 };
 
 window.getStudentSessions = function (studentId) {
-  return appState.sessions
+  return (appState.sessions || [])
     .map((session) => {
       if (session.mode === "group") {
         const participant = session.participants?.find(
@@ -131,12 +131,21 @@ window.getStudentSessions = function (studentId) {
 };
 
 window.countStudentSessions = function (studentId) {
+  const student = getStudentById(studentId);
+  if (student && typeof student.totalConsumedSessions === "number") {
+    return student.totalConsumedSessions;
+  }
   return getStudentSessions(studentId).length;
 };
 
 window.getNextPackageNum = function (studentId, limit) {
+  const student = getStudentById(studentId);
+  const studentLimit = limit || (student && student.sessionLimit) || appState.settings?.defaultLimit || 12;
+  if (student && typeof student.currentPackageNum === "number" && student.currentPackageNum > 0) {
+    return (student.currentPackageNum % studentLimit) + 1;
+  }
   const count = countStudentSessions(studentId);
-  return (count % limit) + 1;
+  return (count % studentLimit) + 1;
 };
 
 window.handleLogout = async function () {
@@ -166,17 +175,29 @@ function attachSubscriptions() {
   });
   dbModule.subscribeSettings((data) => {
     const user = appState.user;
-    const fallbackName = user
-      ? user.displayName || user.email?.split("@")[0] || "المعلم"
-      : "المعلم";
-      
-    appState.settings = {
-      ...appState.settings, 
-      ...data,
-      teacherName: data.teacherName || fallbackName,
-      defaultLimit: data.defaultLimit || 12,
-      accountingPhone: data.accountingPhone || "",
-    };
+    
+    if (window.teacherSettingsService) {
+      const normalized = window.teacherSettingsService.normalizeTeacherData(data, user);
+      appState.teacherProfile = normalized.profile;
+      appState.preferences = normalized.preferences;
+      appState.businessDefaults = normalized.businessDefaults;
+      appState.settings = {
+        ...appState.settings,
+        ...normalized.legacySettings
+      };
+    } else {
+      const fallbackName = user
+        ? user.displayName || user.email?.split("@")[0] || "المعلم"
+        : "المعلم";
+        
+      appState.settings = {
+        ...appState.settings, 
+        ...data,
+        teacherName: data.teacherName || fallbackName,
+        defaultLimit: data.defaultLimit || 12,
+        accountingPhone: data.accountingPhone || "",
+      };
+    }
     
     scheduleRender();
     if (typeof applyTheme === 'function') applyTheme(); 

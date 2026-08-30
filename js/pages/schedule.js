@@ -51,11 +51,10 @@
 
     let autoScheduleItems = [];
     let students = window.appState?.students || [];
-    let sessions = window.appState?.sessions || [];
 
     // سحب البيانات من الطلاب وفصل القرآن عن التربية
     students.forEach((student) => {
-        let studentSessionsCount = sessions.filter(s => s.participant && s.participant.id === student.id).length;
+        let studentSessionsCount = typeof student.totalConsumedSessions === "number" ? student.totalConsumedSessions : (student.currentPackageNum || 0);
 
         // 1. استخراج مواعيد القرآن (أو المواعيد القديمة للطلاب اللي متحدثوش)
         if (student.quranEnabled !== false) {

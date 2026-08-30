@@ -450,12 +450,9 @@
     form.scope = "individual";
     form.studentId = id;
 
-    // حساب عدد الحصص السابقة للطالب من السجلات
-    const sessions = appState.sessions || [];
-    const studentSessionsCount = sessions.filter(s => s.studentId === id || (s.participant && s.participant.id === id)).length;
-    
-    // رقم الجلسة الحالية = عدد الجلسات السابقة + 1
-    form.sessionNumber = studentSessionsCount + 1;
+    const student = getStudentById(id);
+    const limit = (student && student.sessionLimit) || appState.settings?.defaultLimit || 12;
+    form.sessionNumber = getNextPackageNum(id, limit);
 
     router.render();
   };

@@ -24,64 +24,36 @@
   let clockStarted = false;
 
   // ============================================================
-  // 1) دوال مساعدة عامة
+  // 1) دوال مساعدة عامة (مفوضة لـ secretaryService)
   // ============================================================
   function normalizeArabic(text) {
-    if (!text) return "";
-    return text.trim().replace(/[أإآ]/g, "ا").replace(/ة$/g, "ه");
+    return window.secretaryService ? window.secretaryService.normalizeArabic(text) : (text || "").trim().replace(/[أإآ]/g, "ا").replace(/ة$/g, "ه");
   }
 
   function timeToMinutes(timeStr) {
-    if (!timeStr) return 0;
-    if (timeStr.includes(":") && !/AM|PM|م|ص/.test(timeStr)) {
-      let [h, m] = timeStr.split(":").map(Number);
-      return (h || 0) * 60 + (m || 0);
-    }
-    let [time, period] = timeStr.split(" ");
-    if (!time || !period) return 0;
-    let [h, m] = time.split(":").map(Number);
-    h = h || 0; m = m || 0;
-    if ((period === "PM" || period === "م") && h !== 12) h += 12;
-    if ((period === "AM" || period === "ص") && h === 12) h = 0;
-    return h * 60 + m;
+    return window.secretaryService ? window.secretaryService.timeToMinutes(timeStr) : 0;
   }
 
   function minutesToTimeStr(mins) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${pad(h)}:${pad(m)}:00`;
+    return window.secretaryService ? window.secretaryService.minutesToTimeStr(mins) : "";
   }
 
   function pad(n) { return (n || 0).toString().padStart(2, "0"); }
   function dateToStr(d) { return d.toISOString().split("T")[0]; }
   function addDays(date, delta) {
-    const d = new Date(date);
-    d.setDate(d.getDate() + delta);
-    return d;
+    return window.secretaryService ? window.secretaryService.addDays(date, delta) : new Date(date);
   }
 
   function formatClock(date) {
-    if (isNaN(date.getTime())) return "--:--";
-    let h = date.getHours();
-    const ampm = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    return `${pad(h)}:${pad(date.getMinutes())} ${ampm}`;
+    return window.secretaryService ? window.secretaryService.formatClock(date) : "--:--";
   }
 
   function formatDateLabel(dateObj) {
-    if (isNaN(dateObj.getTime())) return "تاريخ غير معروف";
-    if (typeof window.formatArDate === "function") {
-      try { return window.formatArDate(dateObj.toISOString()); } catch (e) {}
-    }
-    return dateObj.toLocaleDateString("ar-EG");
+    return window.secretaryService ? window.secretaryService.formatDateLabel(dateObj) : (dateObj ? dateObj.toLocaleDateString("ar-EG") : "");
   }
 
   function daysAgoLabel(n) {
-    if (n <= 0) return "اليوم";
-    if (n === 1) return "من يوم";
-    if (n === 2) return "من يومين";
-    if (n <= 10) return `من ${n} أيام`;
-    return `من ${n} يوم`;
+    return window.secretaryService ? window.secretaryService.daysAgoLabel(n) : "";
   }
 
   function getStudentName(id) {
@@ -100,180 +72,50 @@
   }
 
   // ============================================================
-  // 2) محرك البيانات (محمي ضد الداتا التالفة + الحلقات التعويضية)
+  // 2) محرك البيانات والعمليات الحسابية (عبر SecretaryService)
   // ============================================================
   function getScheduleEntries() {
-    const entries = [];
-    const students = window.appState?.students || [];
-    const groups = window.appState?.groups || [];
-
-    // إضافة الحلقات الثابتة للطلاب
-    students.forEach(student => {
-      if (!student) return;
-      const qEnabled = student.quranEnabled !== undefined ? student.quranEnabled : ((student.quranLimit || student.sessionLimit) > 0);
-      const iEnabled = student.islamicEnabled !== undefined ? student.islamicEnabled : ((student.islamicLimit || 0) > 0);
-      let schedules = [];
-
-      if (qEnabled && Array.isArray(student.quranSchedule)) {
-        schedules.push(...student.quranSchedule.map(s => ({ ...s, type: "قرآن", sessionType: "quran", icon: "ph-book-open-text", color: "-green" })));
-      } else if (qEnabled && Array.isArray(student.schedule)) {
-        schedules.push(...student.schedule.map(s => ({ ...s, type: "قرآن", sessionType: "quran", icon: "ph-book-open-text", color: "-green" })));
-      }
-      if (iEnabled && Array.isArray(student.islamicSchedule)) {
-        schedules.push(...student.islamicSchedule.map(s => ({ ...s, type: "تربية", sessionType: "islamic", icon: "ph-heart", color: "-blue" })));
-      }
-
-      schedules.forEach(sched => {
-        if (!sched || !sched.day || !sched.time) return;
-        entries.push({
-          mode: "individual",
-          id: student.id,
-          name: student.name || "بدون اسم",
-          gender: student.gender,
-          day: sched.day,
-          time: sched.time,
-          type: sched.type,
-          sessionType: sched.sessionType,
-          icon: sched.icon,
-          color: sched.color
-        });
-      });
-    });
-
-    // إضافة الحلقات الثابتة للمجموعات
-    groups.forEach(group => {
-      if (!group) return;
-      if (Array.isArray(group.schedule)) {
-        group.schedule.forEach(sched => {
-          if (!sched || !sched.day || !sched.time) return;
-          entries.push({
-            mode: "group",
-            id: group.id,
-            name: `مجموعة: ${group.name || "بدون اسم"}`,
-            gender: "group",
-            day: sched.day,
-            time: sched.time,
-            type: sched.type || "قرآن",
-            sessionType: sched.sessionType || "quran",
-            icon: "ph-users-three",
-            color: "-amber",
-            participants: group.studentIds || []
-          });
-        });
-      }
-    });
-
-    return entries;
+    if (window.secretaryService) {
+      return window.secretaryService.getScheduleEntries(window.appState?.students || [], window.appState?.groups || []);
+    }
+    return [];
   }
 
   function findSessionForOccurrence(mode, id, dateStr) {
-    const sessions = window.appState?.sessions || [];
-    return sessions.find(s => {
-      if (!s || !s.date || !s.date.startsWith(dateStr)) return false;
-      if (mode === "individual") return s.studentId === id;
-      if (mode === "group") return s.groupId === id;
-      return false;
-    }) || null;
+    if (window.secretaryService) {
+      return window.secretaryService.findSessionForOccurrence(window.appState?.sessions || [], mode, id, dateStr);
+    }
+    return null;
   }
 
   function generateOccurrences() {
-    const entries = getScheduleEntries();
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const occurrences = [];
-
-    // البحث في الأيام السابقة (الحلقات الأساسية والمؤجلة)
-    for (let back = 0; back <= OCCURRENCE_LOOKBACK_DAYS; back++) {
-      const occDate = addDays(now, -back);
-      const occDateStr = dateToStr(occDate);
-      const dayName = DAYS_AR[occDate.getDay()];
-
-      // 1- رصد الحلقات الأساسية في هذا اليوم
-      entries.forEach(entry => {
-        if (normalizeArabic(entry.day) !== normalizeArabic(dayName)) return;
-        if (findSessionForOccurrence(entry.mode, entry.id, occDateStr)) return;
-
-        const sessionMinutes = timeToMinutes(entry.time);
-        occurrences.push({
-          ...entry,
-          dateStr: occDateStr,
-          minutes: sessionMinutes,
-          daysAgo: back,
-          taskKey: `${entry.mode}-${entry.id}-${occDateStr}`,
-          isToday: back === 0
-        });
+    if (window.secretaryService) {
+      return window.secretaryService.generateOccurrences({
+        students: window.appState?.students || [],
+        groups: window.appState?.groups || [],
+        sessions: window.appState?.sessions || [],
+        tempSchedules: window.appState?.tempSchedules || [],
+        now: new Date()
       });
-
-      // 2- رصد الحلقات التعويضية المؤقتة (إن وجدت في هذا اليوم)
-      if (Array.isArray(window.appState?.tempSchedules)) {
-        window.appState.tempSchedules.forEach((tempSched, index) => {
-          if (tempSched.tempDateStr !== occDateStr) return; // بنستدعيها في تاريخ التأجيل فقط
-          if (findSessionForOccurrence(tempSched.mode, tempSched.id, occDateStr)) return; // لو اتعملت خلاص مبتظهرش
-
-          const sessionMinutes = timeToMinutes(tempSched.tempTimeStr);
-          occurrences.push({
-            mode: tempSched.mode,
-            id: tempSched.id,
-            name: tempSched.name + " (تعويضية ⏳)",
-            gender: tempSched.gender,
-            day: dayName,
-            time: tempSched.tempTimeStr,
-            type: tempSched.type,
-            sessionType: tempSched.sessionType,
-            icon: tempSched.icon,
-            color: tempSched.color,
-            participants: tempSched.participants || [],
-            dateStr: occDateStr,
-            minutes: sessionMinutes,
-            daysAgo: back,
-            taskKey: `temp-${tempSched.mode}-${tempSched.id}-${occDateStr}`,
-            isToday: back === 0
-          });
-        });
-      }
     }
-
-    const upcoming = [];
-    const current = [];
-    const late = [];
-
-    occurrences.forEach(occ => {
-      if (occ.isToday) {
-        if (currentMinutes >= occ.minutes - GRACE_MINUTES) current.push(occ);
-        else upcoming.push(occ);
-      } else if (occ.daysAgo >= LATE_AFTER_DAYS) {
-        late.push(occ);
-      } else {
-        current.push(occ);
-      }
-    });
-
-    upcoming.sort((a, b) => a.minutes - b.minutes);
-    current.sort((a, b) => (a.daysAgo - b.daysAgo) || (a.minutes - b.minutes));
-    late.sort((a, b) => b.daysAgo - a.daysAgo);
-
-    return { upcoming, current, late };
+    return { upcoming: [], current: [], late: [] };
   }
 
   function getPendingReportSessions() {
-    const sessions = (window.appState?.sessions || []).filter(s => s && s.isReportPending === true);
-    sessions.sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
-    return sessions.map((s, idx) => ({
-      ...s,
-      _locked: idx !== 0,
-      _daysOld: Math.floor((Date.now() - new Date(s.date || Date.now()).getTime()) / 86400000)
-    }));
+    if (window.secretaryService) {
+      return window.secretaryService.getPendingReportSessions(window.appState?.sessions || []);
+    }
+    return [];
   }
 
   function computeSessionStatus(s) {
-    if (!s) return "cancelled";
-    if (s.cancelled) return "cancelled";
-    if (s.attendance === "absent_excused") return "absent_excused";
-    if (s.attendance === "absent_unexcused") return "absent_unexcused";
-    return s.isReportPending ? "attendance_recorded" : "completed";
+    if (window.secretaryService) {
+      return window.secretaryService.computeSessionStatus(s);
+    }
+    return "cancelled";
   }
 
-  const STATUS_META = {
+  const STATUS_META = window.secretaryService?.STATUS_META || {
     scheduled:            { label: "مجدولة",            color: "var(--ink-3)" },
     pending_confirmation: { label: "بانتظار التأكيد",      color: "var(--amber)" },
     attendance_recorded:  { label: "تم احتساب الحضور",    color: "var(--accent)" },
@@ -284,88 +126,48 @@
   };
 
   function computeKPIs(tasks, pendingReports) {
-    const now = new Date();
-    const monthKey = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-    const sessions = window.appState?.sessions || [];
-
-    const completedThisMonth = sessions.filter(s => {
-      if (!s || !s.date || !s.date.startsWith(monthKey)) return false;
-      return computeSessionStatus(s) === "completed";
-    }).length;
-
-    return {
-      current: tasks.current.length,
-      unrecordedReports: pendingReports.length,
-      upcoming: tasks.upcoming.length,
-      late: tasks.late.length,
-      completedThisMonth
-    };
+    if (window.secretaryService) {
+      return window.secretaryService.computeKPIs(tasks, pendingReports, window.appState?.sessions || [], new Date());
+    }
+    return { current: 0, unrecordedReports: 0, upcoming: 0, late: 0, completedThisMonth: 0 };
   }
 
   function buildLogEvents(tasks) {
-    const events = [];
-
-    tasks.upcoming.forEach(occ => {
-      let tsVal = new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime();
-      events.push({
-        ts: isNaN(tsVal) ? Date.now() : tsVal,
-        name: occ.name,
-        sub: `حصة ${occ.type} · ${occ.time}`,
-        statusKey: "scheduled",
-        isLateReport: false,
-        hasPartialAbsence: false
+    if (window.secretaryService) {
+      return window.secretaryService.buildLogEvents({
+        tasks,
+        sessions: window.appState?.sessions || [],
+        students: window.appState?.students || []
       });
-    });
-
-    tasks.current.concat(tasks.late).forEach(occ => {
-      let tsVal = new Date(`${occ.dateStr}T${minutesToTimeStr(occ.minutes)}`).getTime();
-      events.push({
-        ts: isNaN(tsVal) ? Date.now() : tsVal,
-        name: occ.name,
-        sub: `حصة ${occ.type} · ${occ.time} · ${daysAgoLabel(occ.daysAgo)}`,
-        statusKey: "pending_confirmation",
-        isLateReport: false,
-        hasPartialAbsence: false
-      });
-    });
-
-    (window.appState?.sessions || []).forEach(s => {
-      if (!s) return;
-      const statusKey = computeSessionStatus(s);
-      const sDate = s.date ? new Date(s.date) : new Date();
-      const daysOld = Math.floor((Date.now() - sDate.getTime()) / 86400000);
-      const isGroup = !!s.groupId;
-      const name = isGroup ? `مجموعة: ${s.groupName || ""}` : getStudentName(s.studentId);
-      const partial = isGroup && Array.isArray(s.participants) && s.participants.some(p => p && (p.attendance === "absent_excused" || p.attendance === "absent_unexcused"));
-
-      let sub = `حصة ${s.sessionType === "islamic" ? "تربية" : "قرآن"}`;
-      if (partial) {
-        const exCount = s.participants.filter(p => p && p.attendance === "absent_excused").length;
-        const unCount = s.participants.filter(p => p && p.attendance === "absent_unexcused").length;
-        sub += ` · غياب: ${exCount} بعذر / ${unCount} بدون عذر`;
-      }
-
-      events.push({
-        ts: isNaN(sDate.getTime()) ? Date.now() : sDate.getTime(),
-        name,
-        sub,
-        statusKey,
-        isLateReport: statusKey === "attendance_recorded" && daysOld >= REPORT_LATE_AFTER_DAYS,
-        hasPartialAbsence: partial
-      });
-    });
-
-    events.sort((a, b) => b.ts - a.ts);
-    return events;
+    }
+    return [];
   }
 
   function filterLogEvents(events, filter) {
-    switch (filter) {
-      case "completed": return events.filter(e => e.statusKey === "completed");
-      case "incomplete": return events.filter(e => e.statusKey === "pending_confirmation");
-      case "late_reports": return events.filter(e => e.isLateReport);
-      case "absence": return events.filter(e => e.statusKey === "absent_excused" || e.statusKey === "absent_unexcused" || e.hasPartialAbsence);
-      default: return events;
+    if (window.secretaryService) {
+      return window.secretaryService.filterLogEvents(events, filter);
+    }
+    return events;
+  }
+
+  async function ensureSecretaryDataLoaded() {
+    if (!window.sessionRepository) return;
+    try {
+      const [windowSessions, pendingSessions] = await Promise.all([
+        window.sessionRepository.getSecretaryWindowSessions(14),
+        window.sessionRepository.getPendingReportSessions(),
+      ]);
+
+      const map = new Map();
+      (window.appState?.sessions || []).forEach(s => s && s.id && map.set(s.id, s));
+      windowSessions.forEach(s => s && s.id && map.set(s.id, s));
+      pendingSessions.forEach(s => s && s.id && map.set(s.id, s));
+
+      if (!window.appState) window.appState = {};
+      window.appState.sessions = Array.from(map.values());
+      if (typeof router !== "undefined") router.render();
+    } catch (err) {
+      console.error("Error loading secretary sessions:", err);
     }
   }
 
@@ -376,7 +178,7 @@
     window.appState.sessions.push(session);
 
     if (window.dbModule && typeof window.dbModule.addSession === "function") {
-      window.dbModule.addSession(session).catch(err => console.error(err));
+      window.dbModule.addSession(sessionData).catch(err => console.error(err));
     }
     showToastSafe("تم تسجيل الجلسة بنجاح");
     return session;
@@ -1302,6 +1104,10 @@
     } catch(e) {
       // صمت عشان ميملاش الكونسول
     }
+  };
+
+  window.initSecretaryPage = function () {
+    ensureSecretaryDataLoaded();
   };
 
   // 5. التشغيل المستمر (Heartbeat): 

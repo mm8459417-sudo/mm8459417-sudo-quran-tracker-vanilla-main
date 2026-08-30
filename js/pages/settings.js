@@ -11,28 +11,50 @@
     if (window.appState.settings.darkMode === undefined) window.appState.settings.darkMode = false;
   }
 
+  function persistSettingsLocal() {
+    if (window.teacherSettingsService && window.appState && window.appState.settings) {
+      window.teacherSettingsService.cachePreferences(window.appState.settings);
+    } else {
+      try {
+        if (window.appState && window.appState.settings) {
+          localStorage.setItem('appState', JSON.stringify({ settings: window.appState.settings }));
+        }
+      } catch(e) {
+        console.error("Error saving settings to local storage", e);
+      }
+    }
+  }
+
   window.updateSetting = function (key, value) {
     initThemeState();
     window.appState.settings[key] = value;
+    persistSettingsLocal();
     if (typeof saveData === 'function') saveData();
   };
 
   window.updateThemeColor = function (color) {
     initThemeState();
     window.appState.settings.themeColor = color;
+    persistSettingsLocal();
     if (typeof saveData === 'function') saveData();
     applyTheme();
+    if (window.teacherRepository) {
+      window.teacherRepository.updatePreferences({ themeColor: color }).catch(e => console.error(e));
+    }
   };
 
  window.toggleDarkMode = function (isDark) {
     initThemeState();
     window.appState.settings.darkMode = isDark;
+    persistSettingsLocal();
     if (typeof saveData === 'function') saveData();
     
     applyTheme();
     
-    if (window.dbModule && window.dbModule.saveSettings) {
-        window.dbModule.saveSettings(window.appState.settings).catch(e => console.error(e));
+    if (window.teacherRepository) {
+      window.teacherRepository.updatePreferences({ darkMode: isDark }).catch(e => console.error(e));
+    } else if (window.dbModule && window.dbModule.saveSettings) {
+      window.dbModule.saveSettings(window.appState.settings).catch(e => console.error(e));
     }
   };
 
@@ -41,9 +63,7 @@
     const currentState = !!window.appState.settings.darkMode;
     const newState = !currentState;
     window.toggleDarkMode(newState);
-    try {
-      localStorage.setItem('appState', JSON.stringify(window.appState));
-    } catch(e) { console.error("Error saving theme to local storage"); }
+    persistSettingsLocal();
     const settingsSwitch = document.querySelector('input[type="checkbox"][onchange*="toggleDarkMode"]');
     if (settingsSwitch) {
         settingsSwitch.checked = newState;
@@ -355,7 +375,21 @@
     
     if (isEdit) {
       const idx = window.appState.students.findIndex(s => s.id === form.editId);
-      if(idx !== -1) Object.assign(window.appState.students[idx], payload);
+      if(idx !== -1) {
+        const existingStudent = window.appState.students[idx];
+        const oldLimit = existingStudent.sessionLimit || window.appState.settings?.defaultLimit || 12;
+        const newLimit = payload.sessionLimit;
+        
+        // عند تغيير سعة الباقة يتم إعادة ضبط موضع الجلسة الحالية وفق قواعد الـ Lifecycle
+        if (newLimit > 0 && oldLimit > 0 && newLimit !== oldLimit) {
+          const currentPos = existingStudent.currentPackageNum || 0;
+          if (currentPos > 0 && window.sessionLifecycle && typeof window.sessionLifecycle.calculatePositionUnderNewLimit === "function") {
+            payload.currentPackageNum = window.sessionLifecycle.calculatePositionUnderNewLimit(currentPos, newLimit);
+          }
+        }
+        
+        Object.assign(window.appState.students[idx], payload);
+      }
     } else {
       window.appState.students.push({ ...payload, id: tempId });
     }
@@ -652,18 +686,35 @@
     showToast("تم حفظ الباقة بنجاح");
 
     try {
-      await dbModule.saveSettings(window.appState.settings);
+      if (window.teacherRepository) {
+        await window.teacherRepository.updateBusinessDefaults({
+          packages: window.appState.settings.packages,
+          packagesJSON: window.appState.settings.packagesJSON
+        });
+      } else {
+        await dbModule.saveSettings(window.appState.settings);
+      }
       
       touchedStudentIds.forEach((id) => {
         const stu = (window.appState.students || []).find(s => s.id === id);
         if (!stu) return;
-        dbModule.updateStudent(id, {
-          packageId: stu.packageId,
-          individualPackageId: stu.individualPackageId,
-          groupPackageId: stu.groupPackageId,
-          sessionPrice: stu.sessionPrice,
-          groupSessionPrice: stu.groupSessionPrice
-        }).catch(e => console.error(e));
+        if (window.studentRepository) {
+          window.studentRepository.updateStudent(id, {
+            packageId: stu.packageId,
+            individualPackageId: stu.individualPackageId,
+            groupPackageId: stu.groupPackageId,
+            sessionPrice: stu.sessionPrice,
+            groupSessionPrice: stu.groupSessionPrice
+          }).catch(e => console.error(e));
+        } else {
+          dbModule.updateStudent(id, {
+            packageId: stu.packageId,
+            individualPackageId: stu.individualPackageId,
+            groupPackageId: stu.groupPackageId,
+            sessionPrice: stu.sessionPrice,
+            groupSessionPrice: stu.groupSessionPrice
+          }).catch(e => console.error(e));
+        }
       });
     } catch (err) {
       console.error(err);
@@ -683,7 +734,14 @@
       router.render();
       showToast("تم حذف الباقة بنجاح");
       try {
-        await dbModule.saveSettings(window.appState.settings); 
+        if (window.teacherRepository) {
+          await window.teacherRepository.updateBusinessDefaults({
+            packages,
+            packagesJSON: window.appState.settings.packagesJSON
+          });
+        } else {
+          await dbModule.saveSettings(window.appState.settings);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -709,7 +767,17 @@
     showToast("تم حفظ الإعدادات الأساسية");
 
     try {
-      await dbModule.saveSettings(window.appState.settings);
+      if (window.teacherRepository) {
+        await window.teacherRepository.saveTeacherDoc({
+          teacherName,
+          accountingPhone,
+          centerName,
+          packagesJSON: window.appState.settings.packagesJSON,
+          packages: ensurePackagesExist()
+        });
+      } else {
+        await dbModule.saveSettings(window.appState.settings);
+      }
     } catch (err) {
       console.error(err);
     }

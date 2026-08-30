@@ -1,28 +1,52 @@
+// ============================================================
+// صفحة سجلات الطلاب (History Page)
+// استعلامات مؤطرة لكل طالب، دعم الحلقات الفردية والجماعية وإدارة الباقات
+// ============================================================
+
 (function () {
-  window.openHistoryStudent = function (id) {
+  window.openHistoryStudent = async function (id) {
     appState.ui.historyStudentId = id;
+    appState.ui.historyLoading = true;
     router.render();
+
+    try {
+      if (window.sessionRepository) {
+        const sessions = await window.sessionRepository.getAllSessionsForStudent(id);
+        appState.currentStudentSessions = sessions;
+      }
+    } catch (err) {
+      console.error("Error loading student history:", err);
+      showToast("خطأ أثناء تحميل سجل الطالب");
+    } finally {
+      appState.ui.historyLoading = false;
+      router.render();
+    }
   };
 
   window.backToHistoryList = function () {
     appState.ui.historyStudentId = null;
+    appState.currentStudentSessions = null;
     router.render();
   };
 
-  // 🔥 النسخة الجديدة والمطورة من دالة التعديل (بتحافظ على رقم الجلسة وكل الداتا 100%)
-  window.editPastSession = function (id) {
-    const session = appState.sessions.find((s) => s.id === id);
+  window.editPastSession = async function (id) {
+    let session = (appState.currentStudentSessions || []).find((s) => s.id === id);
+    if (!session && appState.sessions) {
+      session = appState.sessions.find((s) => s.id === id);
+    }
+    if (!session && window.sessionRepository) {
+      session = await window.sessionRepository.getSession(id);
+    }
     if (!session) return;
 
     appState.activeTab = "form";
     appState.ui.editSessionId = id;
 
-    // تجهيز الداتا وإرسالها للفورم بدون أي فقدان للمعلومات
     appState.ui.sessionForm = {
       scope: session.mode === "group" ? "group" : "individual",
       studentId: session.studentId || "",
       groupId: session.groupId || "",
-      sessionNumber: session.packageSessionNum || 1, // ✅ حل مشكلة تصفير رقم الحلقة
+      sessionNumber: session.packageSessionNum || 1,
       date: session.date ? session.date.split("T")[0] : new Date().toISOString().split("T")[0],
       sessionType: session.sessionType || "quran",
       
@@ -37,10 +61,10 @@
       islamic: session.islamic ? JSON.parse(JSON.stringify(session.islamic)) : {
         categories: [],
         behavior: { attention: 0, interaction: 0 },
-        homework: [] // ✅ حل مشكلة اختفاء الواجبات
+        homework: []
       },
       
-      group: session.groupForm ? JSON.parse(JSON.stringify(session.groupForm)) : { sync: true, rows: {} }, // ✅ حل مشكلة هيكل المجموعات
+      group: session.groupForm ? JSON.parse(JSON.stringify(session.groupForm)) : { sync: true, rows: {} },
     };
 
     appState.ui.selectedStudentId = session.studentId || "";
@@ -52,31 +76,68 @@
   };
 
   window.deleteSession = async function (id) {
-    if (!window.confirm("هل تريد حذف الجلسة؟")) return;
+    if (!window.confirm("هل تريد حذف هذه الجلسة؟")) return;
+
+    let reorder = false;
+    let session = (appState.currentStudentSessions || []).find((s) => s.id === id);
+    if (!session && window.sessionRepository) {
+      session = await window.sessionRepository.getSession(id);
+    }
+
+    const isWithinWindow = session && window.sessionLifecycle
+      ? window.sessionLifecycle.isWithinHistoricalWindow(session.date || session.createdAt)
+      : true;
+
+    if (isWithinWindow) {
+      reorder = window.confirm("هل تريد إعادة ترتيب أرقام الجلسات المتبقية في الباقة تلقائياً؟\n(اضغط موافق لإعادة الترتيب، أو إلغاء للاحتفاظ بالأرقام الحالية)");
+    }
+
     try {
-      await dbModule.deleteSession(id);
-      showToast("تم حذف الجلسة");
+      if (window.sessionLifecycle) {
+        await window.sessionLifecycle.deleteSession(id, { reorder });
+      } else if (window.dbModule) {
+        await window.dbModule.deleteSession(id, { reorder });
+      }
+      showToast("تم حذف الجلسة بنجاح");
+
+      if (appState.ui.historyStudentId) {
+        await window.openHistoryStudent(appState.ui.historyStudentId);
+      } else {
+        router.render();
+      }
     } catch (err) {
+      console.error("Delete session error:", err);
       showToast("خطأ أثناء الحذف");
     }
   };
 
-  // دالة مخصصة لفتح وقفل الأكورديون (Slide Toggle)
+  window.reorderStudentPackage = async function (studentId) {
+    if (!window.confirm("هل تريد إعادة ترتيب ترقيم باقة هذا الطالب تصاعدياً للجلسات المسجلة خلال آخر 31 يوماً؟")) return;
+
+    try {
+      if (window.sessionLifecycle) {
+        await window.sessionLifecycle.manualReorderStudentPackage(studentId);
+        showToast("تمت إعادة ترتيب الباقة بنجاح");
+        await window.openHistoryStudent(studentId);
+      }
+    } catch (err) {
+      console.error("Reorder error:", err);
+      showToast("خطأ أثناء إعادة الترتيب");
+    }
+  };
+
   window.toggleHistoryAccordion = function(headerElement) {
     const content = headerElement.nextElementSibling;
     const icon = headerElement.querySelector('.acc-icon');
     
-    // لو مفتوح اقفله
     if (content.style.maxHeight) {
       content.style.maxHeight = null;
       content.style.paddingTop = "0";
       content.style.paddingBottom = "0";
       icon.style.transform = "rotate(0deg)";
       headerElement.classList.remove('active');
-    } 
-    // لو مقفول افتحه
-    else {
-      content.style.maxHeight = content.scrollHeight + 100 + "px"; // 100 بكسل احتياطي
+    } else {
+      content.style.maxHeight = content.scrollHeight + 100 + "px";
       content.style.paddingTop = "15px";
       content.style.paddingBottom = "15px";
       icon.style.transform = "rotate(180deg)";
@@ -97,15 +158,17 @@
 
     return `<div style="display:flex;flex-direction:column;gap:var(--sp-3);">${appState.students
       .map((s) => {
-        const allSessions = getStudentSessions(s.id);
-        const count = allSessions.length;
-        const limit = s.sessionLimit || appState.settings.defaultLimit || 12;
-        
-        // حساب الباقات على الأساس الكلي (فردي + جماعي) للعرض الخارجي
-        const pkgCount = count % limit === 0 && count > 0 ? limit : count % limit;
-        const pct = limit ? Math.round((pkgCount / limit) * 100) : 0;
-        
-        const last = allSessions.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        const defaultLimit = appState.settings?.defaultLimit || 12;
+        const summary = window.reportService
+          ? window.reportService.calculateStudentHistorySummary(s, defaultLimit)
+          : {
+              count: typeof s.totalConsumedSessions === "number" ? s.totalConsumedSessions : 0,
+              limit: s.sessionLimit || defaultLimit,
+              currentPkgNum: typeof s.currentPackageNum === "number" && s.currentPackageNum > 0 ? s.currentPackageNum : 0,
+              pct: 0
+            };
+        const { count, limit, currentPkgNum, pct } = summary;
+        const lastDateStr = s.lastSessionDate ? (formatArDate(s.lastSessionDate) || s.lastSessionDate.split("T")[0]) : null;
 
         return `
           <div class="card-soft hover-elevation" style="cursor:pointer;" onclick="openHistoryStudent('${s.id}')">
@@ -117,13 +180,13 @@
                 <div>
                   <div style="font-size:16px;">${s.name}</div>
                   <div style="font-size:12px;color:var(--text-muted);font-weight:500;">
-                    ${last ? `<i class="ph-duotone ph-clock" style="margin-left:2px;"></i> ${last.dateAr || formatArDate(last.date)}` : "لا توجد جلسات"}
+                    ${lastDateStr ? `<i class="ph-duotone ph-clock" style="margin-left:2px;"></i> ${lastDateStr}` : "لا توجد جلسات حديثة"}
                   </div>
                 </div>
               </div>
               <div style="text-align:left;">
                 <span class="badge-soft badge-emerald" style="margin-bottom:6px;display:inline-block;">إجمالي: ${count} جلسة</span>
-                <div style="font-size:12px;color:var(--text-muted);font-weight:600;">باقة: ${pkgCount} / ${limit}</div>
+                <div style="font-size:12px;color:var(--text-muted);font-weight:600;">باقة: ${currentPkgNum} / ${limit}</div>
               </div>
             </div>
             <div style="position:relative;height:6px;background:rgba(15,157,122,0.1);border-radius:var(--r-full);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,0.05);">
@@ -137,23 +200,25 @@
       .join("")}</div>`;
   }
 
-  // دالة مساعدة لطباعة كارت الجلسة
   function renderSessionCard(s) {
-    const packageNum = s.mode === "group" ? s.participant?.packageSessionNum : s.packageSessionNum;
+    const isAbsent = s.attendance === "absent_excused" || s.attendance === "absent_unexcused" || (s.participant && s.participant.present === false);
+    const packageNum = isAbsent ? "غياب" : (s.mode === "group" ? s.participant?.packageSessionNum : s.packageSessionNum);
     const groupLabel = s.mode === "group" ? s.groupName || "" : "";
-    const quranDetails = s.mode === "group" && s.participant?.quran ? s.participant.quran : s;
-    const borderColor = s.sessionType === "islamic" ? "var(--gold)" : "var(--emerald)";
+    const quranDetails = s.mode === "group" && s.participant?.quran ? s.participant.quran : s.quran || s;
+    const borderColor = isAbsent ? "var(--red, #ef4444)" : (s.sessionType === "islamic" ? "var(--gold)" : "var(--emerald)");
 
     return `
       <div class="card-soft hover-elevation mb-3" style="position:relative;overflow:hidden;">
         <div style="position:absolute;top:0;bottom:0;right:0;width:4px;background:${borderColor};border-radius:0;"></div>
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="d-flex gap-2" style="flex-wrap:wrap;">
-            <span class="badge-soft" style="background:rgba(255,255,255,0.7);border:1px solid rgba(0,0,0,0.05);">حصة ${packageNum || "-"}</span>
+            <span class="badge-soft" style="background:${isAbsent ? '#fee2e2; color:#b91c1c;' : 'rgba(255,255,255,0.7);border:1px solid rgba(0,0,0,0.05);'}">
+              ${isAbsent ? (s.attendance === "absent_excused" ? "غياب بعذر" : "غياب بدون عذر") : `حصة ${packageNum || "-"}`}
+            </span>
             <span class="badge-soft ${s.sessionType === "islamic" ? "badge-gold" : "badge-emerald"}">${s.sessionType === "islamic" ? "<i class='ph-duotone ph-books' style='margin-left:4px;'></i>تربية إسلامية" : "<i class='ph-duotone ph-book-open-text' style='margin-left:4px;'></i>قرآن كريم"}</span>
             ${groupLabel ? `<span class="badge-soft" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;"><i class='ph-duotone ph-users' style='margin-left:4px;'></i>${groupLabel}</span>` : ""}
           </div>
-          <div style="font-size:13px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:4px;"><i class="ph-duotone ph-calendar-check"></i> ${s.dateAr || formatArDate(s.date)}</div>
+          <div style="font-size:13px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:4px;"><i class="ph-duotone ph-calendar-check"></i> ${s.dateAr || formatArDate(s.date) || s.date}</div>
         </div>
 
         ${s.sessionType === "islamic" ? `
@@ -165,16 +230,16 @@
           </div>
         ` : `
           <div style="display:flex;flex-direction:column;gap:8px;padding:12px;background:rgba(255,255,255,0.5);border-radius:12px;font-size:14px;color:var(--text-secondary);">
-            ${quranDetails?.hifz?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-star" style="color:var(--emerald);"></i><strong>تسميع:</strong> ${quranDetails.hifz.surah} (${quranDetails.hifz.from}-${quranDetails.hifz.to})</div>` : ""}
-            ${quranDetails?.recent?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-arrows-clockwise" style="color:#0284c7;"></i><strong>قريب:</strong> ${quranDetails.recent.surah} (${quranDetails.recent.from}-${quranDetails.recent.to})</div>` : ""}
-            ${quranDetails?.distant?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-clock" style="color:#92400e;"></i><strong>بعيد:</strong> ${quranDetails.distant.surah} (${quranDetails.distant.from}-${quranDetails.distant.to})</div>` : ""}
+            ${quranDetails?.hifz?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-star" style="color:var(--emerald);"></i><strong>تسميع:</strong> ${quranDetails.hifz.surah} (${quranDetails.hifz.from || 1}-${quranDetails.hifz.to || 1})</div>` : ""}
+            ${quranDetails?.recent?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-arrows-clockwise" style="color:#0284c7;"></i><strong>قريب:</strong> ${quranDetails.recent.surah} (${quranDetails.recent.from || 1}-${quranDetails.recent.to || 1})</div>` : ""}
+            ${quranDetails?.distant?.surah ? `<div style="display:flex;align-items:center;gap:6px;"><i class="ph-duotone ph-clock" style="color:#92400e;"></i><strong>بعيد:</strong> ${quranDetails.distant.surah} (${quranDetails.distant.from || 1}-${quranDetails.distant.to || 1})</div>` : ""}
           </div>
         `}
 
         <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top:1px dashed rgba(0,0,0,0.05);">
           <div style="display:flex;align-items:center;gap:6px;font-weight:700;color:var(--text-primary);">
             <span style="color:var(--gold);font-size:18px;"><i class="ph-fill ph-star"></i></span>
-            التقييم: ${s.overall || 0}
+            التقييم: ${s.overall || (s.participant && s.participant.overall) || 0}
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-outline btn-sm" onclick="editPastSession('${s.id}')">
@@ -190,25 +255,30 @@
   }
 
   function renderStudentTimeline(student) {
-    const allSessions = getStudentSessions(student.id).sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
-    );
+    if (appState.ui.historyLoading) {
+      return `
+        <div style="text-align:center; padding:40px; color:var(--text-muted);">
+          <div class="spinner mb-2"></div>
+          <div>جاري تحميل سجلات الجلسات...</div>
+        </div>
+      `;
+    }
+
+    const allSessions = appState.currentStudentSessions || [];
 
     if (!allSessions.length) {
       return `
         <div class="elite-empty-state">
           <div class="elite-empty-icon"><i class="ph-duotone ph-clock"></i></div>
-          <div class="elite-empty-title">لا توجد جلسات</div>
+          <div class="elite-empty-title">لا توجد جلسات مسجلة</div>
           <div class="elite-empty-desc">لم يتم تسجيل أي جلسة لهذا الطالب حتى الآن.</div>
         </div>
       `;
     }
 
-    // فصل الداتا (فردي وجماعي)
-    const individualSessions = allSessions.filter(s => s.mode === "individual");
-    const groupSessions = allSessions.filter(s => s.mode === "group");
+    const individualSessions = allSessions.filter((s) => s.mode !== "group");
+    const groupSessions = allSessions.filter((s) => s.mode === "group");
 
-    // ستايلز خاصة بالأكورديون
     const accStyles = `
       <style>
         .acc-header {
@@ -247,20 +317,17 @@
       </style>
     `;
 
-    // رسم القسم الفردي
     let indContent = individualSessions.length > 0 
-      ? individualSessions.map(s => renderSessionCard(s)).join("")
+      ? individualSessions.map((s) => renderSessionCard(s)).join("")
       : `<div style="text-align:center; padding:20px; color:#94a3b8; font-size:14px; font-weight:bold;">لا توجد حلقات فردية مسجلة.</div>`;
 
-    // رسم القسم الجماعي
     let grpContent = groupSessions.length > 0 
-      ? groupSessions.map(s => renderSessionCard(s)).join("")
+      ? groupSessions.map((s) => renderSessionCard(s)).join("")
       : `<div style="text-align:center; padding:20px; color:#94a3b8; font-size:14px; font-weight:bold;">لا توجد حلقات جماعية مسجلة.</div>`;
 
     return `
       ${accStyles}
       <div style="display:flex;flex-direction:column;">
-        
         <div>
           <div class="acc-header" onclick="toggleHistoryAccordion(this)">
             <div style="display:flex; align-items:center; gap:12px;">
@@ -302,7 +369,6 @@
             ${grpContent}
           </div>
         </div>
-
       </div>
     `;
   }
@@ -330,7 +396,7 @@
 
     return `
       <div>
-        <div class="d-flex justify-content-between align-items-center mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
           <div class="d-flex align-items-center gap-3">
             <div style="width:40px;height:40px;border-radius:var(--r-md);background:var(--emerald-bg);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--emerald-dark);"><i class="ph-duotone ph-user"></i></div>
             <div>
@@ -338,10 +404,16 @@
               <div style="font-size:var(--fs-xs);color:var(--text-muted);">جميع الحصص والتفاصيل المنفصلة</div>
             </div>
           </div>
-          <button class="btn btn-outline" onclick="backToHistoryList()">
-            <i class="ph-bold ph-arrow-right" style="margin-left:8px;"></i>
-            رجوع
-          </button>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline btn-sm" onclick="reorderStudentPackage('${student.id}')" title="إعادة ترتيب ترقيم الباقة لآخر 31 يوماً">
+              <i class="ph-bold ph-arrows-down-up" style="margin-left:4px;"></i>
+              إعادة ترتيب الباقة
+            </button>
+            <button class="btn btn-outline" onclick="backToHistoryList()">
+              <i class="ph-bold ph-arrow-right" style="margin-left:8px;"></i>
+              رجوع
+            </button>
+          </div>
         </div>
         ${renderStudentTimeline(student)}
       </div>

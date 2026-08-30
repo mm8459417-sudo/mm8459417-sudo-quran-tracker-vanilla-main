@@ -1,0 +1,6 @@
+{
+  "name": "رفيق القرآن",
+  "description": "منصة ذكية لمتابعة حفظ ومراجعة القرآن الكريم بصورة منظمة وملهمة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
