@@ -190,26 +190,37 @@
       }
     }
 
-    // أرشفة طالب مع الحفاظ التام على الجلسات وإزالته من المجموعات النشطة
+    // أرشفة طالب بعملية ذرية موحدة (Atomic Multi-Document WriteBatch)
+    // تجمع أرشفة الطالب وإزالته من المجموعات النشطة في Batch واحد لمنع أي Partial Failure
     async archiveStudent(studentId, activeGroups = null) {
       if (!studentId) {
         return { success: false, error: "معرف الطالب مطلوب للأرشفة" };
       }
 
       try {
-        if (!window.studentRepository) {
-          throw new Error("StudentRepository غير متاح");
+        if (!window.studentRepository || !window.groupRepository) {
+          throw new Error("المستودعات غير متاحة");
         }
 
-        // 1. أرشفة الطالب في المستودع
-        const result = await window.studentRepository.archiveStudent(studentId);
+        if (typeof db === "undefined" || !db || typeof db.batch !== "function") {
+          throw new Error("قاعدة البيانات غير مهيأة للعمليات المجمعة");
+        }
 
-        // 2. الحصول على المجموعات النشطة تلقائياً إذا لم تُمرر
+        const timestampRaw = Date.now();
+        const studentUpdates = {
+          archived: true,
+          archivedAt: new Date(timestampRaw).toISOString(),
+          archivedAtTimestamp: timestampRaw,
+          updatedAt: timestampRaw,
+          schemaVersion: this.SCHEMA_VERSION || 2,
+        };
+
+        // 1. الحصول على المجموعات النشطة للتحقق من العضوية
         let groupsToCheck = activeGroups;
         if (!Array.isArray(groupsToCheck) || groupsToCheck.length === 0) {
           if (window.appState && Array.isArray(window.appState.groups)) {
             groupsToCheck = window.appState.groups.filter((g) => !g.archived);
-          } else if (window.groupRepository && typeof window.groupRepository.getGroups === "function") {
+          } else if (typeof window.groupRepository.getGroups === "function") {
             try {
               const allGroups = await window.groupRepository.getGroups();
               groupsToCheck = (allGroups || []).filter((g) => !g.archived);
@@ -219,21 +230,40 @@
           }
         }
 
-        // 3. إزالة الطالب من المجموعات النشطة إن وجدت للحفاظ على تكامل العضوية
-        if (Array.isArray(groupsToCheck) && window.groupRepository) {
+        // 2. بناء الـ WriteBatch الذري
+        const batch = db.batch();
+
+        // إضافة تحديث مستند الطالب للـ batch
+        const studentRef = window.studentRepository.getStudentsCollection().doc(studentId);
+        batch.update(studentRef, studentUpdates);
+
+        // إضافة تحديثات مستندات المجموعات النشطة المرتبطة
+        let modifiedGroupsCount = 0;
+        if (Array.isArray(groupsToCheck)) {
           for (const group of groupsToCheck) {
             if (group && Array.isArray(group.studentIds) && group.studentIds.includes(studentId)) {
               const updatedStudentIds = group.studentIds.filter((sid) => sid !== studentId);
-              await window.groupRepository.updateGroup(group.id, {
+              const groupRef = window.groupRepository.getGroupsCollection().doc(group.id);
+              batch.update(groupRef, {
                 studentIds: updatedStudentIds,
-              }).catch((e) => console.warn(`Could not remove student from group ${group.id}:`, e));
+                schemaVersion: this.SCHEMA_VERSION || 2,
+                updatedAt: timestampRaw,
+              });
+              modifiedGroupsCount++;
             }
           }
         }
 
-        return { success: true, studentId: result.id };
+        // 3. تنفيذ الـ Batch بشكل ذري كامل (Atomic Commit)
+        await batch.commit();
+
+        return {
+          success: true,
+          studentId: studentId,
+          groupsUpdatedCount: modifiedGroupsCount,
+        };
       } catch (err) {
-        console.error("Failed to archive student:", err);
+        console.error("Failed to archive student atomically:", err);
         return { success: false, error: err.message || "فشل أرشفة الطالب" };
       }
     }
