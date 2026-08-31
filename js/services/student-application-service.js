@@ -191,7 +191,7 @@
     }
 
     // أرشفة طالب مع الحفاظ التام على الجلسات وإزالته من المجموعات النشطة
-    async archiveStudent(studentId, activeGroups = []) {
+    async archiveStudent(studentId, activeGroups = null) {
       if (!studentId) {
         return { success: false, error: "معرف الطالب مطلوب للأرشفة" };
       }
@@ -204,9 +204,24 @@
         // 1. أرشفة الطالب في المستودع
         const result = await window.studentRepository.archiveStudent(studentId);
 
-        // 2. إزالة الطالب من المجموعات النشطة إن وجدت للحفاظ على تكامل العضوية
-        if (Array.isArray(activeGroups) && window.groupRepository) {
-          for (const group of activeGroups) {
+        // 2. الحصول على المجموعات النشطة تلقائياً إذا لم تُمرر
+        let groupsToCheck = activeGroups;
+        if (!Array.isArray(groupsToCheck) || groupsToCheck.length === 0) {
+          if (window.appState && Array.isArray(window.appState.groups)) {
+            groupsToCheck = window.appState.groups.filter((g) => !g.archived);
+          } else if (window.groupRepository && typeof window.groupRepository.getGroups === "function") {
+            try {
+              const allGroups = await window.groupRepository.getGroups();
+              groupsToCheck = (allGroups || []).filter((g) => !g.archived);
+            } catch (e) {
+              groupsToCheck = [];
+            }
+          }
+        }
+
+        // 3. إزالة الطالب من المجموعات النشطة إن وجدت للحفاظ على تكامل العضوية
+        if (Array.isArray(groupsToCheck) && window.groupRepository) {
+          for (const group of groupsToCheck) {
             if (group && Array.isArray(group.studentIds) && group.studentIds.includes(studentId)) {
               const updatedStudentIds = group.studentIds.filter((sid) => sid !== studentId);
               await window.groupRepository.updateGroup(group.id, {

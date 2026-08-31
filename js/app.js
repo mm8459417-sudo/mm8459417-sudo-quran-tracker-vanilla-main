@@ -111,7 +111,7 @@ window.getGroupById = function (id) {
 window.getGroupMembers = function (groupId) {
   const group = getGroupById(groupId);
   if (!group || !Array.isArray(group.studentIds)) return [];
-  return appState.students.filter((s) => group.studentIds.includes(s.id));
+  return (appState.students || []).filter((s) => !s.archived && group.studentIds.includes(s.id));
 };
 
 window.getStudentSessions = function (studentId) {
